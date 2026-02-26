@@ -28,10 +28,6 @@ that are included in the repository), the [issue templates](.github/ISSUE_TEMPLA
 
 🎉 You are now ready to start creating patches!
 
-[^1]: [Example README.md file](https://github.com/MorpheApp/morphe-patches/blob/main/README.md)
-[^2]: [Example issue templates](https://github.com/MorpheApp/morphe-patches/tree/main/.github/ISSUE_TEMPLATE)
-[^3]: [Example contribution guidelines](https://github.com/MorpheApp/morphe-patches/blob/main/CONTRIBUTING.md)
-
 ## 🧑‍💻 Usage
 
 To develop and release Morphe Patches using this template, some things need to be considered:
