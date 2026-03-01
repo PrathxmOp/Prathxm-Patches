@@ -34,8 +34,8 @@ To develop and release Morphe Patches using this template, some things need to b
 
 - Development starts in feature branches. Once a feature branch is ready, it is squashed and merged into the `dev` branch
 - The `dev` branch is merged into the `main` branch once it is ready for release
-- Semantic versioning is used to version Morphe Patches. Morphe Patches have a public API for other patches to use
-- Semantic commit messages are used for commits
+- Semantic versioning is used to version Morphe Patches.
+- [Semantic commit](https://kapeli.com/cheat_sheets/Semantic_Commits.docset/Contents/Resources/Documents/index) messages are used for commits
 - Commits on the `dev` branch and `main` branch are automatically released
 via the [release.yml](.github/workflows/release.yml) workflow, which is also responsible for generating the changelog
 and updating the version of Morphe Patches. It is triggered by pushing to the `dev` or `main` branch.
