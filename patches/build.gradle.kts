@@ -2,9 +2,9 @@ group = "app.template"
 
 patches {
     about {
-        name = "UserXYZ Morphe Patches"
+        name = "UserXYZ Patches"
         description = "Patches for apps I like"
-        source = "git@github.com:MorpheApp/morphe-patches-template.git"
+        source = "git@github.com:UserXYZ/morphe-patches.git"
         author = "Awesome dev"
         contact = "na"
         website = "na"
