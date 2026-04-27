@@ -3,6 +3,22 @@
 Template repository for Morphe Patches.
 
 &nbsp;
+## 🩹 Patches list
+
+<!-- PATCHES_START EXPANDED -->
+
+<!-- Do not modify this section by hand. The patch list is generated when release.yml creates a new release.
+     
+     If you wish for the patches list to be collapsed, then remove the word 'EXPANDED' from the comment tag above.
+
+     If you wish to manually keep this list updated then remove the PATCHES_START and PATCHES_END 
+     comment blocks entirely. -->
+
+#### A list of your patches will be automatically shown here after your first patches release is created.
+     
+<!-- PATCHES_END -->
+
+&nbsp;
 ## ❓ About
 
 This is a template to create a new Morphe Patches repository.
@@ -18,8 +34,9 @@ To start using this template, follow these steps:
 1. [Create a new repository using this template](https://github.com/new?template_name=morphe-patches-template&template_owner=MorpheApp)
 2. Set up the [build.gradle.kts](patches/build.gradle.kts) file (Specifically, the 
    [group of the project](patches/build.gradle.kts#L1), and the [About](patches/build.gradle.kts#L5-L11))
-3. Set up the [README.md](README.md) file[^1] (e.g, title, description, license, summary of the patches
-that are included in the repository), the [issue templates](.github/ISSUE_TEMPLATE)[^2]  and the [contribution guidelines](CONTRIBUTING.md)[^3]
+3. Set up the [README.md](README.md) file[^1] (e.g, title, description, license, 
+   summary of the patches that are included in the repository), the [issue templates](.github/ISSUE_TEMPLATE)[^2]
+   and the [contribution guidelines](CONTRIBUTING.md)[^3].
 4. Choose a name for your patches project. Keep in mind you must use a unique name that does not 
    imply or suggest authorship by the Morphe open source project. If unsure, then simply name these
    patches after yourself ("UserXYZ Morphe patches"). See the [NOTICE](NOTICE) for details. 
@@ -69,12 +86,12 @@ Or manually add this repository url as a patch source in Morphe: https://github.
 
 ### 📙 Contributing
 
-Thank you for considering contributing to UserXYZ Morphe Patches template.  
+Thank you for considering contributing to UserXYZ Morphe Patches.  
 You can find the contribution guidelines [here](CONTRIBUTING.md).
 
 ### 🛠️ Building
 
-To build UserXYZ Morphe Patches template,
+To build UserXYZ Morphe Patches,
 you can follow the [Morphe documentation](https://github.com/MorpheApp/morphe-documentation).
 
 ## 📜 License
