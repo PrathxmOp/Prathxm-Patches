@@ -2,7 +2,11 @@
 
 Template repository for Morphe Patches.
 
-&nbsp;
+## ❓ About
+
+This is a template to create a new Morphe Patches repository.
+TODO: Update this about section with a brief introduction/summary about this repo and what it offers.
+
 ## 🩹 Patches list
 
 <!-- PATCHES_START EXPANDED -->
@@ -15,32 +19,24 @@ Template repository for Morphe Patches.
      comment blocks entirely. -->
 
 #### A list of your patches will be automatically shown here after your first patches release is created.
-     
-<!-- PATCHES_END -->
 
 &nbsp;
-## ❓ About
-
-This is a template to create a new Morphe Patches repository.
-
-Morphe Patches template is based off the prior work of [ReVanced](https://github.com/ReVanced/revanced-patches-template).
-All modifications made by Morphe, along with their dates, can be found in the Git history.
-
 
 ## 🚀 Get started
 
 To start using this template, follow these steps:
 
-1. [Create a new repository using this template](https://github.com/new?template_name=morphe-patches-template&template_owner=MorpheApp)
-2. Set up the [build.gradle.kts](patches/build.gradle.kts) file (Specifically, the 
+1. [Setup](https://github.com/MorpheApp/morphe-documentation/blob/main/docs/morphe-development/README.md) your development environment including adding a GitHub PAT as described [here](https://github.com/MorpheApp/morphe-patcher/blob/main/docs/2_1_setup.md#-prepare-the-environment).
+2. [Create a new repository using this template](https://github.com/new?template_name=morphe-patches-template&template_owner=MorpheApp)
+3. Set up the [build.gradle.kts](patches/build.gradle.kts) file (Specifically, the 
    [group of the project](patches/build.gradle.kts#L1), and the [About](patches/build.gradle.kts#L5-L11))
-3. Set up the [README.md](README.md) file[^1] (e.g, title, description, license, 
+4. Set up the [README.md](README.md) file[^1] (e.g, title, description, license, 
    summary of the patches that are included in the repository), the [issue templates](.github/ISSUE_TEMPLATE)[^2]
    and the [contribution guidelines](CONTRIBUTING.md)[^3].
-4. Choose a name for your patches project. Keep in mind you must use a unique name that does not 
+5. Choose a name for your patches project. Keep in mind you must use a unique name that does not 
    imply or suggest authorship by the Morphe open source project. If unsure, then simply name these
    patches after yourself ("UserXYZ Morphe patches"). See the [NOTICE](NOTICE) for details. 
-5. (Optional): Add `patches-bundle.png` to the project if you want a custom icon to show in
+6. (Optional): Add `patches-bundle.png` to the project if you want a custom icon to show in
    Morphe Manager instead of your GitHub profile avatar.
 
 🎉 You are now ready to start creating patches!
@@ -77,6 +73,10 @@ The workflow uses the `publish` task to publish the release of Morphe Patches.
 
 Optionally you can include a button/link in this readme that users can click to add your 
 patches to Morphe (update the links below after creating your new patches repo):
+
+<!-- The patches end tag is intentionally placed here so the first release will cleanup 
+     this readme of all developer instructions above. -->
+<!-- PATCHES_END -->
 
 #### How to use these patches
 
