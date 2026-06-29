@@ -10,6 +10,11 @@ Prathxm Patches integrates the Stockfish chess engine directly into Chess.com on
 > **Why is the patch size so large?**
 > The patched APK will be significantly larger than the original app (by ~110MB). This is because we bundle the native **Stockfish 16.1 NNUE** engine binaries directly into the app so that game reviews and engine analysis can run entirely offline on your device, without relying on Chess.com servers.
 
+### 📙 App Requests
+
+> [!TIP]
+> **App Requests:** If you want to request support or patches for any other app, please open a request in the [GitHub Discussions](https://github.com/PrathxmOp/Prathxm-Patches/discussions) section rather than opening a GitHub Issue.
+
 ## ✨ Features
 
 ### 🔧 Engine & Analysis
@@ -71,13 +76,6 @@ Here is exactly what this patch provides and how it works:
 </details>
 
 <!-- PATCHES_END -->
-
-### 📙 Contributing
-
-Contributions are welcome! Please read the [contribution guidelines](CONTRIBUTING.md) before submitting a pull request.
-
-> [!TIP]
-> **App Requests:** If you want to request support or patches for any other app, please open a request in the [GitHub Discussions](https://github.com/PrathxmOp/Prathxm-Patches/discussions) section rather than opening a GitHub Issue.
 
 ### 🛠️ Patching
 
