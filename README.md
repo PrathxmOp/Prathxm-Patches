@@ -48,6 +48,7 @@ Prathxm Patches brings a native Stockfish chess engine directly into Chess.com o
 | ELO Limit | ❌ OFF |
 
 > All features are toggleable via long-press on the Chess.com logo.
+> You can also double-tap on the Chess.com logo to quickly hide or show all engine overlays (arrows, bars, and banners) instantly in-game.
 
 ## 🩹 Patches List
 
