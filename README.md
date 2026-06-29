@@ -69,15 +69,37 @@ Here is exactly what this patch does, what it does not do, and how it works:
 #### ✅ What is Fully Unlocked & Working (How to use it):
 * **Unlimited Free Game Analysis (The Bypass):** Bypasses Chess.com's 1-game-per-day limit on game reviews. 
   * **How it works:** When you tap "Game Review", the app usually contacts Chess.com servers (which blocks you if you used your free daily analysis). The patch **intercepts and redirects** this request to our **built-in, high-performance Stockfish 16.1 engine running locally on your device**.
-  * **Result:** It runs the analysis offline on your device and injects the results back into the native review UI. This gives you **unlimited, completely free game reviews** with move classifications, accuracy scores, and engine arrows, without querying Chess.com servers!
+  * **Result:** It runs the analysis offline on your device and injects the results back into the native review UI. This gives you **unlimited, completely free game reviews** with:
+    * 🏷️ **Move Classifications** — Brilliant 💡 / Best 🎯 / Great ✅ / Excellent ✨ / Good 👍 / Inaccuracy ⚠️ / Mistake ❌ / Blunder 💀
+    * 📊 **Accuracy Scores** — Per-player accuracy percentage (0–100%)
+    * 📈 **Dynamic Game Ratings** — Estimated per-game rating (200–2800) derived from accuracy, with Opening/Tactics/Endgame breakdowns
+    * ♟️ **Eval Scores** — Centipawn and mate-in evaluations for every position
+    * 📋 **Move Tallies** — Full count of each move category per player
 * **Complete Ads Removal:** Blocks and removes all banner advertisements, full-screen interstitial ads, and video promotions locally for a clean, premium, ad-free experience.
 * **Local Diamond Status & Badge Spoofing:** Spoofs your local profile to display the premium Diamond theme styling and UI badges in the app.
 
-#### ❌ What is Server-Authoritative (Cannot be patched):
+#### ❌ What is Server-Authoritative (Cannot be patched — yet):
 * **Official Server-Side Cloud Reviews:** Tapping the official cloud-based coach review queries their server databases. You must use the local Stockfish analysis board/review screen (which is what the patch redirects) for unlimited analysis.
-* **Server-Side Video Lessons & Puzzles:** Interactive video lessons and daily puzzle limits are served directly from Chess.com's databases and cannot be unlocked by client-side APK modifications.
+* **Server-Side Video Lessons & Puzzles:** Interactive video lessons and daily puzzle limits are served directly from Chess.com's databases — **free alternatives are being developed** (see Roadmap below).
 
 > **Note:** The main patch description in metadata is kept concise, but all Premium features and settings are fully compiled, active, and toggleable in the stealth settings menu.
+
+## 🗺️ Free Alternatives Roadmap
+
+We're building open-source replacements for Chess.com's premium features using free, legal data sources:
+
+| # | Feature | Status | Approach |
+|---|---------|--------|----------|
+| 1 | **Game Review** | ✅ Done | Local Stockfish 16.1 engine |
+| 2 | **Premium Status & Ads** | ✅ Done | Client-side patch |
+| 3 | **Lessons & Drills** | 🔜 Next | Paywall bypass (content already on device) |
+| 4 | **Unlimited Puzzles** | 📋 Planned | [Lichess Puzzle DB](https://database.lichess.org/#puzzles) (CC0, 4M+ puzzles) |
+| 5 | **Opening Explorer** | 📋 Planned | [Lichess Explorer API](https://explorer.lichess.ovh) (free) |
+| 6 | **Endgame Tablebase** | 📋 Planned | [Lichess Tablebase API](https://tablebase.lichess.ovh) + offline Syzygy |
+| 7 | **Coach Commentary** | 📋 Planned | Template-based explanations from Stockfish eval |
+| 8 | **Advanced Insights** | 📋 Planned | Local stats engine + paywall bypass |
+
+> All planned features use **legally free** data sources (CC0 licensed databases, public APIs, public domain tablebases).
 
 ## 🩹 Patches List
 

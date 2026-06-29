@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import kotlin.Unit;
+
 
 public class LocalAnalysisFlow {
     private static final String TAG = "LocalAnalysisFlow";
@@ -19,7 +19,7 @@ public class LocalAnalysisFlow {
     public static Object createFlow(final String pgn, final Object analysisDepthObj) {
         try {
             ClassLoader classLoader = StockfishExtension.class.getClassLoader();
-            Class<?> g74Class = Class.forName("android.view.inputmethod.g74");
+            Class<?> g74Class = Class.forName("com.google.android.g74");
 
             return Proxy.newProxyInstance(
                 classLoader,
@@ -31,7 +31,7 @@ public class LocalAnalysisFlow {
                             // args[0] is the flow collector (a84)
                             // args[1] is the continuation (o02)
                             runCollect(pgn, analysisDepthObj, args[0], args[1]);
-                            return Unit.INSTANCE;
+                            return getUnitInstance();
                         }
                         if (method.getName().equals("toString")) {
                             return "LocalAnalysisFlow(" + pgn + ")";
@@ -71,8 +71,8 @@ public class LocalAnalysisFlow {
             Class<?> adClass = Class.forName("com.chess.entities.AnalysisDepth");
             Class<?> mClass = Class.forName("com.chess.gamereview.repository.m");
             Class<?> maClass = Class.forName("com.chess.gamereview.repository.m$a");
-            Class<?> a84Class = Class.forName("android.view.inputmethod.a84");
-            Class<?> o02Class = Class.forName("android.view.inputmethod.o02");
+            Class<?> a84Class = Class.forName("com.google.android.a84");
+            Class<?> o02Class = Class.forName("com.google.android.o02");
 
             Method emitMethod = a84Class.getMethod("emit", Object.class, o02Class);
 
@@ -173,6 +173,37 @@ public class LocalAnalysisFlow {
             int wBook = 0, wBrilliant = 0, wGreat = 0, wBest = 0, wExcellent = 0, wGood = 0, wInaccuracy = 0, wMistake = 0, wBlunder = 0, wForced = 0, wMiss = 0;
             int bBook = 0, bBrilliant = 0, bGreat = 0, bBest = 0, bExcellent = 0, bGood = 0, bInaccuracy = 0, bMistake = 0, bBlunder = 0, bForced = 0, bMiss = 0;
 
+            // Construct starting position (index 0)
+            StockfishProcess.AnalysisResult startResult = results[0];
+            String startBestLan = (startResult.moves != null && !startResult.moves.isEmpty())
+                ? startResult.moves.get(0)
+                : null;
+            List<String> startPv = (startResult.moves != null) ? startResult.moves : new ArrayList<>();
+            Object startSuggestedMove = null;
+            Object startBestMove = null;
+            if (startBestLan != null) {
+                Object startSuggestedEval = evalConstructor.newInstance(startPv, 3);
+                Integer startSuggestedMateIn = startResult.hasMate ? startResult.mateIn : null;
+                startSuggestedMove = smConstructor.newInstance(
+                    startResult.score,
+                    startSuggestedMateIn,
+                    startBestLan,
+                    startSuggestedEval,
+                    new ArrayList<>(),
+                    null
+                );
+                startBestMove = bmConstructor.newInstance(startBestLan);
+            }
+            Object startScenarios = scConstructor.newInstance(false, false);
+            positions.add(apConstructor.newInstance(
+                colorWhite,
+                null,
+                startSuggestedMove,
+                startBestMove,
+                null,
+                startScenarios
+            ));
+
             Class<?> moveConverterClass = Class.forName("com.chess.chessboard.compengine.MoveConverterKt");
             Method moveConvertMethod = moveConverterClass.getMethod("b", Class.forName("com.chess.chessboard.l"));
 
@@ -194,7 +225,7 @@ public class LocalAnalysisFlow {
                 try {
                     getPosBeforeMethod = csrmm.getClass().getMethod("getPositionBefore");
                 } catch (NoSuchMethodException e) {
-                    getPosBeforeMethod = csrmm.getClass().getMethod("c");
+                    getPosBeforeMethod = csrmm.getClass().getMethod("e");
                 }
                 Object positionBefore = getPosBeforeMethod.invoke(csrmm);
                 String fenBefore = StockfishExtension.extractFen(positionBefore);
@@ -204,7 +235,15 @@ public class LocalAnalysisFlow {
                 StockfishProcess.AnalysisResult resultBefore = results[i];
                 StockfishProcess.AnalysisResult resultAfter = results[i + 1];
 
-                String bestLan = resultBefore.moves.isEmpty() ? null : resultBefore.moves.get(0);
+                // Guard against null/empty moves on terminal positions (checkmate, stalemate).
+                // Both SuggestedMove and BestMove constructors require a non-null moveLan.
+                String bestLan = (resultBefore.moves != null && !resultBefore.moves.isEmpty())
+                    ? resultBefore.moves.get(0)
+                    : null;
+
+                // Ensure pv lists are never null when passed to Eval constructor
+                List<String> pvBefore = (resultBefore.moves != null) ? resultBefore.moves : new ArrayList<>();
+                List<String> pvAfter  = (resultAfter.moves  != null) ? resultAfter.moves  : new ArrayList<>();
 
                 float evalBefore = resultBefore.score;
                 float evalAfter = resultAfter.score;
@@ -212,7 +251,7 @@ public class LocalAnalysisFlow {
 
                 // Classification Heuristics
                 String classification = "good";
-                if (playedLan.equals(bestLan)) {
+                if (bestLan != null && playedLan.equals(bestLan)) {
                     if (actualDelta > 0.4f) {
                         classification = "brilliant";
                         if (isWhite) wBrilliant++; else bBrilliant++;
@@ -220,7 +259,7 @@ public class LocalAnalysisFlow {
                         classification = "best";
                         if (isWhite) wBest++; else bBest++;
                     }
-                } else if (resultBefore.moves.contains(playedLan)) {
+                } else if (bestLan != null && pvBefore.contains(playedLan)) {
                     classification = "excellent";
                     if (isWhite) wExcellent++; else bExcellent++;
                 } else {
@@ -237,13 +276,13 @@ public class LocalAnalysisFlow {
                         classification = "good";
                         if (isWhite) wGood++; else bGood++;
                     } else {
-                        classification = "great";
+                        classification = "greatFind";
                         if (isWhite) wGreat++; else bGreat++;
                     }
                 }
 
-                // Construct PlayedMove and SuggestedMove elements
-                Object playedEval = evalConstructor.newInstance(resultAfter.moves, 3);
+                // Construct PlayedMove eval – use safe pvAfter (never null)
+                Object playedEval = evalConstructor.newInstance(pvAfter, 3);
                 Integer playedMateIn = resultAfter.hasMate ? resultAfter.mateIn : null;
                 Object playedMove = pmConstructor.newInstance(
                     String.valueOf(searchDepth),
@@ -256,7 +295,34 @@ public class LocalAnalysisFlow {
                     null
                 );
 
-                Object suggestedEval = evalConstructor.newInstance(resultBefore.moves, 3);
+                // For terminal positions (no best move available), the SuggestedMove and BestMove
+                // constructors require a non-null moveLan – skip this position to avoid NPE.
+                if (bestLan == null) {
+                    // Still add the position but with the played move info only;
+                    // use the played move as the "suggested" move to keep the UI intact.
+                    Object terminalEval = evalConstructor.newInstance(pvAfter, 0);
+                    Object terminalSuggestedMove = smConstructor.newInstance(
+                        evalAfter,
+                        playedMateIn,
+                        playedLan,  // fall back to the actual move played
+                        terminalEval,
+                        new ArrayList<>(),
+                        null
+                    );
+                    Object terminalBestMove = bmConstructor.newInstance(playedLan);
+                    Object scenarios = scConstructor.newInstance(false, false);
+                    positions.add(apConstructor.newInstance(
+                        color,
+                        playedMove,
+                        terminalSuggestedMove,
+                        terminalBestMove,
+                        classification,
+                        scenarios
+                    ));
+                    continue;
+                }
+
+                Object suggestedEval = evalConstructor.newInstance(pvBefore, 3);
                 Integer suggestedMateIn = resultBefore.hasMate ? resultBefore.mateIn : null;
                 Object suggestedMove = smConstructor.newInstance(
                     evalBefore,
@@ -319,17 +385,24 @@ public class LocalAnalysisFlow {
             Object whiteGlyphs = glyphsConstructor.newInstance(null, null, null);
             Object blackGlyphs = glyphsConstructor.newInstance(null, null, null);
 
+            // Estimate game rating from accuracy (linear: 0%→200, 100%→2800)
+            int wRating = Math.max(200, Math.min(2800, (int)(200 + wAcc * 26)));
+            int bRating = Math.max(200, Math.min(2800, (int)(200 + bAcc * 26)));
+
+            String wGrade = wAcc >= 90 ? "Excellent" : wAcc >= 75 ? "Great" : wAcc >= 60 ? "Good" : wAcc >= 40 ? "Fair" : "Poor";
+            String bGrade = bAcc >= 90 ? "Excellent" : bAcc >= 75 ? "Great" : bAcc >= 60 ? "Good" : bAcc >= 40 ? "Fair" : "Poor";
+
             List<Object> wRatings = new ArrayList<>();
-            wRatings.add(catConstructor.newInstance("Opening", 1500, "Good", 0));
-            wRatings.add(catConstructor.newInstance("Tactics", 1500, "Good", 0));
-            wRatings.add(catConstructor.newInstance("Endgame", 1500, "Good", 0));
-            Object whiteReport = repConstructor.newInstance(1500, whiteGlyphs, wRatings);
+            wRatings.add(catConstructor.newInstance("Opening", wRating, wGrade, 0));
+            wRatings.add(catConstructor.newInstance("Tactics", wRating, wGrade, 0));
+            wRatings.add(catConstructor.newInstance("Endgame", wRating, wGrade, 0));
+            Object whiteReport = repConstructor.newInstance(wRating, whiteGlyphs, wRatings);
 
             List<Object> bRatings = new ArrayList<>();
-            bRatings.add(catConstructor.newInstance("Opening", 1500, "Good", 0));
-            bRatings.add(catConstructor.newInstance("Tactics", 1500, "Good", 0));
-            bRatings.add(catConstructor.newInstance("Endgame", 1500, "Good", 0));
-            Object blackReport = repConstructor.newInstance(1500, blackGlyphs, bRatings);
+            bRatings.add(catConstructor.newInstance("Opening", bRating, bGrade, 0));
+            bRatings.add(catConstructor.newInstance("Tactics", bRating, bGrade, 0));
+            bRatings.add(catConstructor.newInstance("Endgame", bRating, bGrade, 0));
+            Object blackReport = repConstructor.newInstance(bRating, blackGlyphs, bRatings);
 
             Object reportCard = rcConstructor.newInstance(whiteReport, blackReport, "Local analysis complete.");
 
@@ -393,11 +466,13 @@ public class LocalAnalysisFlow {
                 null
             );
 
-            // Get permissions
+            // Get permissions — construct directly with all-true to avoid obfuscated companion field names
             Class<?> permissionsClass = Class.forName("com.chess.entities.GameAnalysisPermissions");
-            Class<?> permissionsCompanionClass = Class.forName("com.chess.entities.GameAnalysisPermissions$Companion");
-            Object companionInstance = permissionsClass.getField("INSTANCE").get(null);
-            Object fullPermissions = permissionsCompanionClass.getMethod("getFULL").invoke(companionInstance);
+            Class<?> quotaTypeClass = Class.forName("com.chess.entities.GameAnalysisPermissions$QuotaType");
+            Constructor<?> permConstructor = permissionsClass.getConstructor(
+                boolean.class, boolean.class, boolean.class, boolean.class, quotaTypeClass
+            );
+            Object fullPermissions = permConstructor.newInstance(true, true, true, true, null);
 
             // Emit RemoteAnalysisCompleted to trigger Review UI
             Constructor<?> compConstructor = completedClass.getConstructor(agdClass, permissionsClass, adClass);
@@ -408,8 +483,8 @@ public class LocalAnalysisFlow {
             Log.e(TAG, "Local stockfish analysis failed", t);
             try {
                 Class<?> failureClass = Class.forName("com.chess.gamereview.repository.h$a");
-                Class<?> a84Class = Class.forName("android.view.inputmethod.a84");
-                Class<?> o02Class = Class.forName("android.view.inputmethod.o02");
+                Class<?> a84Class = Class.forName("com.google.android.a84");
+                Class<?> o02Class = Class.forName("com.google.android.o02");
                 Method emitMethod = a84Class.getMethod("emit", Object.class, o02Class);
                 Constructor<?> failConstructor = failureClass.getConstructor(Throwable.class);
                 Object failureResult = failConstructor.newInstance(t);
@@ -432,5 +507,18 @@ public class LocalAnalysisFlow {
                        + inaccuracy * 40.0f
                        + mistake * 15.0f;
         return weighted / total;
+    }
+    private static Object getUnitInstance() {
+        try {
+            Class<?> unitClass = Class.forName("kotlin.Unit");
+            for (Field field : unitClass.getDeclaredFields()) {
+                if (java.lang.reflect.Modifier.isStatic(field.getModifiers()) && field.getType() == unitClass) {
+                    return field.get(null);
+                }
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "Failed to resolve kotlin.Unit instance", t);
+        }
+        return null;
     }
 }

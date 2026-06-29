@@ -227,8 +227,55 @@ val stockfishPatch = bytecodePatch(
                 move-object/from16 v7, p7
                 invoke-static/range {v0 .. v7}, $EXTENSION_CLASS->getLocalAnalysisFlow(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;Ljava/util/Set;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
                 move-result-object v0
-                check-cast v0, Landroid/view/inputmethod/g74;
+                check-cast v0, Lcom/google/android/g74;
                 return-object v0
+            """
+        )
+
+        GameReviewV2V0DFingerprint.method.addInstructions(
+            0,
+            """
+                const/4 v0, 0
+                return-object v0
+            """
+        )
+
+        GameReviewV2V0JFingerprint.method.addInstructions(
+            0,
+            """
+                invoke-virtual/range {p0 .. p0}, Lcom/chess/gamereview/repository/AnalyzedGameData${'$'}AnalyzedPosition;->d()Lcom/chess/gamereview/repository/AnalyzedGameData${'$'}AnalyzedPosition${'$'}PlayedMove;
+                move-result-object v0
+                if-nez v0, :proceed
+
+                invoke-virtual/range {p1 .. p1}, Lcom/chess/chessboard/history/i;->e()Lcom/chess/chessboard/variants/d;
+                move-result-object v0
+                invoke-interface {v0}, Lcom/chess/chessboard/variants/b;->getSideToMove()Lcom/chess/entities/Color;
+                move-result-object v0
+
+                sget-object v1, Lcom/chess/entities/Score;->Companion:Lcom/chess/entities/Score${'$'}Companion;
+                const/4 v2, 0
+                const/4 v3, 0
+                invoke-virtual {v1, v2, v3, v0}, Lcom/chess/entities/Score${'$'}Companion;->from(FLjava/lang/Integer;Lcom/chess/entities/Color;)Lcom/chess/entities/Score;
+                move-result-object v5
+
+                sget-object v6, Lcom/chess/compengine/AnalysisMoveClassification;->g:Lcom/chess/compengine/AnalysisMoveClassification;
+
+                new-instance v7, Lcom/chess/gamereview/api/k;
+                move-object/from16 v8, p1
+                move-object v9, v6
+                const/4 v10, 0
+                const/4 v11, 0
+                move-object v12, v5
+                const/4 v13, 0
+                const/4 v14, 0
+                invoke-direct/range {v7 .. v14}, Lcom/chess/gamereview/api/k;-><init>(Lcom/chess/chessboard/history/i;Lcom/chess/compengine/AnalysisMoveClassification;Lcom/chess/gamereview/api/n;Lcom/chess/chessboard/history/i;Lcom/chess/entities/Score;Lcom/chess/gamereview/api/k${'$'}a;Lcom/chess/coach/AnimatedCoachExpression;)V
+
+                new-instance v0, Lcom/chess/gamereview/api/d;
+                const/4 v1, 0
+                invoke-direct {v0, v7, v1}, Lcom/chess/gamereview/api/d;-><init>(Lcom/chess/gamereview/api/k;Lcom/chess/gamereview/api/k;)V
+                return-object v0
+
+                :proceed
             """
         )
     }
