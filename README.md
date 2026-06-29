@@ -9,64 +9,21 @@ Prathxm Patches brings a native Stockfish chess engine directly into Chess.com o
 ## 🩹 Patches List
 
 <!-- PATCHES_START EXPANDED -->
+> **[v1.0.0](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.0.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;1 patches total
+<details open>
+<summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;1 patch</summary>
+<br>
 
-<!-- Do not modify this section by hand. The patch list is generated when release.yml creates a new release.
-     
-     If you wish for the patches list to be collapsed, then remove the word 'EXPANDED' from the comment tag above.
+**🎯 Supported versions:**
 
-     If you wish to manually keep this list updated then remove the PATCHES_START and PATCHES_END 
-     comment blocks entirely. -->
+| 4.9.49 | 4.9.49-googleplay |
+| :---: | :---: |
 
-### ♟️ Stockfish Engine
-**Compatible app:** Chess.com (`com.chess`)  
-**Supported versions:** `4.9.49`, `4.9.49-googleplay`
+| 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
+|----------|----------------|-----------|
+| [Stockfish Engine Integration](#stockfish-engine-integration) | Injects the Stockfish chess engine into Chess.com for real-time best-move analysis. Shows ranked, color-coded best-move arrows on the board (Green → Blue → Orange → Purple → Red) along with premium Diamond feature unlock, ads removal, side-aware turn analysis, and customizable settings via in-game menu. |  |
 
-Integrates the Stockfish chess engine for real-time best-move analysis. Displays suggested moves as color-coded arrows on the board.
-
-#### Features
-
-| Feature | Details |
-|---|---|
-| 🧠 **Real-time Analysis** | Stockfish runs in the background on every position change |
-| 🏹 **Multi-arrow Display** | Shows up to 5 best moves ranked by engine evaluation |
-| 🎨 **Color-coded Arrows** | 1st: Green, 2nd: Blue, 3rd: Orange, 4th: Purple, 5th+: Red |
-| 📉 **Opacity Ranking** | Higher-ranked moves appear more opaque for quick reading |
-| ⚙️ **Analysis Depth** | Configurable search depth (default: 14) |
-| 🔢 **MultiPV Support** | Configurable number of top moves to show (default: 1) |
-| 👤 **My Side Only** | Optionally show arrows only on your turn |
-| 💪 **Strength Limiting** | Optionally cap engine ELO for a more human-like experience |
-| 👑 **Premium Unlock** | Unlocks Chess.com Diamond/Premium features |
-| 🚫 **Ads Removed** | Removes in-app advertisements |
-| 👁️ **Arrow Toggle** | Double-tap the top area of the screen to show/hide arrows |
-| ⚙️ **Settings Menu** | Long-press the top area of the screen to open engine settings |
-
-#### How to use
-
-1. Install the patched APK.
-2. Open Chess.com and start any game.
-3. Stockfish arrows will appear automatically on the board.
-4. **Long press** the top area of the screen → opens **Settings menu**.
-5. **Double tap** the top area of the screen → **toggles arrows** on/off.
-
-### 💎 Premium Unlock & Limitations
-
-While the patch unlocks the **Diamond** premium status locally and integrates a custom engine, certain Chess.com features are strictly gated on their backend servers and cannot be bypassed. Below is a breakdown of what works and what does not:
-
-#### ➕ Custom Additions (Added by this Patch)
-* **Stockfish Engine Integration:** Computes evaluations and best-move arrows locally on your device's native CPU. This is a custom addition that bypasses server analysis limitations entirely.
-
-#### 🟢 What is Unlocked Locally (via Diamond Status)
-* **Ads Removal (100% working):** Bypasses all client-side ad verification checks, giving you an entirely ad-free experience.
-* **Premium Cosmetic Themes (100% working):** Unlocks premium boards, custom pieces, and themes stored within the app assets.
-* **Diamond Branding:** Visual indicators, premium status text, and layout customizations are fully unlocked.
-
-#### 🔴 Server-Side Limitations (Cannot be Unlocked)
-* **Game Review (Coach Comments & Accuracy):** The chess analysis and commentary generation are performed on Chess.com's cloud servers. Bypassing client-side checks to request a cloud analysis results in failed network calls or empty commentary because the backend verifies your account subscription server-side.
-  * *Tip: The custom Stockfish engine integration effectively replaces the need for cloud-based Game Reviews by showing real-time engine paths and evaluations directly on the board.*
-* **Daily Puzzle Limit:** Next puzzle IDs and limits are controlled dynamically by the server.
-* **Video Lessons / Guide Content:** Video streams are protected by server-side authentication headers and will return access denied if the account is basic on the server.
-
-&nbsp;
+</details>
 
 <!-- PATCHES_END -->
 
