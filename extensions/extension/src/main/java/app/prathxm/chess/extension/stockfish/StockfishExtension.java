@@ -167,6 +167,8 @@ public class StockfishExtension {
     private static volatile boolean engineReady = false;
     private static volatile boolean lifecycleCallbacksRegistered = false;
     private static volatile boolean isInitializing = false;
+    private static volatile boolean warningDialogShownThisSession = false;
+    private static volatile boolean isReviewMode = false;
 
     /** Remembers the last engine-calculated HintArrows so we can merge/preserve them. */
     private static final List<Object> lastEngineArrows = new ArrayList<>();
@@ -238,6 +240,11 @@ public class StockfishExtension {
         
         stateImplRef.set(new WeakReference<>(stateImplObject));
 
+        final Activity activity = getCurrentActivity();
+        if (activity != null) {
+            showOneTimeWarningIfNeeded(activity);
+        }
+
         ensureGestureInterceptorRegistered();
         ensureEngineReady();
         if (!engineReady) return;
@@ -287,6 +294,7 @@ public class StockfishExtension {
                         fenHistory.clear();
                         fenToEvalMap.clear();
                         fenToBestMovesMap.clear();
+                        isReviewMode = false;
                     }
                 }
                 fenHistory.add(key);
@@ -403,6 +411,12 @@ public class StockfishExtension {
     private static void classifyMoveIfPossible(String currentFen, StockfishProcess.AnalysisResult currentResult) {
         Context context = getContext();
         if (context == null) return;
+        
+        Activity activity = getCurrentActivity();
+        if (activity != null && isLiveMatch(activity) && !isReviewMode) {
+            return;
+        }
+
         if (!StockfishSettings.isMoveClassificationEnabled(context)) return;
 
         try {
@@ -470,7 +484,6 @@ public class StockfishExtension {
             final String toastText = emoji + " " + classification + (uciMove != null ? " (" + uciMove + ")" : "") + String.format(" [Delta: %.1f]", delta);
             final boolean triggerVibrate = isBlunderOrMistake;
 
-            Activity activity = getCurrentActivity();
             if (activity != null) {
                 activity.runOnUiThread(() -> {
                     android.widget.Toast.makeText(activity, toastText, android.widget.Toast.LENGTH_SHORT).show();
@@ -609,7 +622,15 @@ public class StockfishExtension {
                 classifyMoveIfPossible(fen, result);
 
                 Log.i(TAG, "Best moves: " + result.moves + ", Score: " + result.score);
-                boolean showArrows = StockfishSettings.isArrowsVisible(context);
+                
+                boolean isLive = false;
+                Activity activity = getCurrentActivity();
+                if (activity != null && isLiveMatch(activity)) {
+                    isLive = true;
+                }
+                boolean disableOverlays = isLive && !isReviewMode;
+
+                boolean showArrows = !disableOverlays && StockfishSettings.isArrowsVisible(context);
                 if (showArrows && StockfishSettings.isMySideOnly(context)) {
                     Boolean userWhite = isUserWhite(getStateImpl());
                     if (userWhite != null) {
@@ -626,19 +647,19 @@ public class StockfishExtension {
                     clearEngineArrows(getStateImpl());
                 }
 
-                if (StockfishSettings.isEvalBarEnabled(context)) {
+                if (!disableOverlays && StockfishSettings.isEvalBarEnabled(context)) {
                     updateEvalBar(result.score, result.hasMate, result.mateIn);
                 } else {
                     hideEvalBar();
                 }
 
-                if (StockfishSettings.isWdlEnabled(context)) {
+                if (!disableOverlays && StockfishSettings.isWdlEnabled(context)) {
                     updateWdlBar(result.wdlWin, result.wdlDraw, result.wdlLoss);
                 } else {
                     hideWdlBar();
                 }
 
-                if (result.hasMate && StockfishSettings.isMateAnnouncementEnabled(context)) {
+                if (!disableOverlays && result.hasMate && StockfishSettings.isMateAnnouncementEnabled(context)) {
                     showMateAnnouncement(result.mateIn);
                 } else {
                     hideMateAnnouncement();
@@ -1043,6 +1064,34 @@ public class StockfishExtension {
 
         addDialogSpacer(rootLayout, 16, density);
 
+        // Game Summary Button (only if history has moves)
+        if (fenHistory.size() > 1) {
+            android.widget.TextView summaryBtn = new android.widget.TextView(activity);
+            summaryBtn.setText("📊 View Game Summary & Review");
+            summaryBtn.setTextColor(0xFFFFFFFF);
+            summaryBtn.setTextSize(16);
+            summaryBtn.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+            summaryBtn.setGravity(android.view.Gravity.CENTER);
+            int sumPaddingH = (int) (16 * density);
+            int sumPaddingV = (int) (12 * density);
+            summaryBtn.setPadding(sumPaddingH, sumPaddingV, sumPaddingH, sumPaddingV);
+            
+            android.graphics.drawable.GradientDrawable sumBg = new android.graphics.drawable.GradientDrawable();
+            sumBg.setColor(0xFF81B64C); // Chess.com Green
+            sumBg.setCornerRadius(8 * density);
+            summaryBtn.setBackground(sumBg);
+            summaryBtn.setFocusable(true);
+            summaryBtn.setClickable(true);
+            
+            summaryBtn.setOnClickListener(v -> {
+                dialog.dismiss();
+                showGameSummary(activity);
+            });
+            
+            rootLayout.addView(summaryBtn);
+            addDialogSpacer(rootLayout, 16, density);
+        }
+
         // 1. ENGINE CONFIGURATION SECTION
         addSectionHeader(rootLayout, "Engine Configuration", density, activity);
 
@@ -1082,12 +1131,39 @@ public class StockfishExtension {
         // 2. DISPLAY OPTIONS SECTION
         addSectionHeader(rootLayout, "Display Options", density, activity);
 
+        android.widget.CheckBox arrowsCb = addStyledCheckbox(rootLayout, "Show Best Move Arrows", StockfishSettings.isArrowsVisible(activity), density, activity);
         android.widget.CheckBox evalBarCb = addStyledCheckbox(rootLayout, "Show Evaluation Bar", StockfishSettings.isEvalBarEnabled(activity), density, activity);
         android.widget.CheckBox wdlCb = addStyledCheckbox(rootLayout, "Show Win/Draw/Loss Bar", StockfishSettings.isWdlEnabled(activity), density, activity);
         android.widget.CheckBox threatCb = addStyledCheckbox(rootLayout, "Show Threat Arrows (Opponent's Best Move)", StockfishSettings.isThreatArrowsEnabled(activity), density, activity);
         android.widget.CheckBox classifCb = addStyledCheckbox(rootLayout, "Show Move Classification", StockfishSettings.isMoveClassificationEnabled(activity), density, activity);
         android.widget.CheckBox blunderCb = addStyledCheckbox(rootLayout, "Vibrate on Blunders & Mistakes", StockfishSettings.isBlunderAlertsEnabled(activity), density, activity);
         android.widget.CheckBox mateCb = addStyledCheckbox(rootLayout, "Show Mate Announcement (Mate in X)", StockfishSettings.isMateAnnouncementEnabled(activity), density, activity);
+
+        // Warning listener when turning on assist options
+        android.widget.CompoundButton.OnCheckedChangeListener assistListener = new android.widget.CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(final android.widget.CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    new android.app.AlertDialog.Builder(activity)
+                        .setTitle("⚠️ Enable Assist Feature?")
+                        .setMessage("Enabling " + buttonView.getText() + " during live online matches can lead to your account being permanently banned for cheating.\n\nOnly use this for learning, offline practice, or post-game analysis.")
+                        .setCancelable(false)
+                        .setPositiveButton("Enable Anyway", null)
+                        .setNegativeButton("Cancel", new android.content.DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(android.content.DialogInterface dialog, int which) {
+                                buttonView.setChecked(false);
+                            }
+                        })
+                        .show();
+                }
+            }
+        };
+
+        arrowsCb.setOnCheckedChangeListener(assistListener);
+        evalBarCb.setOnCheckedChangeListener(assistListener);
+        wdlCb.setOnCheckedChangeListener(assistListener);
+        threatCb.setOnCheckedChangeListener(assistListener);
 
         addDialogSpacer(rootLayout, 12, density);
 
@@ -1176,6 +1252,7 @@ public class StockfishExtension {
             StockfishSettings.setElo(activity, 1350 + eloSeekBar.getProgress());
             StockfishSettings.setAdsRemoved(activity, adsCb.isChecked());
             StockfishSettings.setPremiumEnabled(activity, premiumCb.isChecked());
+            StockfishSettings.setArrowsVisible(activity, arrowsCb.isChecked());
             StockfishSettings.setEvalBarEnabled(activity, evalBarCb.isChecked());
             StockfishSettings.setWdlEnabled(activity, wdlCb.isChecked());
             StockfishSettings.setThreatArrowsEnabled(activity, threatCb.isChecked());
@@ -1707,5 +1784,335 @@ public class StockfishExtension {
         
         Boolean isWhite = isUserWhite(stateImpl);
         return isWhite != null && !isWhite;
+    }
+
+    private static void showOneTimeWarningIfNeeded(final Activity activity) {
+        if (warningDialogShownThisSession) return;
+        if (StockfishSettings.isWarningAccepted(activity)) return;
+        
+        warningDialogShownThisSession = true;
+        
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    new android.app.AlertDialog.Builder(activity)
+                        .setTitle("⚠️ Important Fair Play Notice")
+                        .setMessage("Using Stockfish analysis or overlays (best-move arrows, evaluation bar, WDL bar, threat arrows) during live online matches can lead to your account being permanently banned.\n\nThis extension is designed strictly for offline study, bot matches, or post-game analysis.\n\nPlease use it responsibly and do not cheat.")
+                        .setCancelable(false)
+                        .setPositiveButton("I Agree & Accept", new android.content.DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(android.content.DialogInterface dialog, int which) {
+                                StockfishSettings.setWarningAccepted(activity, true);
+                            }
+                        })
+                        .show();
+                } catch (Throwable t) {
+                    Log.e(TAG, "Error showing warning dialog: " + t.getMessage());
+                }
+            }
+        });
+    }
+
+    private static boolean isLiveMatch(Activity activity) {
+        if (activity == null) return false;
+        String name = activity.getClass().getName();
+        String lower = name.toLowerCase();
+        
+        // If it's a computer game, local practice, analysis, review, solo, or puzzle, it's NOT a live match
+        if (lower.contains("computer") || lower.contains("bot") || lower.contains("practice") ||
+            lower.contains("analysis") || lower.contains("review") || lower.contains("local") ||
+            lower.contains("solo") || lower.contains("tutorial") || lower.contains("puzzle")) {
+            return false;
+        }
+        
+        // If it's play activity or game activity or live chess screen, it's live match
+        if (lower.contains("playactivity") || lower.contains("gameactivity") || lower.contains("live")) {
+            return true;
+        }
+        
+        return lower.contains(".play.");
+    }
+
+    private static void showGameSummary(final Activity activity) {
+        int totalWhiteMoves = 0;
+        int totalBlackMoves = 0;
+        float sumWhiteCPL = 0;
+        float sumBlackCPL = 0;
+
+        int wBrilliant = 0, wBest = 0, wGreat = 0, wExcellent = 0, wGood = 0, wInacc = 0, wMistake = 0, wBlunder = 0;
+        int bBrilliant = 0, bBest = 0, bGreat = 0, bExcellent = 0, bGood = 0, bInacc = 0, bMistake = 0, bBlunder = 0;
+
+        synchronized (fenHistory) {
+            for (int i = 1; i < fenHistory.size(); i++) {
+                String prevFen = fenHistory.get(i - 1);
+                String currFen = fenHistory.get(i);
+
+                Float prevEvalVal = fenToEvalMap.get(prevFen);
+                Float currEvalVal = fenToEvalMap.get(currFen);
+                List<String> prevBestMoves = fenToBestMovesMap.get(prevFen);
+
+                if (prevEvalVal == null || currEvalVal == null) continue;
+
+                float prevEval = prevEvalVal;
+                float currEval = currEvalVal;
+
+                boolean whiteMoved = prevFen.contains(" w ") || prevFen.endsWith(" w");
+                float delta = whiteMoved ? (currEval - prevEval) : (prevEval - currEval);
+
+                String uciMove = deduceUciMove(prevFen, currFen);
+
+                String classification = "Good Move";
+                if (uciMove != null && prevBestMoves != null && !prevBestMoves.isEmpty() && uciMove.equals(prevBestMoves.get(0))) {
+                    if (delta > 0.4f) {
+                        classification = "Brilliant";
+                    } else {
+                        classification = "Best";
+                    }
+                } else if (uciMove != null && prevBestMoves != null && prevBestMoves.contains(uciMove)) {
+                    classification = "Excellent";
+                } else {
+                    if (delta < -3.0f) {
+                        classification = "Blunder";
+                    } else if (delta < -1.5f) {
+                        classification = "Mistake";
+                    } else if (delta < -0.5f) {
+                        classification = "Inaccuracy";
+                    } else if (delta < -0.1f) {
+                        classification = "Good";
+                    } else {
+                        classification = "Great";
+                    }
+                }
+
+                float cpl = Math.max(0, -delta);
+
+                if (whiteMoved) {
+                    totalWhiteMoves++;
+                    sumWhiteCPL += cpl;
+                    switch (classification) {
+                        case "Brilliant": wBrilliant++; break;
+                        case "Best": wBest++; break;
+                        case "Great": wGreat++; break;
+                        case "Excellent": wExcellent++; break;
+                        case "Good": wGood++; break;
+                        case "Inaccuracy": wInacc++; break;
+                        case "Mistake": wMistake++; break;
+                        case "Blunder": wBlunder++; break;
+                    }
+                } else {
+                    totalBlackMoves++;
+                    sumBlackCPL += cpl;
+                    switch (classification) {
+                        case "Brilliant": bBrilliant++; break;
+                        case "Best": bBest++; break;
+                        case "Great": bGreat++; break;
+                        case "Excellent": bExcellent++; break;
+                        case "Good": bGood++; break;
+                        case "Inaccuracy": bInacc++; break;
+                        case "Mistake": bMistake++; break;
+                        case "Blunder": bBlunder++; break;
+                    }
+                }
+            }
+        }
+
+        float avgWhiteCpl = totalWhiteMoves > 0 ? (sumWhiteCPL / totalWhiteMoves) * 100 : 0;
+        float avgBlackCpl = totalBlackMoves > 0 ? (sumBlackCPL / totalBlackMoves) * 100 : 0;
+
+        double whiteAccuracy = totalWhiteMoves > 0 ? Math.min(100.0, Math.max(0.0, 100.0 * Math.exp(-0.008 * avgWhiteCpl))) : 0.0;
+        double blackAccuracy = totalBlackMoves > 0 ? Math.min(100.0, Math.max(0.0, 100.0 * Math.exp(-0.008 * avgBlackCpl))) : 0.0;
+
+        final android.app.Dialog dialog = new android.app.Dialog(activity);
+        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+
+        float density = activity.getResources().getDisplayMetrics().density;
+
+        android.graphics.drawable.GradientDrawable dialogBg = new android.graphics.drawable.GradientDrawable();
+        dialogBg.setColor(0xFF262421);
+        dialogBg.setCornerRadius(16 * density);
+        dialog.getWindow().setBackgroundDrawable(dialogBg);
+
+        android.widget.ScrollView scrollView = new android.widget.ScrollView(activity);
+        scrollView.setVerticalScrollBarEnabled(false);
+
+        android.widget.LinearLayout rootLayout = new android.widget.LinearLayout(activity);
+        rootLayout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        int padding = (int) (20 * density);
+        rootLayout.setPadding(padding, padding, padding, padding);
+        scrollView.addView(rootLayout);
+
+        android.widget.TextView titleTv = new android.widget.TextView(activity);
+        titleTv.setText("📊 Post-Game Summary");
+        titleTv.setTextColor(0xFFFFFFFF);
+        titleTv.setTextSize(22);
+        titleTv.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        titleTv.setGravity(android.view.Gravity.CENTER);
+        rootLayout.addView(titleTv);
+
+        android.widget.TextView subtitleTv = new android.widget.TextView(activity);
+        subtitleTv.setText("Move Classifications & Accuracy Metrics");
+        subtitleTv.setTextColor(0xFF8B8985);
+        subtitleTv.setTextSize(13);
+        subtitleTv.setGravity(android.view.Gravity.CENTER);
+        rootLayout.addView(subtitleTv);
+
+        addDialogSpacer(rootLayout, 16, density);
+
+        Boolean isUserWhite = isUserWhite(getStateImpl());
+        
+        String whiteTitle = "White (User)";
+        if (isUserWhite != null && !isUserWhite) {
+            whiteTitle = "White (Opponent)";
+        }
+        addPlayerCard(rootLayout, whiteTitle, whiteAccuracy, avgWhiteCpl, 
+            wBrilliant, wBest, wGreat, wExcellent, wGood, wInacc, wMistake, wBlunder, density, activity);
+
+        addDialogSpacer(rootLayout, 16, density);
+
+        String blackTitle = "Black (User)";
+        if (isUserWhite != null && isUserWhite) {
+            blackTitle = "Black (Opponent)";
+        }
+        addPlayerCard(rootLayout, blackTitle, blackAccuracy, avgBlackCpl, 
+            bBrilliant, bBest, bGreat, bExcellent, bGood, bInacc, bMistake, bBlunder, density, activity);
+
+        addDialogSpacer(rootLayout, 20, density);
+
+        android.widget.LinearLayout btnLayout = new android.widget.LinearLayout(activity);
+        btnLayout.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        btnLayout.setGravity(android.view.Gravity.CENTER);
+
+        android.widget.TextView closeBtn = new android.widget.TextView(activity);
+        closeBtn.setText("Close");
+        closeBtn.setTextColor(0xFFB0B0B0);
+        closeBtn.setTextSize(16);
+        closeBtn.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        int btnPaddingH = (int) (20 * density);
+        int btnPaddingV = (int) (10 * density);
+        closeBtn.setPadding(btnPaddingH, btnPaddingV, btnPaddingH, btnPaddingV);
+        closeBtn.setClickable(true);
+        closeBtn.setOnClickListener(v -> dialog.dismiss());
+        btnLayout.addView(closeBtn);
+
+        android.view.View btnSpacer = new android.view.View(activity);
+        btnSpacer.setLayoutParams(new android.widget.LinearLayout.LayoutParams((int) (16 * density), 1));
+        btnLayout.addView(btnSpacer);
+
+        android.widget.TextView reviewBtn = new android.widget.TextView(activity);
+        reviewBtn.setText(isReviewMode ? "Review Mode Active" : "Practice / Review Game");
+        reviewBtn.setTextColor(0xFFFFFFFF);
+        reviewBtn.setTextSize(16);
+        reviewBtn.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        reviewBtn.setPadding(btnPaddingH, btnPaddingV, btnPaddingH, btnPaddingV);
+        
+        android.graphics.drawable.GradientDrawable reviewBg = new android.graphics.drawable.GradientDrawable();
+        reviewBg.setColor(isReviewMode ? 0xFF5F5F5F : 0xFF81B64C);
+        reviewBg.setCornerRadius(8 * density);
+        reviewBtn.setBackground(reviewBg);
+        reviewBtn.setClickable(!isReviewMode);
+        
+        if (!isReviewMode) {
+            reviewBtn.setOnClickListener(v -> {
+                isReviewMode = true;
+                android.widget.Toast.makeText(activity, "Review Mode Enabled: Visual overlays unlocked!", android.widget.Toast.LENGTH_SHORT).show();
+                invalidateAllBoards();
+                dialog.dismiss();
+            });
+        }
+        btnLayout.addView(reviewBtn);
+
+        rootLayout.addView(btnLayout);
+
+        dialog.setContentView(scrollView);
+        dialog.show();
+
+        int width = (int) (activity.getResources().getDisplayMetrics().widthPixels * 0.90f);
+        int height = (int) (activity.getResources().getDisplayMetrics().heightPixels * 0.85f);
+        dialog.getWindow().setLayout(width, height);
+    }
+
+    private static void addPlayerCard(android.widget.LinearLayout parent, String title, double accuracy, float avgCpl,
+                                     int brilliant, int best, int great, int excellent, int good, int inacc, int mistake, int blunder,
+                                     float density, Activity activity) {
+        android.widget.LinearLayout card = new android.widget.LinearLayout(activity);
+        card.setOrientation(android.widget.LinearLayout.VERTICAL);
+        card.setPadding((int) (14 * density), (int) (14 * density), (int) (14 * density), (int) (14 * density));
+        
+        android.graphics.drawable.GradientDrawable cardBg = new android.graphics.drawable.GradientDrawable();
+        cardBg.setColor(0xFF312E2B); // Chess.com card background
+        cardBg.setCornerRadius(10 * density);
+        card.setBackground(cardBg);
+
+        android.widget.TextView titleTv = new android.widget.TextView(activity);
+        titleTv.setText(title);
+        titleTv.setTextColor(0xFFFFFFFF);
+        titleTv.setTextSize(15);
+        titleTv.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        card.addView(titleTv);
+
+        addDialogSpacer(card, 8, density);
+
+        android.widget.LinearLayout statsRow = new android.widget.LinearLayout(activity);
+        statsRow.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        
+        android.widget.TextView accTv = new android.widget.TextView(activity);
+        accTv.setText(String.format("Accuracy: %.1f%%", accuracy));
+        accTv.setTextColor(0xFF81B64C); // Chess.com Green accent
+        accTv.setTextSize(16);
+        accTv.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        statsRow.addView(accTv);
+
+        android.view.View spacer = new android.view.View(activity);
+        android.widget.LinearLayout.LayoutParams spacerParams = new android.widget.LinearLayout.LayoutParams(0, 1);
+        spacerParams.weight = 1;
+        spacer.setLayoutParams(spacerParams);
+        statsRow.addView(spacer);
+
+        android.widget.TextView cplTv = new android.widget.TextView(activity);
+        cplTv.setText(String.format("Avg CPL: %.0f", avgCpl));
+        cplTv.setTextColor(0xFFB0B0B0);
+        cplTv.setTextSize(14);
+        statsRow.addView(cplTv);
+
+        card.addView(statsRow);
+
+        addDialogSpacer(card, 8, density);
+
+        android.widget.GridLayout grid = new android.widget.GridLayout(activity);
+        grid.setColumnCount(2);
+        
+        addClassificationItem(grid, "💡 Brilliant", brilliant, activity);
+        addClassificationItem(grid, "🎯 Best Move", best, activity);
+        addClassificationItem(grid, "✅ Great Move", great, activity);
+        addClassificationItem(grid, "✨ Excellent", excellent, activity);
+        addClassificationItem(grid, "👍 Good Move", good, activity);
+        addClassificationItem(grid, "⚠️ Inaccuracy", inacc, activity);
+        addClassificationItem(grid, "❌ Mistake", mistake, activity);
+        addClassificationItem(grid, "💀 Blunder", blunder, activity);
+
+        card.addView(grid);
+        parent.addView(card);
+    }
+
+    private static void addClassificationItem(android.widget.GridLayout grid, String label, int count, Activity activity) {
+        android.widget.LinearLayout item = new android.widget.LinearLayout(activity);
+        item.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        item.setPadding(0, 4, 16, 4);
+
+        android.widget.TextView labelTv = new android.widget.TextView(activity);
+        labelTv.setText(label + ": ");
+        labelTv.setTextColor(0xFFE3E3E3);
+        labelTv.setTextSize(12);
+        item.addView(labelTv);
+
+        android.widget.TextView valTv = new android.widget.TextView(activity);
+        valTv.setText(String.valueOf(count));
+        valTv.setTextColor(0xFFFFFFFF);
+        valTv.setTextSize(12);
+        valTv.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        item.addView(valTv);
+
+        grid.addView(item);
     }
 }

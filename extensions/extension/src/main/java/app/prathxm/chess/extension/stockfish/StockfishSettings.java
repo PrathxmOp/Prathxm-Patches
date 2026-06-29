@@ -55,7 +55,7 @@ public class StockfishSettings {
     }
 
     public static boolean isArrowsVisible(Context context) {
-        return getPrefs(context).getBoolean(KEY_ARROWS_VISIBLE, true);
+        return getPrefs(context).getBoolean(KEY_ARROWS_VISIBLE, false);
     }
 
     public static void setArrowsVisible(Context context, boolean visible) {
@@ -107,11 +107,21 @@ public class StockfishSettings {
     private static final String KEY_SHOW_EVAL_BAR = "show_eval_bar";
 
     public static boolean isEvalBarEnabled(Context context) {
-        return getPrefs(context).getBoolean(KEY_SHOW_EVAL_BAR, true);
+        return getPrefs(context).getBoolean(KEY_SHOW_EVAL_BAR, false);
     }
 
     public static void setEvalBarEnabled(Context context, boolean enabled) {
         getPrefs(context).edit().putBoolean(KEY_SHOW_EVAL_BAR, enabled).apply();
+    }
+
+    private static final String KEY_WARNING_ACCEPTED = "warning_accepted";
+
+    public static boolean isWarningAccepted(Context context) {
+        return getPrefs(context).getBoolean(KEY_WARNING_ACCEPTED, false);
+    }
+
+    public static void setWarningAccepted(Context context, boolean accepted) {
+        getPrefs(context).edit().putBoolean(KEY_WARNING_ACCEPTED, accepted).apply();
     }
 
     private static final String KEY_SHOW_WDL = "show_wdl";
