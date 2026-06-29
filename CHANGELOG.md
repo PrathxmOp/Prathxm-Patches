@@ -1,3 +1,9 @@
+## [1.3.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.2.0...v1.3.0) (2026-06-29)
+
+### ✨ New Features
+
+* refine settings UI, add Clone App patch, and stabilize fair play logic ([909e529](https://github.com/PrathxmOp/Prathxm-Patches/commit/909e529b5c61a57f408f8da6177df019111b4486))
+
 ## [1.2.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.1.0...v1.2.0) (2026-06-29)
 
 ### ✨ New Features
