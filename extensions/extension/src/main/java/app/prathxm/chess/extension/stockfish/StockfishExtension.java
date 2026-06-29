@@ -167,8 +167,8 @@ public class StockfishExtension {
     private static volatile boolean engineReady = false;
     private static volatile boolean lifecycleCallbacksRegistered = false;
     private static volatile boolean isInitializing = false;
-    private static volatile boolean warningDialogShownThisSession = false;
     static volatile boolean isReviewMode = false;
+    static volatile boolean isDeveloperMode = false;
 
     /** Remembers the last engine-calculated HintArrows so we can merge/preserve them. */
     private static final List<Object> lastEngineArrows = new ArrayList<>();
@@ -217,7 +217,7 @@ public class StockfishExtension {
                             new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    updateArrowToggleButton();
+
                                     triggerAnalysisForCurrentState();
                                 }
                             });
@@ -251,7 +251,6 @@ public class StockfishExtension {
 
         final Activity activity = getCurrentActivity();
         if (activity != null) {
-            showOneTimeWarningIfNeeded(activity);
             if (isLiveMatch(activity)) {
                 isReviewMode = false;
             }
@@ -268,7 +267,6 @@ public class StockfishExtension {
             hideEvalBar();
             hideWdlBar();
             hideMateAnnouncement();
-            hideArrowToggleButton();
             return;
         }
 
@@ -276,7 +274,7 @@ public class StockfishExtension {
         // We intentionally do NOT hide the eval bar here so it stays stable while
         // the new analysis is running (no flicker).
         clearEngineArrows(stateImplObject);
-        updateArrowToggleButton();
+
 
 
 
@@ -660,7 +658,7 @@ public class StockfishExtension {
                 } else {
                     clearEngineArrows(getStateImpl());
                 }
-                updateArrowToggleButton();
+
 
                 if (!disableOverlays && StockfishSettings.isEvalBarEnabled(context)) {
                     updateEvalBar(result.score, result.hasMate, result.mateIn);
@@ -1014,10 +1012,6 @@ public class StockfishExtension {
         boolean enabled = !StockfishSettings.isEngineEnabled(activity);
         StockfishSettings.setEngineEnabled(activity, enabled);
         
-        android.widget.Toast.makeText(activity, 
-            "Stockfish Analysis: " + (enabled ? "ENABLED" : "DISABLED"), 
-            android.widget.Toast.LENGTH_SHORT).show();
-        
         if (!enabled) {
             Future<?> prev = currentJob;
             if (prev != null && !prev.isDone()) {
@@ -1029,7 +1023,6 @@ public class StockfishExtension {
             hideEvalBar();
             hideWdlBar();
             hideMateAnnouncement();
-            hideArrowToggleButton();
         } else {
             Object state = getStateImpl();
             if (state != null) {
@@ -1046,7 +1039,7 @@ public class StockfishExtension {
                     Log.e(TAG, "Error re-triggering analysis: " + t.getMessage());
                 }
             }
-            updateArrowToggleButton();
+
         }
     }
 
@@ -1072,7 +1065,7 @@ public class StockfishExtension {
 
         // Header Title
         android.widget.TextView titleTv = new android.widget.TextView(activity);
-        titleTv.setText("Stockfish Engine Settings");
+        titleTv.setText("Engine Settings");
         titleTv.setTextColor(0xFFFFFFFF);
         titleTv.setTextSize(20);
         titleTv.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
@@ -1083,112 +1076,103 @@ public class StockfishExtension {
 
 
 
-        // 1. ENGINE CONFIGURATION SECTION
-        addSectionHeader(rootLayout, "Engine Configuration", density, activity);
+        // 1. MAIN SETTINGS SECTION
+        addSectionHeader(rootLayout, "Main Settings", density, activity);
 
         android.widget.CheckBox enabledCb = addStyledCheckbox(rootLayout, "Enable Stockfish Engine", StockfishSettings.isEngineEnabled(activity), density, activity);
 
-        // Depth Slider
         int currentDepth = StockfishSettings.getDepth(activity);
         android.widget.TextView depthLabel = addStyledLabel(rootLayout, "Analysis Depth: " + currentDepth, density, activity);
         android.widget.SeekBar depthSeekBar = addStyledSeekBar(rootLayout, depthLabel, "Analysis Depth", currentDepth - 1, 19, 1, density, activity);
 
-        // MultiPV Slider
-        int currentPV = StockfishSettings.getMultiPV(activity);
-        android.widget.TextView pvLabel = addStyledLabel(rootLayout, "MultiPV (Best moves to show): " + currentPV, density, activity);
-        android.widget.SeekBar pvSeekBar = addStyledSeekBar(rootLayout, pvLabel, "MultiPV (Best moves to show)", currentPV - 1, 4, 1, density, activity);
-
-        // Side Turn Only
-        android.widget.CheckBox sideCb = addStyledCheckbox(rootLayout, "Show Arrows Only on My Turn", StockfishSettings.isMySideOnly(activity), density, activity);
-
-        // ELO Strength Checkbox
-        android.widget.CheckBox eloCb = addStyledCheckbox(rootLayout, "Limit Engine Elo Strength", StockfishSettings.isLimitStrength(activity), density, activity);
-
-        // ELO Value Slider
-        int currentElo = StockfishSettings.getElo(activity);
-        android.widget.TextView eloLabel = addStyledLabel(rootLayout, "Engine Elo: " + currentElo, density, activity);
-        android.widget.SeekBar eloSeekBar = addStyledSeekBar(rootLayout, eloLabel, "Engine Elo", currentElo - 1350, 1500, 1350, density, activity);
-
-        // Enable/disable elo slider based on checkbox
-        eloLabel.setEnabled(eloCb.isChecked());
-        eloSeekBar.setEnabled(eloCb.isChecked());
-        eloCb.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            eloLabel.setEnabled(isChecked);
-            eloSeekBar.setEnabled(isChecked);
-        });
-
-        addDialogSpacer(rootLayout, 12, density);
-
-        // 2. DISPLAY OPTIONS SECTION
-        addSectionHeader(rootLayout, "Display Options", density, activity);
-
         android.widget.CheckBox arrowsCb = addStyledCheckbox(rootLayout, "Show Best Move Arrows", StockfishSettings.isArrowsVisible(activity), density, activity);
         android.widget.CheckBox evalBarCb = addStyledCheckbox(rootLayout, "Show Evaluation Bar", StockfishSettings.isEvalBarEnabled(activity), density, activity);
-        android.widget.CheckBox wdlCb = addStyledCheckbox(rootLayout, "Show Win/Draw/Loss Bar", StockfishSettings.isWdlEnabled(activity), density, activity);
-        android.widget.CheckBox threatCb = addStyledCheckbox(rootLayout, "Show Threat Arrows (Opponent's Best Move)", StockfishSettings.isThreatArrowsEnabled(activity), density, activity);
         android.widget.CheckBox classifCb = addStyledCheckbox(rootLayout, "Show Move Classification", StockfishSettings.isMoveClassificationEnabled(activity), density, activity);
-        android.widget.CheckBox blunderCb = addStyledCheckbox(rootLayout, "Vibrate on Blunders & Mistakes", StockfishSettings.isBlunderAlertsEnabled(activity), density, activity);
-        android.widget.CheckBox mateCb = addStyledCheckbox(rootLayout, "Show Mate Announcement (Mate in X)", StockfishSettings.isMateAnnouncementEnabled(activity), density, activity);
-
-        // Warning listener when turning on assist options
-        android.widget.CompoundButton.OnCheckedChangeListener assistListener = new android.widget.CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(final android.widget.CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    showCustomWarningDialog(
-                        activity,
-                        "⚠️ Enable Assist Feature?",
-                        "Enabling " + buttonView.getText() + " during live online matches can lead to your account being permanently banned for cheating.\n\nOnly use this for learning, offline practice, or post-game analysis.",
-                        null,
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                buttonView.setChecked(false);
-                            }
-                        }
-                    );
-                }
-            }
-        };
-
-        arrowsCb.setOnCheckedChangeListener(assistListener);
-        evalBarCb.setOnCheckedChangeListener(assistListener);
-        wdlCb.setOnCheckedChangeListener(assistListener);
-        threatCb.setOnCheckedChangeListener(assistListener);
-
-        addDialogSpacer(rootLayout, 12, density);
-
-        // 3. PREMIUM & GLOBAL SETTINGS
-        addSectionHeader(rootLayout, "Premium & Global Features", density, activity);
         android.widget.CheckBox adsCb = addStyledCheckbox(rootLayout, "Remove Ads Globally", StockfishSettings.isAdsRemoved(activity), density, activity);
-        android.widget.CheckBox premiumCb = addStyledCheckbox(rootLayout, "Enable Premium (Diamond Status)", StockfishSettings.isPremiumEnabled(activity), density, activity);
 
         addDialogSpacer(rootLayout, 16, density);
 
-        // 4. ABOUT & CREDITS
+        // 2. ADVANCED SETTINGS TOGGLE
+        android.widget.TextView advancedToggleBtn = new android.widget.TextView(activity);
+        advancedToggleBtn.setText("⚙️ Show Advanced Settings");
+        advancedToggleBtn.setTextColor(0xFF81B64C); // Chess.com Green
+        advancedToggleBtn.setTextSize(14);
+        advancedToggleBtn.setGravity(android.view.Gravity.CENTER);
+        advancedToggleBtn.setPadding(0, (int)(8*density), 0, (int)(8*density));
+        advancedToggleBtn.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        
+        android.widget.LinearLayout advancedLayout = new android.widget.LinearLayout(activity);
+        advancedLayout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        advancedLayout.setVisibility(android.view.View.GONE);
+        
+        // Add click listener before adding to layout
+        advancedToggleBtn.setOnClickListener(new android.view.View.OnClickListener() {
+            @Override
+            public void onClick(android.view.View v) {
+                boolean isVisible = advancedLayout.getVisibility() == android.view.View.VISIBLE;
+                advancedLayout.setVisibility(isVisible ? android.view.View.GONE : android.view.View.VISIBLE);
+                advancedToggleBtn.setText(isVisible ? "⚙️ Show Advanced Settings" : "⚙️ Hide Advanced Settings");
+            }
+        });
+        
+        rootLayout.addView(advancedToggleBtn);
+        rootLayout.addView(advancedLayout);
+
+        addDialogSpacer(advancedLayout, 8, density);
+        
+        // Advanced toggles
+        int currentPV = StockfishSettings.getMultiPV(activity);
+        android.widget.TextView pvLabel = addStyledLabel(advancedLayout, "MultiPV (Best moves): " + currentPV, density, activity);
+        android.widget.SeekBar pvSeekBar = addStyledSeekBar(advancedLayout, pvLabel, "MultiPV (Best moves to show)", currentPV - 1, 4, 1, density, activity);
+
+        android.widget.CheckBox sideCb = addStyledCheckbox(advancedLayout, "Show Arrows Only on My Turn", StockfishSettings.isMySideOnly(activity), density, activity);
+        
+        android.widget.CheckBox eloCb = addStyledCheckbox(advancedLayout, "Limit Engine Elo Strength", StockfishSettings.isLimitStrength(activity), density, activity);
+        int currentElo = StockfishSettings.getElo(activity);
+        android.widget.TextView eloLabel = addStyledLabel(advancedLayout, "Engine Elo: " + currentElo, density, activity);
+        android.widget.SeekBar eloSeekBar = addStyledSeekBar(advancedLayout, eloLabel, "Engine Elo", currentElo - 1350, 1500, 1350, density, activity);
+        
+        eloLabel.setEnabled(eloCb.isChecked());
+        eloSeekBar.setEnabled(eloCb.isChecked());
+        eloCb.setOnCheckedChangeListener(new android.widget.CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(android.widget.CompoundButton buttonView, boolean isChecked) {
+                eloLabel.setEnabled(isChecked);
+                eloSeekBar.setEnabled(isChecked);
+            }
+        });
+
+        android.widget.CheckBox wdlCb = addStyledCheckbox(advancedLayout, "Show Win/Draw/Loss Bar", StockfishSettings.isWdlEnabled(activity), density, activity);
+        android.widget.CheckBox threatCb = addStyledCheckbox(advancedLayout, "Show Threat Arrows", StockfishSettings.isThreatArrowsEnabled(activity), density, activity);
+        android.widget.CheckBox blunderCb = addStyledCheckbox(advancedLayout, "Vibrate on Blunders", StockfishSettings.isBlunderAlertsEnabled(activity), density, activity);
+        android.widget.CheckBox mateCb = addStyledCheckbox(advancedLayout, "Show Mate Announcement", StockfishSettings.isMateAnnouncementEnabled(activity), density, activity);
+
+        addDialogSpacer(rootLayout, 16, density);
+
+        // 3. ABOUT & CREDITS
         android.widget.LinearLayout creditsCard = new android.widget.LinearLayout(activity);
         creditsCard.setOrientation(android.widget.LinearLayout.VERTICAL);
-        creditsCard.setPadding((int) (12 * density), (int) (12 * density), (int) (12 * density), (int) (12 * density));
-        
-        android.graphics.drawable.GradientDrawable cardBg = new android.graphics.drawable.GradientDrawable();
-        cardBg.setColor(0xFF312E2B); // Chess.com dark contrast background
-        cardBg.setCornerRadius(8 * density);
-        creditsCard.setBackground(cardBg);
+        creditsCard.setPadding(0, (int) (16 * density), 0, (int) (8 * density));
 
         android.widget.TextView devTv = new android.widget.TextView(activity);
-        devTv.setText("Developed by PrathxmOp");
-        devTv.setTextColor(0xFFFFFFFF);
-        devTv.setTextSize(13);
+        devTv.setText("Developed by PrathxmOp ✨");
+        devTv.setTextColor(0xFF81B64C); // Chess.com Green accent
+        devTv.setTextSize(14);
         devTv.setGravity(android.view.Gravity.CENTER);
         devTv.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        devTv.setOnLongClickListener(new android.view.View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(android.view.View v) {
+                isDeveloperMode = !isDeveloperMode;
+                android.widget.Toast.makeText(activity, "Developer Mode: " + (isDeveloperMode ? "ON" : "OFF"), android.widget.Toast.LENGTH_SHORT).show();
+                return true;
+            }
+        });
         creditsCard.addView(devTv);
 
-        android.widget.TextView powerTv = new android.widget.TextView(activity);
-        powerTv.setText("Powered by Morphe Patcher");
-        powerTv.setTextColor(0xFF8B8985);
-        powerTv.setTextSize(11);
-        powerTv.setGravity(android.view.Gravity.CENTER);
-        creditsCard.addView(powerTv);
+
+
+        addDialogSpacer(creditsCard, 2, density);
 
         android.widget.TextView engineTv = new android.widget.TextView(activity);
         engineTv.setText("Engine: Stockfish 16.1 NNUE");
@@ -1242,7 +1226,7 @@ public class StockfishExtension {
             StockfishSettings.setLimitStrength(activity, eloCb.isChecked());
             StockfishSettings.setElo(activity, 1350 + eloSeekBar.getProgress());
             StockfishSettings.setAdsRemoved(activity, adsCb.isChecked());
-            StockfishSettings.setPremiumEnabled(activity, premiumCb.isChecked());
+            StockfishSettings.setPremiumEnabled(activity, true);
             StockfishSettings.setArrowsVisible(activity, arrowsCb.isChecked());
             StockfishSettings.setEvalBarEnabled(activity, evalBarCb.isChecked());
             StockfishSettings.setWdlEnabled(activity, wdlCb.isChecked());
@@ -1262,7 +1246,7 @@ public class StockfishExtension {
             if (!evalBarCb.isChecked()) {
                 hideEvalBar();
             }
-            updateArrowToggleButton();
+
             dialog.dismiss();
         });
 
@@ -1279,8 +1263,7 @@ public class StockfishExtension {
 
         // Layout parameters must be set after show() for dialog window
         int width = (int) (activity.getResources().getDisplayMetrics().widthPixels * 0.90f);
-        int height = (int) (activity.getResources().getDisplayMetrics().heightPixels * 0.85f);
-        dialog.getWindow().setLayout(width, height);
+        dialog.getWindow().setLayout(width, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
     }
 
     private static void addSectionHeader(android.widget.LinearLayout layout, String title, float density, Activity activity) {
@@ -1325,7 +1308,7 @@ public class StockfishExtension {
             seekBar.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFF81B64C));
             seekBar.setThumbTintList(android.content.res.ColorStateList.valueOf(0xFF81B64C));
         }
-        seekBar.setPadding(0, (int) (8 * density), 0, (int) (12 * density));
+        seekBar.setPadding((int) (12 * density), (int) (8 * density), (int) (12 * density), (int) (12 * density));
         
         seekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -1505,6 +1488,8 @@ public class StockfishExtension {
         }
         return defaultValue;
     }
+
+
 
 
     private static void updateEvalBar(final float score, final boolean hasMate, final int mateIn) {
@@ -1793,27 +1778,9 @@ public class StockfishExtension {
         return isWhite != null && !isWhite;
     }
 
-    private static void showOneTimeWarningIfNeeded(final Activity activity) {
-        if (warningDialogShownThisSession) return;
-        if (StockfishSettings.isWarningAccepted(activity)) return;
-        
-        warningDialogShownThisSession = true;
-        
-        showCustomWarningDialog(
-            activity,
-            "⚠️ Important Fair Play Notice",
-            "Using Stockfish analysis or overlays (best-move arrows, evaluation bar, WDL bar, threat arrows) during live online matches can lead to your account being permanently banned.\n\nThis extension is designed strictly for offline study, bot matches, or post-game analysis.\n\nPlease use it responsibly and do not cheat.",
-            new Runnable() {
-                @Override
-                public void run() {
-                    StockfishSettings.setWarningAccepted(activity, true);
-                }
-            },
-            null
-        );
-    }
 
     static boolean isLiveMatch(Activity activity) {
+        if (isDeveloperMode) return false;
         if (activity == null) return false;
         String name = activity.getClass().getName();
         String lower = name.toLowerCase();
@@ -1840,267 +1807,7 @@ public class StockfishExtension {
 
 
 
-    private static void showCustomWarningDialog(final Activity activity, final String title, final String message, final Runnable onConfirm, final Runnable onCancel) {
-        activity.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    final android.app.Dialog dialog = new android.app.Dialog(activity);
-                    dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
-                    dialog.setCancelable(false);
 
-                    float density = activity.getResources().getDisplayMetrics().density;
-
-                    android.graphics.drawable.GradientDrawable dialogBg = new android.graphics.drawable.GradientDrawable();
-                    dialogBg.setColor(0xFF262421); // Chess.com board-dark background
-                    dialogBg.setCornerRadius(16 * density);
-                    dialog.getWindow().setBackgroundDrawable(dialogBg);
-
-                    android.widget.LinearLayout rootLayout = new android.widget.LinearLayout(activity);
-                    rootLayout.setOrientation(android.widget.LinearLayout.VERTICAL);
-                    int padding = (int) (20 * density);
-                    rootLayout.setPadding(padding, padding, padding, padding);
-
-                    // Title
-                    android.widget.TextView titleTv = new android.widget.TextView(activity);
-                    titleTv.setText(title);
-                    titleTv.setTextColor(0xFFFF5252); // Red warning color
-                    titleTv.setTextSize(18);
-                    titleTv.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
-                    titleTv.setGravity(android.view.Gravity.CENTER);
-                    rootLayout.addView(titleTv);
-
-                    addDialogSpacer(rootLayout, 12, density);
-
-                    // Message
-                    android.widget.TextView msgTv = new android.widget.TextView(activity);
-                    msgTv.setText(message);
-                    msgTv.setTextColor(0xFFE3E3E3);
-                    msgTv.setTextSize(14);
-                    msgTv.setGravity(android.view.Gravity.CENTER);
-                    rootLayout.addView(msgTv);
-
-                    addDialogSpacer(rootLayout, 20, density);
-
-                    // Buttons
-                    android.widget.LinearLayout btnLayout = new android.widget.LinearLayout(activity);
-                    btnLayout.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-                    btnLayout.setGravity(android.view.Gravity.CENTER);
-
-                    if (onCancel != null) {
-                        android.widget.TextView cancelBtn = new android.widget.TextView(activity);
-                        cancelBtn.setText("Cancel");
-                        cancelBtn.setTextColor(0xFFB0B0B0);
-                        cancelBtn.setTextSize(16);
-                        cancelBtn.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
-                        cancelBtn.setPadding((int)(16 * density), (int)(10 * density), (int)(16 * density), (int)(10 * density));
-                        cancelBtn.setClickable(true);
-                        cancelBtn.setOnClickListener(v -> {
-                            dialog.dismiss();
-                            onCancel.run();
-                        });
-                        btnLayout.addView(cancelBtn);
-
-                        View btnSpacer = new View(activity);
-                        btnSpacer.setLayoutParams(new android.widget.LinearLayout.LayoutParams((int) (16 * density), 1));
-                        btnLayout.addView(btnSpacer);
-                    }
-
-                    android.widget.TextView confirmBtn = new android.widget.TextView(activity);
-                    confirmBtn.setText(onCancel != null ? "Enable Anyway" : "I Agree & Accept");
-                    confirmBtn.setTextColor(0xFFFFFFFF);
-                    confirmBtn.setTextSize(16);
-                    confirmBtn.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
-                    confirmBtn.setPadding((int)(16 * density), (int)(10 * density), (int)(16 * density), (int)(10 * density));
-                    
-                    android.graphics.drawable.GradientDrawable confirmBg = new android.graphics.drawable.GradientDrawable();
-                    confirmBg.setColor(onCancel != null ? 0xFFE53935 : 0xFF81B64C); // Red for anyway, green for accept
-                    confirmBg.setCornerRadius(8 * density);
-                    confirmBtn.setBackground(confirmBg);
-                    confirmBtn.setClickable(true);
-                    confirmBtn.setOnClickListener(v -> {
-                        dialog.dismiss();
-                        if (onConfirm != null) onConfirm.run();
-                    });
-                    btnLayout.addView(confirmBtn);
-
-                    rootLayout.addView(btnLayout);
-                    dialog.setContentView(rootLayout);
-                    dialog.show();
-
-                    int width = (int) (activity.getResources().getDisplayMetrics().widthPixels * 0.85f);
-                    dialog.getWindow().setLayout(width, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
-                } catch (Throwable t) {
-                    Log.e(TAG, "Error showing custom warning dialog: " + t.getMessage(), t);
-                }
-            }
-        });
-    }
-
-    private static void updateArrowToggleButton() {
-        new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Activity activity = getCurrentActivity();
-                    if (activity == null) return;
-                    Window window = activity.getWindow();
-                    if (window == null) return;
-                    android.view.ViewGroup decorView = (android.view.ViewGroup) window.getDecorView();
-                    if (decorView == null) return;
-
-                    View boardView = findChessBoardView(decorView);
-                    if (boardView == null) {
-                        hideArrowToggleButton();
-                        return;
-                    }
-
-                    int[] loc = new int[2];
-                    boardView.getLocationInWindow(loc);
-                    int boardX = loc[0];
-                    int boardY = loc[1];
-                    int boardW = boardView.getWidth();
-                    int boardH = boardView.getHeight();
-                    if (boardW <= 0 || boardH <= 0) {
-                        hideArrowToggleButton();
-                        return;
-                    }
-
-                    float density = decorView.getContext().getResources().getDisplayMetrics().density;
-                    int btnW = (int) (110 * density);
-                    int btnH = (int) (28 * density);
-                    int btnX = boardX + boardW - btnW;
-                    int btnY = boardY - btnH - (int) (4 * density);
-
-                    boolean isLive = isLiveMatch(activity);
-                    boolean disableOverlays = isLive && !isReviewMode;
-
-                    View btnTag = decorView.findViewWithTag("stockfish_arrow_toggle");
-                    android.widget.TextView toggleBtn;
-                    if (btnTag instanceof android.widget.TextView) {
-                        toggleBtn = (android.widget.TextView) btnTag;
-                    } else {
-                        if (btnTag != null) decorView.removeView(btnTag);
-                        toggleBtn = new android.widget.TextView(decorView.getContext());
-                        toggleBtn.setTag("stockfish_arrow_toggle");
-                        toggleBtn.setGravity(android.view.Gravity.CENTER);
-                        toggleBtn.setTextSize(11);
-                        toggleBtn.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
-                        decorView.addView(toggleBtn);
-                    }
-
-                    toggleBtn.setVisibility(View.VISIBLE);
-                    toggleBtn.bringToFront();
-
-                    // Position button
-                    android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(btnW, btnH);
-                    lp.gravity = android.view.Gravity.TOP | android.view.Gravity.LEFT;
-                    lp.leftMargin = btnX;
-                    lp.topMargin = btnY;
-                    toggleBtn.setLayoutParams(lp);
-
-                    android.graphics.drawable.GradientDrawable btnBg = new android.graphics.drawable.GradientDrawable();
-                    btnBg.setCornerRadius(6 * density);
-
-                    if (disableOverlays) {
-                        toggleBtn.setVisibility(View.GONE);
-                        return;
-                    } else {
-                        boolean visible = StockfishSettings.isArrowsVisible(activity);
-                        if (visible) {
-                            toggleBtn.setText("🎯 Arrows: ON");
-                            toggleBtn.setTextColor(0xFFFFFFFF);
-                            btnBg.setColor(0xFF81B64C); // Green
-                        } else {
-                            toggleBtn.setText("🎯 Arrows: OFF");
-                            toggleBtn.setTextColor(0xFFE3E3E3);
-                            btnBg.setColor(0xFF312E2B); // Dark grey
-                            btnBg.setStroke((int) (1 * density), 0xFF81B64C);
-                        }
-                        toggleBtn.setOnClickListener(v -> {
-                            boolean nextVal = !visible;
-                            StockfishSettings.setArrowsVisible(activity, nextVal);
-                            updateArrowToggleButton();
-                            
-                            // Immediately apply or clear arrows
-                            Object state = getStateImpl();
-                            if (state != null) {
-                                if (nextVal) {
-                                    // Trigger re-analysis or use last calculations
-                                    synchronized (lastEngineArrows) {
-                                        if (!lastEngineArrows.isEmpty()) {
-                                            // Re-inject last arrows
-                                            new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    try {
-                                                        isInjecting.set(true);
-                                                        java.lang.reflect.Method a2 = state.getClass().getMethod("a2", List.class);
-                                                        
-                                                        // Get current user arrows, filter out engine ones, merge
-                                                        List<?> currentArrows = null;
-                                                        try {
-                                                            java.lang.reflect.Method getMoveArrowsMethod = state.getClass().getMethod("k4");
-                                                            currentArrows = (List<?>) getMoveArrowsMethod.invoke(state);
-                                                        } catch (Throwable ignored) {}
-
-                                                        List<Object> merged = new ArrayList<>();
-                                                        if (currentArrows != null) {
-                                                            for (Object arrow : currentArrows) {
-                                                                if (arrow != null && !isEngineArrow(arrow)) {
-                                                                    merged.add(arrow);
-                                                                }
-                                                            }
-                                                        }
-                                                        merged.addAll(lastEngineArrows);
-                                                        a2.invoke(state, merged);
-                                                        invalidateAllBoards();
-                                                    } catch (Throwable t) {
-                                                        Log.e(TAG, "Re-inject failed: " + t.getMessage());
-                                                    } finally {
-                                                        isInjecting.set(false);
-                                                    }
-                                                }
-                                            });
-                                        } else {
-                                            triggerAnalysisForCurrentState();
-                                        }
-                                    }
-                                } else {
-                                    clearEngineArrows(state);
-                                }
-                            }
-                        });
-                    }
-                    toggleBtn.setBackground(btnBg);
-                } catch (Throwable t) {
-                    Log.e(TAG, "updateArrowToggleButton failed: " + t.getMessage(), t);
-                }
-            }
-        });
-    }
-
-    private static void hideArrowToggleButton() {
-        new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Activity activity = getCurrentActivity();
-                    if (activity == null) return;
-                    Window window = activity.getWindow();
-                    if (window == null) return;
-                    View decorView = window.getDecorView();
-                    if (decorView == null) return;
-                    View btnTag = decorView.findViewWithTag("stockfish_arrow_toggle");
-                    if (btnTag != null) {
-                        btnTag.setVisibility(View.GONE);
-                    }
-                } catch (Throwable t) {
-                    Log.e(TAG, "hideArrowToggleButton failed: " + t.getMessage());
-                }
-            }
-        });
-    }
 
     private static void triggerAnalysisForCurrentState() {
         Object state = getStateImpl();

@@ -1,105 +1,54 @@
 # ♟️ Prathxm Patches
 
-Custom Morphe patches for **Chess.com**, integrating the powerful Stockfish chess engine for real-time move analysis and a premium experience.
-
-> [!WARNING]
-> **Important Disclaimer:** Using this patch to get move recommendations during live online games can result in your Chess.com account being permanently banned. Do not use this tool for cheating. It is intended strictly for learning, offline study, and educational purposes. Use it at your own risk!
+Custom Morphe patches for **Chess.com**, providing an ad-free experience, post-game review, and local Stockfish analysis tools.
 
 ## ❓ About
 
-Prathxm Patches brings a native Stockfish chess engine directly into Chess.com on Android. It hooks into the live game board and provides real-time engine analysis, move classification, and visual overlays — all without ever leaving the app.
+Prathxm Patches integrates the Stockfish chess engine directly into Chess.com on Android for offline play, bot matches, and post-game analysis. It is strictly compliant with fairplay rules—all overlays (arrows, evaluation bars, etc.) are automatically disabled during live online matches to prevent cheating.
+
+> [!NOTE]
+> **Why is the patch size so large?**
+> The patched APK will be significantly larger than the original app (by ~110MB). This is because we bundle the native **Stockfish 16.1 NNUE** engine binaries directly into the app so that game reviews and engine analysis can run entirely offline on your device, without relying on Chess.com servers.
 
 ## ✨ Features
 
 ### 🔧 Engine & Analysis
-- **Stockfish 16.1** — Full native engine running locally on device
-- **Multi-PV Best Move Arrows** — Color-coded, opacity-ranked arrows (Green → Blue → Orange → Purple → Red)
-- **Configurable Depth & MultiPV** — Tune analysis strength (depth 1–20, up to 5 lines)
-- **My Side Only Mode** — Only show engine arrows on your turn
-- **ELO Strength Limiting** — Cap engine strength (1350–3190 ELO)
+- **Stockfish 16.1** — Native engine running locally on device for offline analysis and bot games.
+- **Post-Game Analysis & Reviews** — Offline local game reviews with move classification.
+- **Configurable Settings** — Adjust analysis depth and ELO strength limit (1350-3190 ELO).
 
-### 📊 Visual Overlays
-- **Evaluation Bar** — Clean vertical bar showing pawn/mate advantage (stable, no flicker)
-- **Win/Draw/Loss Bar** — Horizontal probability strip below the board (e.g. `65% | 22% | 13%`)
-- **Threat Arrow** — Crimson red arrow showing opponent's best response
-- **Mate Announcement** — Premium pill banner: `♟ Mate in X!` or `☠ Opponent Mates in X!`
+### 📊 Visual Overlays (Offline & Bots Only)
+- **Evaluation & WDL Bars** — Visual advantage bar showing pawn/mate advantage and win/draw/loss probability.
+- **Best Move & Threat Arrows** — Local arrow indicators showing engine recommendations.
 
-### 🏷️ Move Feedback
-- **Move Classification** — Toast notifications: Brilliant 💡 / Best 🎯 / Excellent ✨ / Great ✅ / Good 👍 / Inaccuracy ⚠️ / Mistake ❌ / Blunder 💀
-- **Blunder Alerts** — Haptic vibration on blunders & mistakes
+### 💎 Global Features
+- **Ads Removal** — Removes all banner, interstitial, and video advertisements locally for a clean experience.
 
-### 💎 Premium & Global
-- **Diamond Premium Unlock** — Full premium status
-- **Ads Removal** — Clean, ad-free experience
-- **Dark-Themed Settings UI** — Chess.com-matching in-game settings menu with developer credits
+### 💎 What is Included in the Ad-Free & Local Analysis Patch?
+This patch removes advertisements and embeds a local Stockfish engine to run client-side game reviews.
 
-### ⚙️ Default Settings
+> **Tip:** You can long-press on the Chess.com logo at the top of the screen during a game to open the settings menu and configure the engine.
 
-| Feature | Default |
-|---------|---------|
-| Engine Enabled | ✅ ON |
-| Best Move Arrows | ✅ ON |
-| Evaluation Bar | ✅ ON |
-| My Side Only | ✅ ON |
-| Premium Unlock | ✅ ON |
-| Ads Removed | ✅ ON |
-| Win/Draw/Loss Bar | ❌ OFF |
-| Threat Arrows | ❌ OFF |
-| Move Classification | ❌ OFF |
-| Blunder Alerts | ❌ OFF |
-| Mate Announcement | ❌ OFF |
-| ELO Limit | ❌ OFF |
+Here is exactly what this patch provides and how it works:
 
-> All features are toggleable via long-press on the Chess.com logo.
-> You can also double-tap on the Chess.com logo to quickly hide or show all engine overlays (arrows, bars, and banners) instantly in-game.
-
-## 🎮 Mod Menu & Premium Features Guide
-
-### ☝️ How to Access & Use
-* **Open Settings Menu:** Long-press on the **Chess.com** logo at the top of the screen during a game. A dark-themed settings panel will open, allowing you to configure all stockfish/premium features.
-* **Stealth/Panic Toggle:** Double-tap on the **Chess.com** logo. This immediately halts the engine, clears all arrows, and hides the evaluation bar, WDL bar, and mate announcements for complete discretion. Double-tapping again restores your active overlays and resumes analysis.
-
-### 💎 What is Included in the Premium (Diamond) Patch?
-Some users have reported confusion or suspected the patch doesn't work because they expect server-side features (like Chess.com's cloud-based Coach Report cards or cloud game analysis) to suddenly work for free. **Please read how this patch works to understand why it is fully functional:**
-
-Because Chess.com is a **server-authoritative** application, features that are managed and validated on Chess.com servers cannot be modified locally. 
-
-Here is exactly what this patch does, what it does not do, and how it works:
-
-#### ✅ What is Fully Unlocked & Working (How to use it):
-* **Unlimited Free Game Analysis (The Bypass):** Bypasses Chess.com's 1-game-per-day limit on game reviews. 
-  * **How it works:** When you tap "Game Review", the app usually contacts Chess.com servers (which blocks you if you used your free daily analysis). The patch **intercepts and redirects** this request to our **built-in, high-performance Stockfish 16.1 engine running locally on your device**.
-  * **Result:** It runs the analysis offline on your device and injects the results back into the native review UI. This gives you **unlimited, completely free game reviews** with:
+#### ✅ Local Features (How to use it):
+* **Local Game Analysis:** Brings powerful offline analysis capabilities directly to your device.
+  * **How it works:** When you tap "Game Review", the patch **intercepts and redirects** the request to our **built-in, high-performance Stockfish 16.1 engine running locally on your device**.
+  * **Result:** It runs the analysis offline on your device and injects the results back into the native review UI. This gives you **offline game reviews** with:
     * 🏷️ **Move Classifications** — Brilliant 💡 / Best 🎯 / Great ✅ / Excellent ✨ / Good 👍 / Inaccuracy ⚠️ / Mistake ❌ / Blunder 💀
     * 📊 **Accuracy Scores** — Per-player accuracy percentage (0–100%)
     * 📈 **Dynamic Game Ratings** — Estimated per-game rating (200–2800) derived from accuracy, with Opening/Tactics/Endgame breakdowns
     * ♟️ **Eval Scores** — Centipawn and mate-in evaluations for every position
     * 📋 **Move Tallies** — Full count of each move category per player
 * **Complete Ads Removal:** Blocks and removes all banner advertisements, full-screen interstitial ads, and video promotions locally for a clean, premium, ad-free experience.
-* **Local Diamond Status & Badge Spoofing:** Spoofs your local profile to display the premium Diamond theme styling and UI badges in the app.
 
-#### ❌ What is Server-Authoritative (Cannot be patched — yet):
+#### 🛡️ Fair Play Protection (Anti-Cheating):
+* **Live Match Disablement:** To ensure strict compliance with fair play guidelines, all real-time engine analysis, visual overlays (best move arrows, evaluation bars, etc.), and settings menus are completely and automatically disabled during live online matches against other players. The engine overlays only work for post-game offline analysis and bot games.
+
+#### ❌ What is Server-Authoritative (Cannot be patched):
 * **Official Server-Side Cloud Reviews:** Tapping the official cloud-based coach review queries their server databases. You must use the local Stockfish analysis board/review screen (which is what the patch redirects) for unlimited analysis.
-* **Server-Side Video Lessons & Puzzles:** Interactive video lessons and daily puzzle limits are served directly from Chess.com's databases — **free alternatives are being developed** (see Roadmap below).
+* **Server-Side Video Lessons & Puzzles:** Interactive video lessons and daily puzzle limits are served directly from Chess.com's databases.
 
-> **Note:** The main patch description in metadata is kept concise, but all Premium features and settings are fully compiled, active, and toggleable in the stealth settings menu.
-
-## 🗺️ Free Alternatives Roadmap
-
-We're building open-source replacements for Chess.com's premium features using free, legal data sources:
-
-| # | Feature | Status | Approach |
-|---|---------|--------|----------|
-| 1 | **Game Review** | ✅ Done | Local Stockfish 16.1 engine |
-| 2 | **Premium Status & Ads** | ✅ Done | Client-side patch |
-| 3 | **Lessons & Drills** | 🔜 Next | Paywall bypass (content already on device) |
-| 4 | **Unlimited Puzzles** | 📋 Planned | [Lichess Puzzle DB](https://database.lichess.org/#puzzles) (CC0, 4M+ puzzles) |
-| 5 | **Opening Explorer** | 📋 Planned | [Lichess Explorer API](https://explorer.lichess.ovh) (free) |
-| 6 | **Endgame Tablebase** | 📋 Planned | [Lichess Tablebase API](https://tablebase.lichess.ovh) + offline Syzygy |
-| 7 | **Coach Commentary** | 📋 Planned | Template-based explanations from Stockfish eval |
-| 8 | **Advanced Insights** | 📋 Planned | Local stats engine + paywall bypass |
-
-> All planned features use **legally free** data sources (CC0 licensed databases, public APIs, public domain tablebases).
 
 ## 🩹 Patches List
 
@@ -116,7 +65,7 @@ We're building open-source replacements for Chess.com's premium features using f
 
 | 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
 |----------|----------------|-----------|
-| [Stockfish Engine Integration](#stockfish-engine-integration) | Injects the local Stockfish chess engine into Chess.com for real-time analysis, best-move arrows, and customizable settings. |  |
+| [Ad-Free & Local Analysis](#ad-free--local-analysis) | Removes advertisements, unlocks ad-free features, and enables local Stockfish engine for post-game review & analysis. |  |
 
 </details>
 
@@ -125,6 +74,9 @@ We're building open-source replacements for Chess.com's premium features using f
 ### 📙 Contributing
 
 Contributions are welcome! Please read the [contribution guidelines](CONTRIBUTING.md) before submitting a pull request.
+
+> [!TIP]
+> **App Requests:** If you want to request support or patches for any other app, please open a request in the [GitHub Discussions](https://github.com/PrathxmOp/Prathxm-Patches/discussions) section rather than opening a GitHub Issue.
 
 ### 🛠️ Patching
 

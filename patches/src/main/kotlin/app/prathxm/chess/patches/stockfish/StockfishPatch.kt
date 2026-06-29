@@ -28,8 +28,8 @@ private val stockfishResourcePatch = resourcePatch {
 }
 
 val stockfishPatch = bytecodePatch(
-    name = "Stockfish Engine Integration",
-    description = "Injects the local Stockfish chess engine into Chess.com for real-time analysis, best-move arrows, and customizable settings.",
+    name = "Ad-Free & Local Analysis",
+    description = "Removes advertisements, unlocks ad-free features, and enables local Stockfish engine for post-game review & analysis.",
     default = true
 ) {
     compatibleWith(COMPATIBILITY_CHESS)
@@ -278,5 +278,6 @@ val stockfishPatch = bytecodePatch(
                 :proceed
             """
         )
+
     }
 }

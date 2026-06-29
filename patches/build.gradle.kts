@@ -3,7 +3,7 @@ group = "app.prathxm.chess"
 patches {
     about {
         name = "Prathxm Patches"
-        description = "Custom Morphe patches for Chess.com — Stockfish engine integration with real-time analysis"
+        description = "Custom Morphe patches for Chess.com — Ad-free experience and local offline engine tools"
         source = "git@github.com:PrathxmOp/Prathxm-Patches.git"
         author = "Prathxm"
         contact = "github.com/PrathxmOp"
