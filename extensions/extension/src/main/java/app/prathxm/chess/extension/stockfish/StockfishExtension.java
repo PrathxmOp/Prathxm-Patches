@@ -246,10 +246,14 @@ public class StockfishExtension {
         if (ctx != null && !StockfishSettings.isEngineEnabled(ctx)) {
             Log.d(TAG, "Engine is disabled in settings.");
             clearEngineArrows(stateImplObject);
+            hideEvalBar();
+            hideWdlBar();
             return;
         }
 
-        // Cancel previous calculations and clear the stale engine arrows immediately.
+        // Cancel previous calculations and clear the stale engine ARROWS only.
+        // We intentionally do NOT hide the eval bar here so it stays stable while
+        // the new analysis is running (no flicker).
         clearEngineArrows(stateImplObject);
 
         // Check side-enforcement
@@ -264,6 +268,7 @@ public class StockfishExtension {
                         boolean isWhiteMove = (boolean) isWhiteMethod.invoke(sideToMove);
                         if (isWhiteMove != userWhite) {
                             Log.d(TAG, "Not user's turn (user: " + (userWhite ? "W" : "B") + ", turn: " + (isWhiteMove ? "W" : "B") + "). Skipping analysis.");
+                            // Only skip arrow injection — eval bar stays visible showing last position eval
                             return;
                         }
                     }
@@ -628,9 +633,15 @@ public class StockfishExtension {
                 }
 
                 if (StockfishSettings.isEvalBarEnabled(context)) {
-                    updateEvalBar(result.score, result.hasMate, result.mateIn, result.wdlWin, result.wdlDraw, result.wdlLoss);
+                    updateEvalBar(result.score, result.hasMate, result.mateIn);
                 } else {
                     hideEvalBar();
+                }
+
+                if (StockfishSettings.isWdlEnabled(context)) {
+                    updateWdlBar(result.wdlWin, result.wdlDraw, result.wdlLoss);
+                } else {
+                    hideWdlBar();
                 }
 
             } catch (Throwable t) {
@@ -784,7 +795,8 @@ public class StockfishExtension {
     }
 
     private static void clearEngineArrows(Object stateImpl) {
-        hideEvalBar();
+        // NOTE: Do NOT hide the eval bar here — it is independent of engine arrows
+        //       and must stay stable while new analysis loads.
         if (stateImpl == null) return;
 
         try {
@@ -1379,8 +1391,7 @@ public class StockfishExtension {
         return defaultValue;
     }
 
-    private static void updateEvalBar(final float score, final boolean hasMate, final int mateIn,
-                                      final int wdlWin, final int wdlDraw, final int wdlLoss) {
+    private static void updateEvalBar(final float score, final boolean hasMate, final int mateIn) {
         new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -1391,44 +1402,104 @@ public class StockfishExtension {
                     if (window == null) return;
                     android.view.ViewGroup decorView = (android.view.ViewGroup) window.getDecorView();
                     if (decorView == null) return;
-                    
+
                     View boardView = findChessBoardView(decorView);
-                    if (boardView == null) {
-                        hideEvalBar();
-                        return;
-                    }
-                    
+                    if (boardView == null) return; // board not visible yet, skip silently
+
                     int[] loc = new int[2];
                     boardView.getLocationInWindow(loc);
                     int boardX = loc[0];
                     int boardY = loc[1];
                     int boardW = boardView.getWidth();
                     int boardH = boardView.getHeight();
-                    
                     if (boardW <= 0 || boardH <= 0) return;
-                    
+
+                    float density = decorView.getContext().getResources().getDisplayMetrics().density;
+                    int barWidth = (int) (12 * density);
+
+                    // Reuse existing view — never remove and re-add (prevents flash)
                     View evalBar = decorView.findViewWithTag("stockfish_eval_bar");
                     EvalBarView evalBarView;
                     if (evalBar instanceof EvalBarView) {
                         evalBarView = (EvalBarView) evalBar;
-                        evalBarView.setVisibility(View.VISIBLE);
                     } else {
-                        if (evalBar != null) {
-                            decorView.removeView(evalBar);
-                        }
+                        if (evalBar != null) decorView.removeView(evalBar);
                         evalBarView = new EvalBarView(decorView.getContext());
                         evalBarView.setTag("stockfish_eval_bar");
                         decorView.addView(evalBarView);
                     }
-                    
-                    float density = evalBarView.getContext().getResources().getDisplayMetrics().density;
-                    boolean showWdl = StockfishSettings.isWdlEnabled(evalBarView.getContext());
-                    int barWidth = (int) ((showWdl ? 16 : 12) * density);
-                    
-                    evalBarView.update(boardX, boardY, barWidth, boardH, score, hasMate, mateIn, isBoardFlipped(getStateImpl()),
-                                       wdlWin, wdlDraw, wdlLoss, showWdl);
+                    evalBarView.setVisibility(View.VISIBLE);
+                    evalBarView.update(boardX, boardY, barWidth, boardH,
+                                       score, hasMate, mateIn, isBoardFlipped(getStateImpl()));
                 } catch (Throwable t) {
                     Log.e(TAG, "updateEvalBar failed: " + t.getMessage());
+                }
+            }
+        });
+    }
+
+    private static void updateWdlBar(final int wdlWin, final int wdlDraw, final int wdlLoss) {
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Activity activity = getCurrentActivity();
+                    if (activity == null) return;
+                    Window window = activity.getWindow();
+                    if (window == null) return;
+                    android.view.ViewGroup decorView = (android.view.ViewGroup) window.getDecorView();
+                    if (decorView == null) return;
+
+                    View boardView = findChessBoardView(decorView);
+                    if (boardView == null) return;
+
+                    int[] loc = new int[2];
+                    boardView.getLocationInWindow(loc);
+                    int boardX = loc[0];
+                    int boardY = loc[1];
+                    int boardW = boardView.getWidth();
+                    int boardH = boardView.getHeight();
+                    if (boardW <= 0 || boardH <= 0) return;
+
+                    float density = decorView.getContext().getResources().getDisplayMetrics().density;
+                    int barHeight = (int) (14 * density);
+                    // Position horizontally aligned with the board, just below it
+                    int barY = boardY + boardH + (int)(4 * density);
+
+                    View wdlTag = decorView.findViewWithTag("stockfish_wdl_bar");
+                    WdlBarView wdlBarView;
+                    if (wdlTag instanceof WdlBarView) {
+                        wdlBarView = (WdlBarView) wdlTag;
+                    } else {
+                        if (wdlTag != null) decorView.removeView(wdlTag);
+                        wdlBarView = new WdlBarView(decorView.getContext());
+                        wdlBarView.setTag("stockfish_wdl_bar");
+                        decorView.addView(wdlBarView);
+                    }
+                    wdlBarView.setVisibility(View.VISIBLE);
+                    wdlBarView.update(boardX, barY, boardW, barHeight, wdlWin, wdlDraw, wdlLoss);
+                } catch (Throwable t) {
+                    Log.e(TAG, "updateWdlBar failed: " + t.getMessage());
+                }
+            }
+        });
+    }
+
+    private static void hideWdlBar() {
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Activity activity = getCurrentActivity();
+                    if (activity == null) return;
+                    Window window = activity.getWindow();
+                    if (window == null) return;
+                    View decorView = window.getDecorView();
+                    if (decorView == null) return;
+                    View v = decorView.findViewWithTag("stockfish_wdl_bar");
+                    if (v != null) v.setVisibility(View.GONE);
+                } catch (Throwable t) {
+                    Log.e(TAG, "hideWdlBar failed: " + t.getMessage());
                 }
             }
         });
