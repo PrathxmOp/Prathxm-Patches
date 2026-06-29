@@ -2,6 +2,9 @@
 
 Custom Morphe patches for **Chess.com**, integrating the powerful Stockfish chess engine for real-time move analysis and a premium experience.
 
+> [!WARNING]
+> **Important Disclaimer:** Using this patch to get move recommendations during live online games can result in your Chess.com account being permanently banned. Do not use this tool for cheating. It is intended strictly for learning, offline study, and educational purposes. Use it at your own risk!
+
 ## ❓ About
 
 Prathxm Patches brings a native Stockfish chess engine directly into Chess.com on Android. It hooks into the live game board and provides real-time engine analysis, move classification, and visual overlays — all without ever leaving the app.
