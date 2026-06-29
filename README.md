@@ -50,6 +50,19 @@ Prathxm Patches brings a native Stockfish chess engine directly into Chess.com o
 > All features are toggleable via long-press on the Chess.com logo.
 > You can also double-tap on the Chess.com logo to quickly hide or show all engine overlays (arrows, bars, and banners) instantly in-game.
 
+## 🎮 Mod Menu & Premium Features Guide
+
+### ☝️ How to Access & Use
+* **Open Settings Menu:** Long-press on the **Chess.com** logo at the top of the screen during a game. A dark-themed settings panel will open, allowing you to configure all stockfish/premium features.
+* **Stealth/Panic Toggle:** Double-tap on the **Chess.com** logo. This immediately halts the engine, clears all arrows, and hides the evaluation bar, WDL bar, and mate announcements for complete discretion. Double-tapping again restores your active overlays and resumes analysis.
+
+### 💎 What is Included in the Premium (Diamond) Patch?
+When you check the **"Enable Premium (Diamond Status)"** and **"Remove Ads"** options in the settings menu:
+* **Complete Ads Removal:** Blocks all banners, interstitial ads, and video promotions locally for an uninterrupted play experience.
+* **Local Diamond Account Spoofing:** Grants your local profile the premium Diamond status styling and UI badges.
+
+> **Note:** The main patch description in metadata was shortened to keep it clean and concise, but all Premium features and settings remain fully functional and included in the code.
+
 ## 🩹 Patches List
 
 <!-- PATCHES_START EXPANDED -->
