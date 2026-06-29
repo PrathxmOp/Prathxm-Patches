@@ -256,27 +256,7 @@ public class StockfishExtension {
         // the new analysis is running (no flicker).
         clearEngineArrows(stateImplObject);
 
-        // Check side-enforcement
-        if (ctx != null && StockfishSettings.isMySideOnly(ctx)) {
-            Boolean userWhite = isUserWhite(stateImplObject);
-            if (userWhite != null) {
-                try {
-                    java.lang.reflect.Method getSideToMove = positionObject.getClass().getMethod("getSideToMove");
-                    Object sideToMove = getSideToMove.invoke(positionObject);
-                    if (sideToMove != null) {
-                        java.lang.reflect.Method isWhiteMethod = sideToMove.getClass().getMethod("isWhite");
-                        boolean isWhiteMove = (boolean) isWhiteMethod.invoke(sideToMove);
-                        if (isWhiteMove != userWhite) {
-                            Log.d(TAG, "Not user's turn (user: " + (userWhite ? "W" : "B") + ", turn: " + (isWhiteMove ? "W" : "B") + "). Skipping analysis.");
-                            // Only skip arrow injection — eval bar stays visible showing last position eval
-                            return;
-                        }
-                    }
-                } catch (Throwable t) {
-                    Log.e(TAG, "Error checking side-aware turn: " + t.getMessage(), t);
-                }
-            }
-        }
+
 
         String fen = extractFen(positionObject);
         if (fen == null) {
@@ -628,8 +608,21 @@ public class StockfishExtension {
                 classifyMoveIfPossible(fen, result);
 
                 Log.i(TAG, "Best moves: " + result.moves + ", Score: " + result.score);
-                if (StockfishSettings.isArrowsVisible(context)) {
+                boolean showArrows = StockfishSettings.isArrowsVisible(context);
+                if (showArrows && StockfishSettings.isMySideOnly(context)) {
+                    Boolean userWhite = isUserWhite(getStateImpl());
+                    if (userWhite != null) {
+                        boolean isWhiteTurn = isWhiteTurnFromFen(fen);
+                        if (isWhiteTurn != userWhite) {
+                            showArrows = false;
+                        }
+                    }
+                }
+
+                if (showArrows) {
                     injectEngineArrows(result.moves, result.ponder);
+                } else {
+                    clearEngineArrows(getStateImpl());
                 }
 
                 if (StockfishSettings.isEvalBarEnabled(context)) {
@@ -644,12 +637,24 @@ public class StockfishExtension {
                     hideWdlBar();
                 }
 
+                if (result.hasMate && StockfishSettings.isMateAnnouncementEnabled(context)) {
+                    showMateAnnouncement(result.mateIn);
+                } else {
+                    hideMateAnnouncement();
+                }
+
             } catch (Throwable t) {
                 if (!Thread.currentThread().isInterrupted()) {
                     Log.e(TAG, "Analysis error: " + t.getMessage());
                 }
             }
         });
+    }
+
+    private static boolean isWhiteTurnFromFen(String fen) {
+        if (fen == null) return true;
+        String[] parts = fen.split("\\s+");
+        return parts.length > 1 && parts[1].equals("w");
     }
 
     // ── Arrow injection ───────────────────────────────────────────────────────
@@ -1055,6 +1060,7 @@ public class StockfishExtension {
         android.widget.CheckBox threatCb = addStyledCheckbox(rootLayout, "Show Threat Arrows (Opponent's Best Move)", StockfishSettings.isThreatArrowsEnabled(activity), density, activity);
         android.widget.CheckBox classifCb = addStyledCheckbox(rootLayout, "Show Move Classification", StockfishSettings.isMoveClassificationEnabled(activity), density, activity);
         android.widget.CheckBox blunderCb = addStyledCheckbox(rootLayout, "Vibrate on Blunders & Mistakes", StockfishSettings.isBlunderAlertsEnabled(activity), density, activity);
+        android.widget.CheckBox mateCb = addStyledCheckbox(rootLayout, "Show Mate Announcement (Mate in X)", StockfishSettings.isMateAnnouncementEnabled(activity), density, activity);
 
         addDialogSpacer(rootLayout, 12, density);
 
@@ -1148,6 +1154,8 @@ public class StockfishExtension {
             StockfishSettings.setThreatArrowsEnabled(activity, threatCb.isChecked());
             StockfishSettings.setMoveClassificationEnabled(activity, classifCb.isChecked());
             StockfishSettings.setBlunderAlertsEnabled(activity, blunderCb.isChecked());
+            StockfishSettings.setMateAnnouncementEnabled(activity, mateCb.isChecked());
+            if (!mateCb.isChecked()) hideMateAnnouncement();
 
             android.widget.Toast.makeText(activity, "Settings Saved", android.widget.Toast.LENGTH_SHORT).show();
             
@@ -1500,6 +1508,110 @@ public class StockfishExtension {
                     if (v != null) v.setVisibility(View.GONE);
                 } catch (Throwable t) {
                     Log.e(TAG, "hideWdlBar failed: " + t.getMessage());
+                }
+            }
+        });
+    }
+
+    private static void showMateAnnouncement(final int mateIn) {
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Activity activity = getCurrentActivity();
+                    if (activity == null) return;
+                    Window window = activity.getWindow();
+                    if (window == null) return;
+                    android.view.ViewGroup decorView = (android.view.ViewGroup) window.getDecorView();
+                    if (decorView == null) return;
+
+                    View boardView = findChessBoardView(decorView);
+                    if (boardView == null) return;
+
+                    int[] loc = new int[2];
+                    boardView.getLocationInWindow(loc);
+                    int boardX = loc[0];
+                    int boardY = loc[1];
+                    int boardW = boardView.getWidth();
+                    if (boardW <= 0) return;
+
+                    float density = decorView.getContext().getResources().getDisplayMetrics().density;
+
+                    View existing = decorView.findViewWithTag("stockfish_mate_banner");
+                    android.widget.TextView banner;
+                    if (existing instanceof android.widget.TextView) {
+                        banner = (android.widget.TextView) existing;
+                    } else {
+                        if (existing != null) decorView.removeView(existing);
+
+                        banner = new android.widget.TextView(decorView.getContext());
+                        banner.setTag("stockfish_mate_banner");
+
+                        // Premium Chess.com-styled pill background
+                        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+                        bg.setColor(0xEE1B1B1B);
+                        bg.setCornerRadius(24 * density);
+                        bg.setStroke((int)(1.5f * density), 0xFF81B64C); // green border
+                        banner.setBackground(bg);
+
+                        banner.setTextColor(0xFFFFFFFF);
+                        banner.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
+                        banner.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+                        banner.setGravity(android.view.Gravity.CENTER);
+
+                        int padH = (int)(16 * density);
+                        int padV = (int)(8 * density);
+                        banner.setPadding(padH, padV, padH, padV);
+
+                        android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(
+                                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+                        );
+                        banner.setLayoutParams(lp);
+                        decorView.addView(banner);
+                    }
+
+                    // Mate label
+                    String sign = mateIn > 0 ? "♟ Mate in " : "☠ Opponent Mates in ";
+                    banner.setText(sign + Math.abs(mateIn) + "!");
+
+                    // Position: horizontally centred on the board, just inside the top edge
+                    banner.measure(
+                            android.view.View.MeasureSpec.makeMeasureSpec(boardW, android.view.View.MeasureSpec.AT_MOST),
+                            android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED)
+                    );
+                    int bw = banner.getMeasuredWidth();
+                    int bh = banner.getMeasuredHeight();
+                    int centreX = boardX + (boardW - bw) / 2;
+                    int topY = boardY + (int)(10 * density);
+
+                    banner.setTranslationX(centreX);
+                    banner.setTranslationY(topY);
+                    banner.setVisibility(View.VISIBLE);
+                    banner.bringToFront();
+
+                } catch (Throwable t) {
+                    Log.e(TAG, "showMateAnnouncement failed: " + t.getMessage());
+                }
+            }
+        });
+    }
+
+    private static void hideMateAnnouncement() {
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Activity activity = getCurrentActivity();
+                    if (activity == null) return;
+                    Window window = activity.getWindow();
+                    if (window == null) return;
+                    View decorView = window.getDecorView();
+                    if (decorView == null) return;
+                    View v = decorView.findViewWithTag("stockfish_mate_banner");
+                    if (v != null) v.setVisibility(View.GONE);
+                } catch (Throwable t) {
+                    Log.e(TAG, "hideMateAnnouncement failed: " + t.getMessage());
                 }
             }
         });
