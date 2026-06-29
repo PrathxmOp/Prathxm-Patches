@@ -1,6 +1,5 @@
 # Template inspired by: https://github.com/hoo-dles/morphe-patches
-name: "📱 App Request"
-description: "Request a new patch for an unsupported app"
+
 title: "req: "
 labels: ["app-request"]
 body:
