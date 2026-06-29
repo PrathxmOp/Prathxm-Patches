@@ -1,3 +1,9 @@
+## [1.3.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.3.0...v1.3.1) (2026-06-29)
+
+### 🐛 Bug Fixes
+
+* rename discussion template to match category slug ([35569a2](https://github.com/PrathxmOp/Prathxm-Patches/commit/35569a28ac3a2dc93245bb4b97064e9d4197a76a))
+
 ## [1.3.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.2.0...v1.3.0) (2026-06-29)
 
 ### ✨ New Features
