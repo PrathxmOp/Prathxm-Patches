@@ -27,12 +27,9 @@ private val stockfishResourcePatch = resourcePatch {
     }
 }
 
-@Suppress("unused")
 val stockfishPatch = bytecodePatch(
     name = "Stockfish Engine Integration",
-    description = "Injects the Stockfish chess engine into Chess.com for real-time best-move analysis. " +
-        "Shows ranked, color-coded best-move arrows on the board (Green → Blue → Orange → Purple → Red) " +
-        "along with premium Diamond feature unlock, ads removal, side-aware turn analysis, and customizable settings via in-game menu.",
+    description = "Injects the local Stockfish chess engine into Chess.com for real-time analysis, best-move arrows, and customizable settings.",
     default = true
 ) {
     compatibleWith(COMPATIBILITY_CHESS)
