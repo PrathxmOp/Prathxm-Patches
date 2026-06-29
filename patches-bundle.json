@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-06-29T15:33:41",
-  "description": "## [1.2.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.1.0...v1.2.0) (2026-06-29)\n\n### ✨ New Features\n\n* **fair-play:** implement Fair Play Analysis Controls, warnings, silent mode, and post-game summary ([901170b](https://github.com/PrathxmOp/Prathxm-Patches/commit/901170bf73da5b840629d50988163305550cd27b))\n* **stockfish:** dynamic reflection for local analysis flow and offline review integration ([3a1ded5](https://github.com/PrathxmOp/Prathxm-Patches/commit/3a1ded5b9e6d205a0da00a27ccd632f3237beb98))\n* **stockfish:** stabilize game review, add dynamic rating logic, and update roadmap ([2bd605a](https://github.com/PrathxmOp/Prathxm-Patches/commit/2bd605a079c19e9b5db76423b997711dd44c3860))",
-  "download_url": "https://github.com/PrathxmOp/Prathxm-Patches/releases/download/v1.2.0/patches-1.2.0.mpp",
+  "created_at": "2026-06-29T19:45:34",
+  "description": "## [1.3.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.2.0...v1.3.0) (2026-06-29)\n\n### ✨ New Features\n\n* refine settings UI, add Clone App patch, and stabilize fair play logic ([909e529](https://github.com/PrathxmOp/Prathxm-Patches/commit/909e529b5c61a57f408f8da6177df019111b4486))",
+  "download_url": "https://github.com/PrathxmOp/Prathxm-Patches/releases/download/v1.3.0/patches-1.3.0.mpp",
   "signature_download_url": "",
-  "version": "1.2.0"
+  "version": "1.3.0"
 }
