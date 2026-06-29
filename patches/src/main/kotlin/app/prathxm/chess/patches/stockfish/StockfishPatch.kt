@@ -155,5 +155,81 @@ val stockfishPatch = bytecodePatch(
                 invoke-static {}, $EXTENSION_CLASS->ensureEngineReady()V
             """
         )
+
+        // ─────────────────────────────────────────────────────────────────
+        // Hook 6 – GameAnalysisPermissions Overrides
+        // ─────────────────────────────────────────────────────────────────
+        GameAnalysisPermissionsGetCanCreateFingerprint.method.addInstructions(
+            0,
+            """
+                iget-boolean v0, p0, Lcom/chess/entities/GameAnalysisPermissions;->canCreate:Z
+                const-string v1, "canCreate"
+                invoke-static {v0, v1}, $EXTENSION_CLASS->getAnalysisPermission(ZLjava/lang/String;)Z
+                move-result v0
+                return v0
+            """
+        )
+
+        GameAnalysisPermissionsGetCanMoveFeedbackFingerprint.method.addInstructions(
+            0,
+            """
+                iget-boolean v0, p0, Lcom/chess/entities/GameAnalysisPermissions;->canMoveFeedback:Z
+                const-string v1, "canMoveFeedback"
+                invoke-static {v0, v1}, $EXTENSION_CLASS->getAnalysisPermission(ZLjava/lang/String;)Z
+                move-result v0
+                return v0
+            """
+        )
+
+        GameAnalysisPermissionsGetCanMoveStrengthFingerprint.method.addInstructions(
+            0,
+            """
+                iget-boolean v0, p0, Lcom/chess/entities/GameAnalysisPermissions;->canMoveStrength:Z
+                const-string v1, "canMoveStrength"
+                invoke-static {v0, v1}, $EXTENSION_CLASS->getAnalysisPermission(ZLjava/lang/String;)Z
+                move-result v0
+                return v0
+            """
+        )
+
+        GameAnalysisPermissionsGetCanViewAccuracyAndMovesFingerprint.method.addInstructions(
+            0,
+            """
+                iget-boolean v0, p0, Lcom/chess/entities/GameAnalysisPermissions;->canCreate:Z
+                const-string v1, "canViewAccuracyAndMoves"
+                invoke-static {v0, v1}, $EXTENSION_CLASS->getAnalysisPermission(ZLjava/lang/String;)Z
+                move-result v0
+                return v0
+            """
+        )
+
+        GameAnalysisPermissionsGetCanViewCoachCommentaryFingerprint.method.addInstructions(
+            0,
+            """
+                iget-boolean v0, p0, Lcom/chess/entities/GameAnalysisPermissions;->canViewCoachCommentary:Z
+                const-string v1, "canViewCoachCommentary"
+                invoke-static {v0, v1}, $EXTENSION_CLASS->getAnalysisPermission(ZLjava/lang/String;)Z
+                move-result v0
+                return v0
+            """
+        )
+
+        GameAnalysisRepositoryGetGameAnalysisFingerprint.method.addInstructions(
+            0,
+            """
+                move-object/from16 v0, p0
+                move-object/from16 v1, p1
+                move-object/from16 v2, p2
+                move-object/from16 v3, p3
+                move-object/from16 v4, p4
+                move-object/from16 v5, p5
+                move-object/from16 v6, p6
+                move-object/from16 v7, p7
+                invoke-static/range {v0 .. v7}, $EXTENSION_CLASS->getLocalAnalysisFlow(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;Ljava/util/Set;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+                move-result-object v0
+                check-cast v0, Landroid/view/inputmethod/g74;
+                return-object v0
+            """
+        )
     }
 }

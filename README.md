@@ -60,11 +60,24 @@ Prathxm Patches brings a native Stockfish chess engine directly into Chess.com o
 * **Stealth/Panic Toggle:** Double-tap on the **Chess.com** logo. This immediately halts the engine, clears all arrows, and hides the evaluation bar, WDL bar, and mate announcements for complete discretion. Double-tapping again restores your active overlays and resumes analysis.
 
 ### 💎 What is Included in the Premium (Diamond) Patch?
-When you check the **"Enable Premium (Diamond Status)"** and **"Remove Ads"** options in the settings menu:
-* **Complete Ads Removal:** Blocks all banners, interstitial ads, and video promotions locally for an uninterrupted play experience.
-* **Local Diamond Account Spoofing:** Grants your local profile the premium Diamond status styling and UI badges.
+Some users have reported confusion or suspected the patch doesn't work because they expect server-side features (like Chess.com's cloud-based Coach Report cards or cloud game analysis) to suddenly work for free. **Please read how this patch works to understand why it is fully functional:**
 
-> **Note:** The main patch description in metadata was shortened to keep it clean and concise, but all Premium features and settings remain fully functional and included in the code.
+Because Chess.com is a **server-authoritative** application, features that are managed and validated on Chess.com servers cannot be modified locally. 
+
+Here is exactly what this patch does, what it does not do, and how it works:
+
+#### ✅ What is Fully Unlocked & Working (How to use it):
+* **Unlimited Free Game Analysis (The Bypass):** Bypasses Chess.com's 1-game-per-day limit on game reviews. 
+  * **How it works:** When you tap "Game Review", the app usually contacts Chess.com servers (which blocks you if you used your free daily analysis). The patch **intercepts and redirects** this request to our **built-in, high-performance Stockfish 16.1 engine running locally on your device**.
+  * **Result:** It runs the analysis offline on your device and injects the results back into the native review UI. This gives you **unlimited, completely free game reviews** with move classifications, accuracy scores, and engine arrows, without querying Chess.com servers!
+* **Complete Ads Removal:** Blocks and removes all banner advertisements, full-screen interstitial ads, and video promotions locally for a clean, premium, ad-free experience.
+* **Local Diamond Status & Badge Spoofing:** Spoofs your local profile to display the premium Diamond theme styling and UI badges in the app.
+
+#### ❌ What is Server-Authoritative (Cannot be patched):
+* **Official Server-Side Cloud Reviews:** Tapping the official cloud-based coach review queries their server databases. You must use the local Stockfish analysis board/review screen (which is what the patch redirects) for unlimited analysis.
+* **Server-Side Video Lessons & Puzzles:** Interactive video lessons and daily puzzle limits are served directly from Chess.com's databases and cannot be unlocked by client-side APK modifications.
+
+> **Note:** The main patch description in metadata is kept concise, but all Premium features and settings are fully compiled, active, and toggleable in the stealth settings menu.
 
 ## 🩹 Patches List
 
