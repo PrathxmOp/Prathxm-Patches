@@ -2,12 +2,12 @@ group = "app.prathxm.chess"
 
 patches {
     about {
-        name = "UserXYZ Patches"
-        description = "Patches for apps I like"
-        source = "git@github.com:UserXYZ/morphe-patches.git"
-        author = "Awesome dev"
-        contact = "na"
-        website = "na"
+        name = "Prathxm Patches"
+        description = "Custom Morphe patches for Chess.com — Stockfish engine integration with real-time analysis"
+        source = "git@github.com:PrathxmOp/Prathxm-Patches.git"
+        author = "Prathxm"
+        contact = "github.com/PrathxmOp"
+        website = "github.com/PrathxmOp/Prathxm-Patches"
         license = "GPLv3"
     }
 }
