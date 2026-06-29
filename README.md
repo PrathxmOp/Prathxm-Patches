@@ -53,7 +53,7 @@ Prathxm Patches brings a native Stockfish chess engine directly into Chess.com o
 ## 🩹 Patches List
 
 <!-- PATCHES_START EXPANDED -->
-> **[v1.0.0](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.0.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;1 patches total
+> **[v1.1.0](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.1.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;1 patches total
 <details open>
 <summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;1 patch</summary>
 <br>
@@ -64,8 +64,8 @@ Prathxm Patches brings a native Stockfish chess engine directly into Chess.com o
 | :---: | :---: |
 
 | 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
-|----------|----------------|-----------| 
-| [Stockfish Engine Integration](#-features) | Injects the Stockfish 16.1 chess engine into Chess.com for real-time best-move analysis with eval bar, WDL probabilities, move classification, mate announcements, threat arrows, premium unlock, and ads removal. |  |
+|----------|----------------|-----------|
+| [Stockfish Engine Integration](#stockfish-engine-integration) | Injects the local Stockfish chess engine into Chess.com for real-time analysis, best-move arrows, and customizable settings. |  |
 
 </details>
 
