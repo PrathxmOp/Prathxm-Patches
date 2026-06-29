@@ -190,7 +190,33 @@ object GameAnalysisRepositoryGetGameAnalysisFingerprint : Fingerprint(
             method.name == "b" &&
             method.parameterTypes.size == 7 &&
             method.parameterTypes[1] == "Ljava/lang/String;" &&
-            method.returnType == "Landroid/view/inputmethod/g74;"
+            method.returnType == "Lcom/google/android/g74;"
     }
 )
+
+object GameReviewV2V0DFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/gamereview/v2/v0;" &&
+            method.name == "D" &&
+            method.parameterTypes.size == 2 &&
+            method.parameterTypes[0] == "Lcom/chess/chessboard/variants/d;" &&
+            method.parameterTypes[1] == "Lcom/chess/gamereview/repository/AnalyzedGameData\$AnalyzedPosition\$Eval;" &&
+            method.returnType == "Lcom/chess/gamereview/api/n;"
+    }
+)
+
+object GameReviewV2V0JFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/gamereview/v2/v0;" &&
+            method.name == "J" &&
+            method.parameterTypes.size == 4 &&
+            method.parameterTypes[0] == "Lcom/chess/gamereview/repository/AnalyzedGameData\$AnalyzedPosition;" &&
+            method.parameterTypes[1] == "Lcom/chess/chessboard/history/i;" &&
+            method.parameterTypes[2] == "Lcom/chess/entities/GameAnalysisPermissions;" &&
+            method.parameterTypes[3] == "Z" &&
+            method.returnType == "Lcom/chess/gamereview/api/d;"
+    }
+)
+
+
 
