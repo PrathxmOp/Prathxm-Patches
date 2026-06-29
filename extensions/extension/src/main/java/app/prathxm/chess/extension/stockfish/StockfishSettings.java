@@ -103,4 +103,54 @@ public class StockfishSettings {
     public static void setArrowColor(Context context, int color) {
         getPrefs(context).edit().putInt(KEY_ARROW_COLOR, color).apply();
     }
+
+    private static final String KEY_SHOW_EVAL_BAR = "show_eval_bar";
+
+    public static boolean isEvalBarEnabled(Context context) {
+        return getPrefs(context).getBoolean(KEY_SHOW_EVAL_BAR, true);
+    }
+
+    public static void setEvalBarEnabled(Context context, boolean enabled) {
+        getPrefs(context).edit().putBoolean(KEY_SHOW_EVAL_BAR, enabled).apply();
+    }
+
+    private static final String KEY_SHOW_WDL = "show_wdl";
+
+    public static boolean isWdlEnabled(Context context) {
+        return getPrefs(context).getBoolean(KEY_SHOW_WDL, true);
+    }
+
+    public static void setWdlEnabled(Context context, boolean enabled) {
+        getPrefs(context).edit().putBoolean(KEY_SHOW_WDL, enabled).apply();
+    }
+
+    private static final String KEY_SHOW_THREAT_ARROWS = "show_threat_arrows";
+
+    public static boolean isThreatArrowsEnabled(Context context) {
+        return getPrefs(context).getBoolean(KEY_SHOW_THREAT_ARROWS, true);
+    }
+
+    public static void setThreatArrowsEnabled(Context context, boolean enabled) {
+        getPrefs(context).edit().putBoolean(KEY_SHOW_THREAT_ARROWS, enabled).apply();
+    }
+
+    private static final String KEY_SHOW_MOVE_CLASSIFICATION = "show_move_classification";
+
+    public static boolean isMoveClassificationEnabled(Context context) {
+        return getPrefs(context).getBoolean(KEY_SHOW_MOVE_CLASSIFICATION, true);
+    }
+
+    public static void setMoveClassificationEnabled(Context context, boolean enabled) {
+        getPrefs(context).edit().putBoolean(KEY_SHOW_MOVE_CLASSIFICATION, enabled).apply();
+    }
+
+    private static final String KEY_ENABLE_BLUNDER_ALERTS = "enable_blunder_alerts";
+
+    public static boolean isBlunderAlertsEnabled(Context context) {
+        return getPrefs(context).getBoolean(KEY_ENABLE_BLUNDER_ALERTS, true);
+    }
+
+    public static void setBlunderAlertsEnabled(Context context, boolean enabled) {
+        getPrefs(context).edit().putBoolean(KEY_ENABLE_BLUNDER_ALERTS, enabled).apply();
+    }
 }

@@ -31,6 +31,9 @@ jobs:
       - name: Cache Gradle
         uses: burrunan/gradle-cache-action@v3
 
+      - name: Download Stockfish Binaries
+        run: ./.github/scripts/download_stockfish.sh
+
       - name: Build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

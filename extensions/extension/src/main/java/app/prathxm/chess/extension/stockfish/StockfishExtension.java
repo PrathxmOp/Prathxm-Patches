@@ -171,8 +171,16 @@ public class StockfishExtension {
     /** Remembers the last engine-calculated HintArrows so we can merge/preserve them. */
     private static final List<Object> lastEngineArrows = new ArrayList<>();
 
-    /** Prevents infinite recursion when we invoke a2() internally. */
-    private static final ThreadLocal<Boolean> isInjecting = ThreadLocal.withInitial(() -> false);
+    private static final List<String> fenHistory = new ArrayList<>();
+    private static final java.util.Map<String, Float> fenToEvalMap = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<String, List<String>> fenToBestMovesMap = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static final ThreadLocal<Boolean> isInjecting = new ThreadLocal<Boolean>() {
+        @Override
+        protected Boolean initialValue() {
+            return false;
+        }
+    };
 
     // ── Initialisation (lazy, needs Context) ─────────────────────────────────
 
@@ -272,7 +280,230 @@ public class StockfishExtension {
         }
 
         Log.d(TAG, "Position changed → FEN: " + fen);
+        updateHistory(fen);
         scheduleAnalysis(fen);
+    }
+
+    private static void updateHistory(String fen) {
+        String key = getFenKey(fen);
+        if (key == null) return;
+        synchronized (fenHistory) {
+            int idx = fenHistory.indexOf(key);
+            if (idx >= 0) {
+                while (fenHistory.size() > idx + 1) {
+                    fenHistory.remove(fenHistory.size() - 1);
+                }
+            } else {
+                if (!fenHistory.isEmpty()) {
+                    String lastKey = fenHistory.get(fenHistory.size() - 1);
+                    String deduced = deduceUciMove(lastKey, key);
+                    if (deduced == null) {
+                        fenHistory.clear();
+                        fenToEvalMap.clear();
+                        fenToBestMovesMap.clear();
+                    }
+                }
+                fenHistory.add(key);
+            }
+        }
+    }
+
+    private static String getFenKey(String fen) {
+        if (fen == null) return null;
+        String[] parts = fen.split("\\s+");
+        if (parts.length >= 2) {
+            return parts[0] + " " + parts[1];
+        }
+        return fen;
+    }
+
+    private static String expandFenBoard(String fenBoard) {
+        StringBuilder sb = new StringBuilder();
+        for (char c : fenBoard.toCharArray()) {
+            if (c == '/') continue;
+            if (Character.isDigit(c)) {
+                int emptySquares = c - '0';
+                for (int i = 0; i < emptySquares; i++) {
+                    sb.append('.');
+                }
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
+    private static String getSquareName(int index) {
+        char file = (char) ('a' + (index % 8));
+        int rank = 8 - (index / 8);
+        return "" + file + rank;
+    }
+
+    private static String deduceUciMove(String prevFen, String currFen) {
+        try {
+            String[] prevParts = prevFen.split("\\s+");
+            String[] currParts = currFen.split("\\s+");
+            if (prevParts.length < 2 || currParts.length < 2) return null;
+
+            String prevBoard = expandFenBoard(prevParts[0]);
+            String currBoard = expandFenBoard(currParts[0]);
+            if (prevBoard.length() != 64 || currBoard.length() != 64) return null;
+
+            boolean whiteMoved = prevParts[1].equals("w");
+
+            java.util.List<Integer> fromCandidates = new java.util.ArrayList<>();
+            java.util.List<Integer> toCandidates = new java.util.ArrayList<>();
+
+            for (int i = 0; i < 64; i++) {
+                char p = prevBoard.charAt(i);
+                char c = currBoard.charAt(i);
+                if (p != c) {
+                    if (p != '.') {
+                        boolean isWhitePiece = Character.isUpperCase(p);
+                        if (isWhitePiece == whiteMoved) {
+                            fromCandidates.add(i);
+                        }
+                    }
+                    if (c != '.') {
+                        boolean isWhitePiece = Character.isUpperCase(c);
+                        if (isWhitePiece == whiteMoved) {
+                            toCandidates.add(i);
+                        }
+                    }
+                }
+            }
+
+            if (fromCandidates.size() == 1 && toCandidates.size() == 1) {
+                return getSquareName(fromCandidates.get(0)) + getSquareName(toCandidates.get(0));
+            }
+
+            if (fromCandidates.size() >= 1 && toCandidates.size() >= 1) {
+                char kingChar = whiteMoved ? 'K' : 'k';
+                int kingFrom = -1;
+                int kingTo = -1;
+                for (int f : fromCandidates) {
+                    if (prevBoard.charAt(f) == kingChar) {
+                        kingFrom = f;
+                        break;
+                    }
+                }
+                for (int t : toCandidates) {
+                    if (currBoard.charAt(t) == kingChar) {
+                        kingTo = t;
+                        break;
+                    }
+                }
+                if (kingFrom != -1 && kingTo != -1) {
+                    return getSquareName(kingFrom) + getSquareName(kingTo);
+                }
+
+                if (toCandidates.size() == 1) {
+                    int toIdx = toCandidates.get(0);
+                    char movedPiece = currBoard.charAt(toIdx);
+                    for (int f : fromCandidates) {
+                        char prevPiece = prevBoard.charAt(f);
+                        if (Character.toLowerCase(prevPiece) == Character.toLowerCase(movedPiece) ||
+                            (Character.toLowerCase(prevPiece) == 'p' && (movedPiece == 'Q' || movedPiece == 'q' || movedPiece == 'R' || movedPiece == 'r' || movedPiece == 'B' || movedPiece == 'b' || movedPiece == 'N' || movedPiece == 'n'))) {
+                            return getSquareName(f) + getSquareName(toIdx);
+                        }
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
+    @android.annotation.SuppressLint("MissingPermission")
+    private static void classifyMoveIfPossible(String currentFen, StockfishProcess.AnalysisResult currentResult) {
+        Context context = getContext();
+        if (context == null) return;
+        if (!StockfishSettings.isMoveClassificationEnabled(context)) return;
+
+        try {
+            String currentKey = getFenKey(currentFen);
+            if (currentKey == null) return;
+
+            String prevKey = null;
+            synchronized (fenHistory) {
+                int idx = fenHistory.indexOf(currentKey);
+                if (idx >= 1) {
+                    prevKey = fenHistory.get(idx - 1);
+                }
+            }
+
+            if (prevKey == null) return;
+
+            Float prevEvalVal = fenToEvalMap.get(prevKey);
+            List<String> prevBestMoves = fenToBestMovesMap.get(prevKey);
+            if (prevEvalVal == null || prevBestMoves == null || prevBestMoves.isEmpty()) return;
+
+            float prevEval = prevEvalVal;
+            float currentEval = currentResult.score;
+
+            boolean whiteMoved = prevKey.endsWith(" w");
+            float delta = whiteMoved ? (currentEval - prevEval) : (prevEval - currentEval);
+
+            String uciMove = deduceUciMove(prevKey, currentKey);
+            
+            String classification = "Good Move";
+            String emoji = "👍";
+            boolean isBlunderOrMistake = false;
+
+            if (delta < -3.0f) {
+                classification = "Blunder";
+                emoji = "💀";
+                isBlunderOrMistake = true;
+            } else if (delta < -1.5f) {
+                classification = "Mistake";
+                emoji = "❌";
+                isBlunderOrMistake = true;
+            } else if (delta < -0.5f) {
+                classification = "Inaccuracy";
+                emoji = "⚠️";
+            } else if (delta < -0.1f) {
+                classification = "Good Move";
+                emoji = "👍";
+            } else {
+                if (uciMove != null && uciMove.equals(prevBestMoves.get(0))) {
+                    if (delta > 0.4f) {
+                        classification = "Brilliant";
+                        emoji = "💡";
+                    } else {
+                        classification = "Best Move";
+                        emoji = "🎯";
+                    }
+                } else if (uciMove != null && prevBestMoves.contains(uciMove)) {
+                    classification = "Excellent";
+                    emoji = "✨";
+                } else {
+                    classification = "Great Move";
+                    emoji = "✅";
+                }
+            }
+
+            final String toastText = emoji + " " + classification + (uciMove != null ? " (" + uciMove + ")" : "") + String.format(" [Delta: %.1f]", delta);
+            final boolean triggerVibrate = isBlunderOrMistake;
+
+            Activity activity = getCurrentActivity();
+            if (activity != null) {
+                activity.runOnUiThread(() -> {
+                    android.widget.Toast.makeText(activity, toastText, android.widget.Toast.LENGTH_SHORT).show();
+                    
+                    if (triggerVibrate && StockfishSettings.isBlunderAlertsEnabled(activity)) {
+                        android.os.Vibrator vibrator = (android.os.Vibrator) activity.getSystemService(Context.VIBRATOR_SERVICE);
+                        if (vibrator != null && vibrator.hasVibrator()) {
+                            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                                vibrator.vibrate(android.os.VibrationEffect.createOneShot(150, android.os.VibrationEffect.DEFAULT_AMPLITUDE));
+                            } else {
+                                vibrator.vibrate(150);
+                            }
+                        }
+                    }
+                });
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "Error in classifyMoveIfPossible: " + t.getMessage());
+        }
     }
 
     /**
@@ -376,16 +607,30 @@ public class StockfishExtension {
                 int multiPV = StockfishSettings.getMultiPV(context);
 
                 Log.d(TAG, "Analysing FEN at depth " + depth + " with MultiPV=" + multiPV + "…");
-                java.util.List<String> bestMoves = StockfishBridge.bestMoves(fen, depth, multiPV);
+                StockfishProcess.AnalysisResult result = StockfishBridge.analyze(fen, depth, multiPV);
 
-                if (bestMoves.isEmpty()) {
+                if (result.moves.isEmpty()) {
                     Log.d(TAG, "Engine returned no best moves.");
                     return;
                 }
 
-                Log.i(TAG, "Best moves: " + bestMoves);
+                String key = getFenKey(fen);
+                if (key != null) {
+                    fenToEvalMap.put(key, result.score);
+                    fenToBestMovesMap.put(key, result.moves);
+                }
+
+                classifyMoveIfPossible(fen, result);
+
+                Log.i(TAG, "Best moves: " + result.moves + ", Score: " + result.score);
                 if (StockfishSettings.isArrowsVisible(context)) {
-                    injectEngineArrows(bestMoves);
+                    injectEngineArrows(result.moves, result.ponder);
+                }
+
+                if (StockfishSettings.isEvalBarEnabled(context)) {
+                    updateEvalBar(result.score, result.hasMate, result.mateIn, result.wdlWin, result.wdlDraw, result.wdlLoss);
+                } else {
+                    hideEvalBar();
                 }
 
             } catch (Throwable t) {
@@ -401,7 +646,7 @@ public class StockfishExtension {
     /**
      * Injects HintArrows for the engine's best moves into CBViewModelStateImpl.
      */
-    private static void injectEngineArrows(List<String> uciMoves) {
+    private static void injectEngineArrows(List<String> uciMoves, String ponderMove) {
         Object stateImpl = getStateImpl();
         if (stateImpl == null) return;
 
@@ -470,6 +715,29 @@ public class StockfishExtension {
                 arrowList.add(arrow);
             }
 
+            // Injects Threat Arrow if enabled and ponderMove is valid
+            if (StockfishSettings.isThreatArrowsEnabled(context) && ponderMove != null && ponderMove.matches("^[a-h][1-8][a-h][1-8][qrbn]?$")) {
+                String fromStr = ponderMove.substring(0, 2);
+                String toStr   = ponderMove.substring(2, 4);
+
+                Object fromSquare = cMethod.invoke(uInstance, fromStr);
+                Object toSquare   = cMethod.invoke(uInstance, toStr);
+
+                if (fromSquare != null && toSquare != null) {
+                    // Threat arrow has distinct Crimson Red color (0xFFD50000) and high opacity
+                    Object threatArrow = ctor.newInstance(
+                        fromSquare,
+                        toSquare,
+                        null,                 // isKnight
+                        0xFFD50000,           // Crimson Red for Threat
+                        Float.valueOf(0.90f), // High visibility opacity
+                        false,                // not persistent
+                        true                  // animated
+                    );
+                    arrowList.add(threatArrow);
+                }
+            }
+
             synchronized (lastEngineArrows) {
                 lastEngineArrows.clear();
                 lastEngineArrows.addAll(arrowList);
@@ -516,6 +784,7 @@ public class StockfishExtension {
     }
 
     private static void clearEngineArrows(Object stateImpl) {
+        hideEvalBar();
         if (stateImpl == null) return;
 
         try {
@@ -565,7 +834,7 @@ public class StockfishExtension {
                     Integer color = (Integer) field.get(arrow);
                     if (color != null) {
                         int c = color.intValue();
-                        if (c == 0xFF00C853 || c == 0xFF2196F3 || c == 0xFFFF9800 || c == 0xFF9C27B0 || c == 0xFFE53935) {
+                        if (c == 0xFF00C853 || c == 0xFF2196F3 || c == 0xFFFF9800 || c == 0xFF9C27B0 || c == 0xFFE53935 || c == 0xFFD50000) {
                             return true;
                         }
                     }
@@ -700,114 +969,63 @@ public class StockfishExtension {
     }
 
     private static void showSettingsMenu(Activity activity) {
-        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(activity, android.R.style.Theme_DeviceDefault_Dialog_Alert);
-        builder.setTitle("Stockfish Engine Settings");
+        final android.app.Dialog dialog = new android.app.Dialog(activity);
+        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+
+        float density = activity.getResources().getDisplayMetrics().density;
+
+        android.graphics.drawable.GradientDrawable dialogBg = new android.graphics.drawable.GradientDrawable();
+        dialogBg.setColor(0xFF262421); // Beautiful Chess.com board-dark background
+        dialogBg.setCornerRadius(16 * density);
+        dialog.getWindow().setBackgroundDrawable(dialogBg);
 
         android.widget.ScrollView scrollView = new android.widget.ScrollView(activity);
-        android.widget.LinearLayout layout = new android.widget.LinearLayout(activity);
-        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
-        int padding = (int) (16 * activity.getResources().getDisplayMetrics().density);
-        layout.setPadding(padding, padding, padding, padding);
-        scrollView.addView(layout);
+        scrollView.setVerticalScrollBarEnabled(false);
 
-        // 1. Engine Enabled
-        android.widget.CheckBox enabledCb = new android.widget.CheckBox(activity);
-        enabledCb.setText("Enable Stockfish Engine");
-        enabledCb.setChecked(StockfishSettings.isEngineEnabled(activity));
-        layout.addView(enabledCb);
+        android.widget.LinearLayout rootLayout = new android.widget.LinearLayout(activity);
+        rootLayout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        int rootPadding = (int) (20 * density);
+        rootLayout.setPadding(rootPadding, rootPadding, rootPadding, rootPadding);
+        scrollView.addView(rootLayout);
 
-        // Spacer
-        addSpacer(activity, layout);
+        // Header Title
+        android.widget.TextView titleTv = new android.widget.TextView(activity);
+        titleTv.setText("Stockfish Engine Settings");
+        titleTv.setTextColor(0xFFFFFFFF);
+        titleTv.setTextSize(20);
+        titleTv.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        titleTv.setGravity(android.view.Gravity.CENTER);
+        rootLayout.addView(titleTv);
 
-        // 2. Depth Slider
-        final android.widget.TextView depthLabel = new android.widget.TextView(activity);
+        addDialogSpacer(rootLayout, 16, density);
+
+        // 1. ENGINE CONFIGURATION SECTION
+        addSectionHeader(rootLayout, "Engine Configuration", density, activity);
+
+        android.widget.CheckBox enabledCb = addStyledCheckbox(rootLayout, "Enable Stockfish Engine", StockfishSettings.isEngineEnabled(activity), density, activity);
+
+        // Depth Slider
         int currentDepth = StockfishSettings.getDepth(activity);
-        depthLabel.setText("Analysis Depth: " + currentDepth);
-        layout.addView(depthLabel);
+        android.widget.TextView depthLabel = addStyledLabel(rootLayout, "Analysis Depth: " + currentDepth, density, activity);
+        android.widget.SeekBar depthSeekBar = addStyledSeekBar(rootLayout, depthLabel, "Analysis Depth", currentDepth - 1, 19, 1, density, activity);
 
-        android.widget.SeekBar depthSeekBar = new android.widget.SeekBar(activity);
-        depthSeekBar.setMax(20); // 1 to 20
-        depthSeekBar.setProgress(currentDepth);
-        depthSeekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
-                int val = Math.max(1, progress);
-                depthLabel.setText("Analysis Depth: " + val);
-            }
-            @Override
-            public void onStartTrackingTouch(android.widget.SeekBar seekBar) {}
-            @Override
-            public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
-        });
-        layout.addView(depthSeekBar);
-
-        // Spacer
-        addSpacer(activity, layout);
-
-        // 3. MultiPV Slider
-        final android.widget.TextView pvLabel = new android.widget.TextView(activity);
+        // MultiPV Slider
         int currentPV = StockfishSettings.getMultiPV(activity);
-        pvLabel.setText("MultiPV (Best moves to show): " + currentPV);
-        layout.addView(pvLabel);
+        android.widget.TextView pvLabel = addStyledLabel(rootLayout, "MultiPV (Best moves to show): " + currentPV, density, activity);
+        android.widget.SeekBar pvSeekBar = addStyledSeekBar(rootLayout, pvLabel, "MultiPV (Best moves to show)", currentPV - 1, 4, 1, density, activity);
 
-        android.widget.SeekBar pvSeekBar = new android.widget.SeekBar(activity);
-        pvSeekBar.setMax(5); // 1 to 5
-        pvSeekBar.setProgress(currentPV);
-        pvSeekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
-                int val = Math.max(1, progress);
-                pvLabel.setText("MultiPV (Best moves to show): " + val);
-            }
-            @Override
-            public void onStartTrackingTouch(android.widget.SeekBar seekBar) {}
-            @Override
-            public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
-        });
-        layout.addView(pvSeekBar);
+        // Side Turn Only
+        android.widget.CheckBox sideCb = addStyledCheckbox(rootLayout, "Show Arrows Only on My Turn", StockfishSettings.isMySideOnly(activity), density, activity);
 
-        // Spacer
-        addSpacer(activity, layout);
+        // ELO Strength Checkbox
+        android.widget.CheckBox eloCb = addStyledCheckbox(rootLayout, "Limit Engine Elo Strength", StockfishSettings.isLimitStrength(activity), density, activity);
 
-        // 4. Side-enforcement
-        android.widget.CheckBox sideCb = new android.widget.CheckBox(activity);
-        sideCb.setText("Show Arrows Only on My Turn");
-        sideCb.setChecked(StockfishSettings.isMySideOnly(activity));
-        layout.addView(sideCb);
-
-        // Spacer
-        addSpacer(activity, layout);
-
-        // 5. Limit ELO Strength
-        android.widget.CheckBox eloCb = new android.widget.CheckBox(activity);
-        eloCb.setText("Limit Engine Elo Strength");
-        eloCb.setChecked(StockfishSettings.isLimitStrength(activity));
-        layout.addView(eloCb);
-
-        // 6. ELO Value Slider
-        final android.widget.TextView eloLabel = new android.widget.TextView(activity);
+        // ELO Value Slider
         int currentElo = StockfishSettings.getElo(activity);
-        eloLabel.setText("Engine Elo: " + currentElo);
-        layout.addView(eloLabel);
+        android.widget.TextView eloLabel = addStyledLabel(rootLayout, "Engine Elo: " + currentElo, density, activity);
+        android.widget.SeekBar eloSeekBar = addStyledSeekBar(rootLayout, eloLabel, "Engine Elo", currentElo - 1350, 1500, 1350, density, activity);
 
-        android.widget.SeekBar eloSeekBar = new android.widget.SeekBar(activity);
-        int progressElo = Math.max(0, currentElo - 1350);
-        eloSeekBar.setMax(1500); // 1350 + 1500 = 2850
-        eloSeekBar.setProgress(progressElo);
-        eloSeekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
-                int val = 1350 + progress;
-                eloLabel.setText("Engine Elo: " + val);
-            }
-            @Override
-            public void onStartTrackingTouch(android.widget.SeekBar seekBar) {}
-            @Override
-            public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
-        });
-        layout.addView(eloSeekBar);
-
-        // Disable/enable elo seekbar based on checkbox
+        // Enable/disable elo slider based on checkbox
         eloLabel.setEnabled(eloCb.isChecked());
         eloSeekBar.setEnabled(eloCb.isChecked());
         eloCb.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -815,50 +1033,204 @@ public class StockfishExtension {
             eloSeekBar.setEnabled(isChecked);
         });
 
-        // Spacer
-        addSpacer(activity, layout);
+        addDialogSpacer(rootLayout, 12, density);
 
-        // 7. Remove Ads
-        android.widget.CheckBox adsCb = new android.widget.CheckBox(activity);
-        adsCb.setText("Remove Ads Globally");
-        adsCb.setChecked(StockfishSettings.isAdsRemoved(activity));
-        layout.addView(adsCb);
+        // 2. DISPLAY OPTIONS SECTION
+        addSectionHeader(rootLayout, "Display Options", density, activity);
 
-        // Spacer
-        addSpacer(activity, layout);
+        android.widget.CheckBox evalBarCb = addStyledCheckbox(rootLayout, "Show Evaluation Bar", StockfishSettings.isEvalBarEnabled(activity), density, activity);
+        android.widget.CheckBox wdlCb = addStyledCheckbox(rootLayout, "Show Win/Draw/Loss Bar", StockfishSettings.isWdlEnabled(activity), density, activity);
+        android.widget.CheckBox threatCb = addStyledCheckbox(rootLayout, "Show Threat Arrows (Opponent's Best Move)", StockfishSettings.isThreatArrowsEnabled(activity), density, activity);
+        android.widget.CheckBox classifCb = addStyledCheckbox(rootLayout, "Show Move Classification", StockfishSettings.isMoveClassificationEnabled(activity), density, activity);
+        android.widget.CheckBox blunderCb = addStyledCheckbox(rootLayout, "Vibrate on Blunders & Mistakes", StockfishSettings.isBlunderAlertsEnabled(activity), density, activity);
 
-        // 8. Enable Premium
-        android.widget.CheckBox premiumCb = new android.widget.CheckBox(activity);
-        premiumCb.setText("Enable Premium (Diamond Status)");
-        premiumCb.setChecked(StockfishSettings.isPremiumEnabled(activity));
-        layout.addView(premiumCb);
+        addDialogSpacer(rootLayout, 12, density);
 
-        builder.setView(scrollView);
-        builder.setPositiveButton("Save", (dialog, which) -> {
+        // 3. PREMIUM & GLOBAL SETTINGS
+        addSectionHeader(rootLayout, "Premium & Global Features", density, activity);
+        android.widget.CheckBox adsCb = addStyledCheckbox(rootLayout, "Remove Ads Globally", StockfishSettings.isAdsRemoved(activity), density, activity);
+        android.widget.CheckBox premiumCb = addStyledCheckbox(rootLayout, "Enable Premium (Diamond Status)", StockfishSettings.isPremiumEnabled(activity), density, activity);
+
+        addDialogSpacer(rootLayout, 16, density);
+
+        // 4. ABOUT & CREDITS
+        android.widget.LinearLayout creditsCard = new android.widget.LinearLayout(activity);
+        creditsCard.setOrientation(android.widget.LinearLayout.VERTICAL);
+        creditsCard.setPadding((int) (12 * density), (int) (12 * density), (int) (12 * density), (int) (12 * density));
+        
+        android.graphics.drawable.GradientDrawable cardBg = new android.graphics.drawable.GradientDrawable();
+        cardBg.setColor(0xFF312E2B); // Chess.com dark contrast background
+        cardBg.setCornerRadius(8 * density);
+        creditsCard.setBackground(cardBg);
+
+        android.widget.TextView devTv = new android.widget.TextView(activity);
+        devTv.setText("Developed by PrathxmOp");
+        devTv.setTextColor(0xFFFFFFFF);
+        devTv.setTextSize(13);
+        devTv.setGravity(android.view.Gravity.CENTER);
+        devTv.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        creditsCard.addView(devTv);
+
+        android.widget.TextView powerTv = new android.widget.TextView(activity);
+        powerTv.setText("Powered by Morphe Patcher");
+        powerTv.setTextColor(0xFF8B8985);
+        powerTv.setTextSize(11);
+        powerTv.setGravity(android.view.Gravity.CENTER);
+        creditsCard.addView(powerTv);
+
+        android.widget.TextView engineTv = new android.widget.TextView(activity);
+        engineTv.setText("Engine: Stockfish 16.1 NNUE");
+        engineTv.setTextColor(0xFF8B8985);
+        engineTv.setTextSize(11);
+        engineTv.setGravity(android.view.Gravity.CENTER);
+        creditsCard.addView(engineTv);
+
+        rootLayout.addView(creditsCard);
+
+        addDialogSpacer(rootLayout, 16, density);
+
+        // Buttons Layout
+        android.widget.LinearLayout buttonLayout = new android.widget.LinearLayout(activity);
+        buttonLayout.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        buttonLayout.setGravity(android.view.Gravity.END);
+
+        android.widget.TextView cancelBtn = new android.widget.TextView(activity);
+        cancelBtn.setText("Cancel");
+        cancelBtn.setTextColor(0xFFB0B0B0);
+        cancelBtn.setTextSize(16);
+        cancelBtn.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
+        cancelBtn.setGravity(android.view.Gravity.CENTER);
+        int btnPaddingH = (int) (16 * density);
+        int btnPaddingV = (int) (10 * density);
+        cancelBtn.setPadding(btnPaddingH, btnPaddingV, btnPaddingH, btnPaddingV);
+        cancelBtn.setFocusable(true);
+        cancelBtn.setClickable(true);
+        cancelBtn.setOnClickListener(v -> dialog.dismiss());
+
+        android.widget.TextView saveBtn = new android.widget.TextView(activity);
+        saveBtn.setText("Save");
+        saveBtn.setTextColor(0xFFFFFFFF);
+        saveBtn.setTextSize(16);
+        saveBtn.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        saveBtn.setGravity(android.view.Gravity.CENTER);
+        saveBtn.setPadding(btnPaddingH, btnPaddingV, btnPaddingH, btnPaddingV);
+        
+        android.graphics.drawable.GradientDrawable saveBg = new android.graphics.drawable.GradientDrawable();
+        saveBg.setColor(0xFF81B64C); // Chess.com Green accent
+        saveBg.setCornerRadius(8 * density);
+        saveBtn.setBackground(saveBg);
+        saveBtn.setFocusable(true);
+        saveBtn.setClickable(true);
+        
+        saveBtn.setOnClickListener(v -> {
             StockfishSettings.setEngineEnabled(activity, enabledCb.isChecked());
-            StockfishSettings.setDepth(activity, Math.max(1, depthSeekBar.getProgress()));
-            StockfishSettings.setMultiPV(activity, Math.max(1, pvSeekBar.getProgress()));
+            StockfishSettings.setDepth(activity, Math.max(1, depthSeekBar.getProgress() + 1));
+            StockfishSettings.setMultiPV(activity, Math.max(1, pvSeekBar.getProgress() + 1));
             StockfishSettings.setMySideOnly(activity, sideCb.isChecked());
             StockfishSettings.setLimitStrength(activity, eloCb.isChecked());
             StockfishSettings.setElo(activity, 1350 + eloSeekBar.getProgress());
             StockfishSettings.setAdsRemoved(activity, adsCb.isChecked());
             StockfishSettings.setPremiumEnabled(activity, premiumCb.isChecked());
+            StockfishSettings.setEvalBarEnabled(activity, evalBarCb.isChecked());
+            StockfishSettings.setWdlEnabled(activity, wdlCb.isChecked());
+            StockfishSettings.setThreatArrowsEnabled(activity, threatCb.isChecked());
+            StockfishSettings.setMoveClassificationEnabled(activity, classifCb.isChecked());
+            StockfishSettings.setBlunderAlertsEnabled(activity, blunderCb.isChecked());
 
             android.widget.Toast.makeText(activity, "Settings Saved", android.widget.Toast.LENGTH_SHORT).show();
             
             if (!enabledCb.isChecked()) {
                 clearEngineArrows(getStateImpl());
             }
+            if (!evalBarCb.isChecked()) {
+                hideEvalBar();
+            }
+            dialog.dismiss();
         });
-        builder.setNegativeButton("Cancel", null);
-        builder.show();
+
+        buttonLayout.addView(cancelBtn);
+        View btnSpacer = new View(activity);
+        btnSpacer.setLayoutParams(new android.widget.LinearLayout.LayoutParams((int) (12 * density), 1));
+        buttonLayout.addView(btnSpacer);
+        buttonLayout.addView(saveBtn);
+
+        rootLayout.addView(buttonLayout);
+
+        dialog.setContentView(scrollView);
+        dialog.show();
+
+        // Layout parameters must be set after show() for dialog window
+        int width = (int) (activity.getResources().getDisplayMetrics().widthPixels * 0.90f);
+        int height = (int) (activity.getResources().getDisplayMetrics().heightPixels * 0.85f);
+        dialog.getWindow().setLayout(width, height);
     }
 
-    private static void addSpacer(Activity activity, android.widget.LinearLayout layout) {
-        View spacer = new View(activity);
-        int height = (int) (12 * activity.getResources().getDisplayMetrics().density);
+    private static void addSectionHeader(android.widget.LinearLayout layout, String title, float density, Activity activity) {
+        android.widget.TextView header = new android.widget.TextView(activity);
+        header.setText(title.toUpperCase());
+        header.setTextColor(0xFF81B64C); // Chess.com Green accent
+        header.setTextSize(12);
+        header.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        header.setPadding(0, (int) (12 * density), 0, (int) (4 * density));
+        layout.addView(header);
+    }
+
+    private static android.widget.CheckBox addStyledCheckbox(android.widget.LinearLayout layout, String labelText, boolean checked, float density, Activity activity) {
+        android.widget.CheckBox cb = new android.widget.CheckBox(activity);
+        cb.setText(labelText);
+        cb.setTextColor(0xFFE3E3E3);
+        cb.setTextSize(15);
+        cb.setChecked(checked);
+        cb.setPadding((int) (8 * density), (int) (8 * density), 0, (int) (8 * density));
+        if (android.os.Build.VERSION.SDK_INT >= 21) {
+            cb.setButtonTintList(android.content.res.ColorStateList.valueOf(0xFF81B64C));
+        }
+        layout.addView(cb);
+        return cb;
+    }
+
+    private static android.widget.TextView addStyledLabel(android.widget.LinearLayout layout, String text, float density, Activity activity) {
+        android.widget.TextView label = new android.widget.TextView(activity);
+        label.setText(text);
+        label.setTextColor(0xFFE3E3E3);
+        label.setTextSize(14);
+        label.setPadding(0, (int) (8 * density), 0, 0);
+        layout.addView(label);
+        return label;
+    }
+
+    private static android.widget.SeekBar addStyledSeekBar(android.widget.LinearLayout layout, final android.widget.TextView labelTv, final String labelPrefix, int progress, int max, final int minVal, float density, Activity activity) {
+        android.widget.SeekBar seekBar = new android.widget.SeekBar(activity);
+        seekBar.setMax(max);
+        seekBar.setProgress(progress);
+        if (android.os.Build.VERSION.SDK_INT >= 21) {
+            seekBar.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFF81B64C));
+            seekBar.setThumbTintList(android.content.res.ColorStateList.valueOf(0xFF81B64C));
+        }
+        seekBar.setPadding(0, (int) (8 * density), 0, (int) (12 * density));
+        
+        seekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(android.widget.SeekBar sb, int prog, boolean fromUser) {
+                int val = Math.max(minVal, prog + minVal);
+                labelTv.setText(labelPrefix + ": " + val);
+            }
+            @Override
+            public void onStartTrackingTouch(android.widget.SeekBar sb) {}
+            @Override
+            public void onStopTrackingTouch(android.widget.SeekBar sb) {}
+        });
+        
+        layout.addView(seekBar);
+        return seekBar;
+    }
+
+    private static void addDialogSpacer(android.widget.LinearLayout layout, int dpHeight, float density) {
+        View spacer = new View(layout.getContext());
         spacer.setLayoutParams(new android.widget.LinearLayout.LayoutParams(
-            android.widget.LinearLayout.LayoutParams.MATCH_PARENT, height));
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            (int) (dpHeight * density)
+        ));
         layout.addView(spacer);
     }
 
@@ -1005,5 +1377,120 @@ public class StockfishExtension {
             }
         }
         return defaultValue;
+    }
+
+    private static void updateEvalBar(final float score, final boolean hasMate, final int mateIn,
+                                      final int wdlWin, final int wdlDraw, final int wdlLoss) {
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Activity activity = getCurrentActivity();
+                    if (activity == null) return;
+                    Window window = activity.getWindow();
+                    if (window == null) return;
+                    android.view.ViewGroup decorView = (android.view.ViewGroup) window.getDecorView();
+                    if (decorView == null) return;
+                    
+                    View boardView = findChessBoardView(decorView);
+                    if (boardView == null) {
+                        hideEvalBar();
+                        return;
+                    }
+                    
+                    int[] loc = new int[2];
+                    boardView.getLocationInWindow(loc);
+                    int boardX = loc[0];
+                    int boardY = loc[1];
+                    int boardW = boardView.getWidth();
+                    int boardH = boardView.getHeight();
+                    
+                    if (boardW <= 0 || boardH <= 0) return;
+                    
+                    View evalBar = decorView.findViewWithTag("stockfish_eval_bar");
+                    EvalBarView evalBarView;
+                    if (evalBar instanceof EvalBarView) {
+                        evalBarView = (EvalBarView) evalBar;
+                        evalBarView.setVisibility(View.VISIBLE);
+                    } else {
+                        if (evalBar != null) {
+                            decorView.removeView(evalBar);
+                        }
+                        evalBarView = new EvalBarView(decorView.getContext());
+                        evalBarView.setTag("stockfish_eval_bar");
+                        decorView.addView(evalBarView);
+                    }
+                    
+                    float density = evalBarView.getContext().getResources().getDisplayMetrics().density;
+                    boolean showWdl = StockfishSettings.isWdlEnabled(evalBarView.getContext());
+                    int barWidth = (int) ((showWdl ? 16 : 12) * density);
+                    
+                    evalBarView.update(boardX, boardY, barWidth, boardH, score, hasMate, mateIn, isBoardFlipped(getStateImpl()),
+                                       wdlWin, wdlDraw, wdlLoss, showWdl);
+                } catch (Throwable t) {
+                    Log.e(TAG, "updateEvalBar failed: " + t.getMessage());
+                }
+            }
+        });
+    }
+
+    private static View findChessBoardView(View view) {
+        if (view == null) return null;
+        if (view.getClass().getName().equals("com.chess.chessboard.view.ChessBoardView")) {
+            if (view.getVisibility() == View.VISIBLE) {
+                return view;
+            }
+        }
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View found = findChessBoardView(group.getChildAt(i));
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    private static void hideEvalBar() {
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Activity activity = getCurrentActivity();
+                    if (activity == null) return;
+                    Window window = activity.getWindow();
+                    if (window == null) return;
+                    View decorView = window.getDecorView();
+                    if (decorView == null) return;
+                    
+                    View evalBar = decorView.findViewWithTag("stockfish_eval_bar");
+                    if (evalBar != null) {
+                        evalBar.setVisibility(View.GONE);
+                    }
+                } catch (Throwable t) {
+                    Log.e(TAG, "hideEvalBar failed: " + t.getMessage());
+                }
+            }
+        });
+    }
+
+    private static boolean isBoardFlipped(Object stateImpl) {
+        if (stateImpl == null) return false;
+        try {
+            for (java.lang.reflect.Method m : stateImpl.getClass().getMethods()) {
+                if ((m.getName().equals("isFlipped") || m.getName().equals("getFlipped")) && m.getParameterCount() == 0 && m.getReturnType() == boolean.class) {
+                    return (boolean) m.invoke(stateImpl);
+                }
+            }
+            for (java.lang.reflect.Field f : stateImpl.getClass().getDeclaredFields()) {
+                if ((f.getName().equals("flipped") || f.getName().equals("isFlipped")) && f.getType() == boolean.class) {
+                    f.setAccessible(true);
+                    return f.getBoolean(stateImpl);
+                }
+            }
+        } catch (Throwable ignored) {}
+        
+        Boolean isWhite = isUserWhite(stateImpl);
+        return isWhite != null && !isWhite;
     }
 }

@@ -53,10 +53,15 @@ public class StockfishBridge {
      * @return         List of UCI move strings, e.g. ["e2e4", "e1g1"], or empty list on failure
      */
     public static java.util.List<String> bestMoves(String fen, int depth, int multiPV) {
+        return analyze(fen, depth, multiPV).moves;
+    }
+
+    /** Analyse the position and return both best moves and evaluation. */
+    public static StockfishProcess.AnalysisResult analyze(String fen, int depth, int multiPV) {
         Context ctx = getApplicationContext();
         if (ctx == null) {
-            Log.e(TAG, "Cannot run bestMoves without context");
-            return new java.util.ArrayList<>();
+            Log.e(TAG, "Cannot run analyze without context");
+            return new StockfishProcess.AnalysisResult(new java.util.ArrayList<>(), 0.0f, false, 0, 0, 0, 0, null);
         }
 
         if (!initialised || !engine.isReady()) {
@@ -64,10 +69,10 @@ public class StockfishBridge {
             initialised = false;
             initialised = engine.start(ctx);
             if (!initialised) {
-                return new java.util.ArrayList<>();
+                return new StockfishProcess.AnalysisResult(new java.util.ArrayList<>(), 0.0f, false, 0, 0, 0, 0, null);
             }
         }
-        return engine.bestMoves(ctx, fen, depth, multiPV);
+        return engine.analyze(ctx, fen, depth, multiPV);
     }
 
     /** Legacy single move analyzer */
