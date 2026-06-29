@@ -69,6 +69,7 @@ public class StockfishProcess {
             // Configure engine options (e.g. hash table, threads)
             send("setoption name Hash value 32");
             send("setoption name Threads value 2");
+            send("setoption name UCI_ShowWDL value true");
 
             // Confirm readiness
             send("isready");
@@ -89,13 +90,67 @@ public class StockfishProcess {
     }
 
     public boolean isReady() {
-        return ready && process != null && process.isAlive();
+        if (!ready || process == null) {
+            return false;
+        }
+        try {
+            process.exitValue();
+            return false; // has exited
+        } catch (IllegalThreadStateException e) {
+            return true; // still running
+        }
+    }
+
+    public static class AnalysisResult {
+        public final java.util.List<String> moves;
+        public final float score;
+        public final boolean hasMate;
+        public final int mateIn;
+        public final int wdlWin;
+        public final int wdlDraw;
+        public final int wdlLoss;
+        public final String ponder;
+
+        public AnalysisResult(java.util.List<String> moves, float score, boolean hasMate, int mateIn, int wdlWin, int wdlDraw, int wdlLoss, String ponder) {
+            this.moves = moves;
+            this.score = score;
+            this.hasMate = hasMate;
+            this.mateIn = mateIn;
+            this.wdlWin = wdlWin;
+            this.wdlDraw = wdlDraw;
+            this.wdlLoss = wdlLoss;
+            this.ponder = ponder;
+        }
     }
 
     /** @return the list of best moves in UCI format ("e2e4") for the given FEN, up to multiPV. */
     public java.util.List<String> bestMoves(Context context, String fen, int depth, int multiPV) {
+        return analyze(context, fen, depth, multiPV).moves;
+    }
+
+    /** Analyse the position and return both best moves and evaluation. */
+    public AnalysisResult analyze(Context context, String fen, int depth, int multiPV) {
         java.util.List<String> moves = new java.util.ArrayList<>();
-        if (!isReady()) return moves;
+        float parsedScore = 0.0f;
+        boolean parsedHasMate = false;
+        int parsedMateIn = 0;
+        int parsedWdlWin = 0;
+        int parsedWdlDraw = 0;
+        int parsedWdlLoss = 0;
+        String parsedPonder = null;
+
+        if (!isReady()) {
+            return new AnalysisResult(moves, parsedScore, parsedHasMate, parsedMateIn, parsedWdlWin, parsedWdlDraw, parsedWdlLoss, parsedPonder);
+        }
+
+        boolean isWhiteToMove = true;
+        if (fen != null) {
+            String[] parts = fen.split("\\s+");
+            if (parts.length > 1) {
+                isWhiteToMove = parts[1].equals("w");
+            }
+        }
+
         try {
             // Drain any leftover output
             drainReady();
@@ -121,33 +176,91 @@ public class StockfishProcess {
                 if (line == null) break;
                 Log.d(TAG, "< " + line);
 
-                if (line.startsWith("info ") && line.contains(" pv ")) {
-                    // Try to parse multipv index
-                    int mpvIdx = 1; // Default to 1 if not specified
-                    if (line.contains(" multipv ")) {
-                        String[] parts = line.split("\\s+");
-                        for (int i = 0; i < parts.length - 1; i++) {
-                            if (parts[i].equals("multipv")) {
-                                try {
-                                    mpvIdx = Integer.parseInt(parts[i+1]);
-                                } catch (NumberFormatException ignored) {}
-                                break;
+                if (line.startsWith("info ")) {
+                    // 1. Parse score and WDL for multipv 1
+                    if (line.contains(" score cp ") || line.contains(" score mate ")) {
+                        boolean isMpv1 = true;
+                        if (line.contains(" multipv ")) {
+                            String[] parts = line.split("\\s+");
+                            for (int i = 0; i < parts.length - 1; i++) {
+                                if (parts[i].equals("multipv")) {
+                                    try {
+                                        int mpvVal = Integer.parseInt(parts[i+1]);
+                                        if (mpvVal != 1) {
+                                            isMpv1 = false;
+                                        }
+                                    } catch (NumberFormatException ignored) {}
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (isMpv1) {
+                            String[] parts = line.split("\\s+");
+                            for (int i = 0; i < parts.length - 1; i++) {
+                                if (parts[i].equals("cp")) {
+                                    try {
+                                        int cp = Integer.parseInt(parts[i+1]);
+                                        parsedScore = isWhiteToMove ? (cp / 100.0f) : (-cp / 100.0f);
+                                        parsedHasMate = false;
+                                        parsedMateIn = 0;
+                                    } catch (NumberFormatException ignored) {}
+                                } else if (parts[i].equals("mate")) {
+                                    try {
+                                        int mate = Integer.parseInt(parts[i+1]);
+                                        parsedHasMate = true;
+                                        parsedMateIn = isWhiteToMove ? mate : -mate;
+                                        parsedScore = parsedMateIn > 0 ? 99.0f : -99.0f;
+                                    } catch (NumberFormatException ignored) {}
+                                } else if (parts[i].equals("wdl") && i < parts.length - 3) {
+                                    try {
+                                        int w = Integer.parseInt(parts[i+1]);
+                                        int d = Integer.parseInt(parts[i+2]);
+                                        int l = Integer.parseInt(parts[i+3]);
+                                        if (isWhiteToMove) {
+                                            parsedWdlWin = w;
+                                            parsedWdlDraw = d;
+                                            parsedWdlLoss = l;
+                                        } else {
+                                            parsedWdlWin = l;
+                                            parsedWdlDraw = d;
+                                            parsedWdlLoss = w;
+                                        }
+                                    } catch (NumberFormatException ignored) {}
+                                }
                             }
                         }
                     }
 
-                    // Extract the first move after "pv"
-                    String pvMove = null;
-                    String[] parts = line.split("\\s+");
-                    for (int i = 0; i < parts.length - 1; i++) {
-                        if (parts[i].equals("pv")) {
-                            pvMove = parts[i+1];
-                            break;
+                    // 2. Parse best moves
+                    if (line.contains(" pv ")) {
+                        // Try to parse multipv index
+                        int mpvIdx = 1; // Default to 1 if not specified
+                        if (line.contains(" multipv ")) {
+                            String[] parts = line.split("\\s+");
+                            for (int i = 0; i < parts.length - 1; i++) {
+                                if (parts[i].equals("multipv")) {
+                                    try {
+                                        mpvIdx = Integer.parseInt(parts[i+1]);
+                                    } catch (NumberFormatException ignored) {}
+                                    break;
+                                }
+                            }
                         }
-                    }
 
-                    if (pvMove != null && mpvIdx >= 1 && mpvIdx <= multiPV) {
-                        pvMoves[mpvIdx - 1] = pvMove;
+                        // Extract the first move after "pv"
+                        String pvMove = null;
+                        String[] parts = line.split("\\s+");
+                        for (int i = 0; i < parts.length - 1; i++) {
+                            if (parts[i].equals("pv")) {
+                                pvMove = parts[i+1];
+                                break;
+                            }
+                        }
+
+                        if (pvMove != null && mpvIdx >= 1 && mpvIdx <= multiPV) {
+                            pvMoves[mpvIdx - 1] = pvMove;
+                        }
                     }
                 }
 
@@ -156,6 +269,9 @@ public class StockfishProcess {
                     String best = parts.length > 1 ? parts[1] : null;
                     if (best != null) {
                         pvMoves[0] = best; // Ensure bestmove is always multipv 1
+                    }
+                    if (parts.length > 3 && parts[2].equals("ponder")) {
+                        parsedPonder = parts[3];
                     }
                     break;
                 }
@@ -167,9 +283,9 @@ public class StockfishProcess {
                 }
             }
         } catch (IOException e) {
-            Log.e(TAG, "bestMoves error: " + e.getMessage());
+            Log.e(TAG, "analyze error: " + e.getMessage());
         }
-        return moves;
+        return new AnalysisResult(moves, parsedScore, parsedHasMate, parsedMateIn, parsedWdlWin, parsedWdlDraw, parsedWdlLoss, parsedPonder);
     }
 
     /** Cancel any ongoing search immediately. */
