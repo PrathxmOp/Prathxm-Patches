@@ -104,7 +104,7 @@ We're building open-source replacements for Chess.com's premium features using f
 ## 🩹 Patches List
 
 <!-- PATCHES_START EXPANDED -->
-> **[v1.1.0](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.1.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;1 patches total
+> **[v1.2.0](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.2.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;1 patches total
 <details open>
 <summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;1 patch</summary>
 <br>
