@@ -1,5 +1,41 @@
 {
   "NOTE": "Do NOT manually edit this file. This file is automatically updated when semantic release (release.yml) runs. Manually editing this file can break your releases and break third party tools that use this file.",
-  "version": "0.0.0",
-  "patches": []
+  "version": "1.0.0",
+  "patches": [
+    {
+      "name": "Stockfish Engine Integration",
+      "description": "Injects the Stockfish chess engine into Chess.com for real-time best-move analysis. Shows ranked, color-coded best-move arrows on the board (Green → Blue → Orange → Purple → Red) along with premium Diamond feature unlock, ads removal, side-aware turn analysis, and customizable settings via in-game menu.",
+      "default": true,
+      "dependencies": [
+        "ResourcePatch"
+      ],
+      "compatiblePackages": [
+        {
+          "packageName": "com.chess",
+          "name": "Chess.com",
+          "description": null,
+          "apkFileType": "APK",
+          "appIconColor": "#81B64C",
+          "signatures": null,
+          "targets": [
+            {
+              "version": "4.9.49",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            },
+            {
+              "version": "4.9.49-googleplay",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    }
+  ]
 }

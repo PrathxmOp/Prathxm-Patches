@@ -128,3 +128,11 @@ node_modules/
 # Ignore IDEA files
 .idea/
 local.properties
+.env
+
+# Stockfish native executables
+extensions/extension/src/main/assets/stockfish/arm64-v8a/stockfish
+extensions/extension/src/main/assets/stockfish/armeabi-v7a/stockfish
+patches/src/main/resources/stockfish/arm64-v8a/stockfish
+patches/src/main/resources/stockfish/armeabi-v7a/stockfish
+
