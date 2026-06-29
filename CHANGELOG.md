@@ -1,3 +1,11 @@
+## [1.2.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.1.0...v1.2.0) (2026-06-29)
+
+### ✨ New Features
+
+* **fair-play:** implement Fair Play Analysis Controls, warnings, silent mode, and post-game summary ([901170b](https://github.com/PrathxmOp/Prathxm-Patches/commit/901170bf73da5b840629d50988163305550cd27b))
+* **stockfish:** dynamic reflection for local analysis flow and offline review integration ([3a1ded5](https://github.com/PrathxmOp/Prathxm-Patches/commit/3a1ded5b9e6d205a0da00a27ccd632f3237beb98))
+* **stockfish:** stabilize game review, add dynamic rating logic, and update roadmap ([2bd605a](https://github.com/PrathxmOp/Prathxm-Patches/commit/2bd605a079c19e9b5db76423b997711dd44c3860))
+
 ## [1.1.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.0.0...v1.1.0) (2026-06-29)
 
 ### 🐛 Bug Fixes
