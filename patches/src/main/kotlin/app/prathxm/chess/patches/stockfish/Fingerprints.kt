@@ -139,3 +139,58 @@ object MainApplicationOnCreateFingerprint : Fingerprint(
     }
 )
 
+object GameAnalysisPermissionsGetCanCreateFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/entities/GameAnalysisPermissions;" &&
+            method.name == "getCanCreate" &&
+            method.parameterTypes.isEmpty() &&
+            method.returnType == "Z"
+    }
+)
+
+object GameAnalysisPermissionsGetCanMoveFeedbackFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/entities/GameAnalysisPermissions;" &&
+            method.name == "getCanMoveFeedback" &&
+            method.parameterTypes.isEmpty() &&
+            method.returnType == "Z"
+    }
+)
+
+object GameAnalysisPermissionsGetCanMoveStrengthFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/entities/GameAnalysisPermissions;" &&
+            method.name == "getCanMoveStrength" &&
+            method.parameterTypes.isEmpty() &&
+            method.returnType == "Z"
+    }
+)
+
+object GameAnalysisPermissionsGetCanViewAccuracyAndMovesFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/entities/GameAnalysisPermissions;" &&
+            method.name == "getCanViewAccuracyAndMoves" &&
+            method.parameterTypes.isEmpty() &&
+            method.returnType == "Z"
+    }
+)
+
+object GameAnalysisPermissionsGetCanViewCoachCommentaryFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/entities/GameAnalysisPermissions;" &&
+            method.name == "getCanViewCoachCommentary" &&
+            method.parameterTypes.isEmpty() &&
+            method.returnType == "Z"
+    }
+)
+
+object GameAnalysisRepositoryGetGameAnalysisFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/gamereview/repository/GameAnalysisRepositoryImpl;" &&
+            method.name == "b" &&
+            method.parameterTypes.size == 7 &&
+            method.parameterTypes[1] == "Ljava/lang/String;" &&
+            method.returnType == "Landroid/view/inputmethod/g74;"
+    }
+)
+
