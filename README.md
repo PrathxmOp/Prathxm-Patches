@@ -1,10 +1,53 @@
 # ♟️ Prathxm Patches
 
-Custom Morphe patches for **Chess.com**, integrating the powerful Stockfish chess engine for real-time move analysis and more.
+Custom Morphe patches for **Chess.com**, integrating the powerful Stockfish chess engine for real-time move analysis and a premium experience.
 
 ## ❓ About
 
-Prathxm Patches brings a native Stockfish chess engine directly into Chess.com on Android. It hooks into the live game board and displays ranked best-move arrows, giving you real-time engine suggestions without ever leaving the app. Features like premium unlock, ads removal, and configurable engine parameters are also included via an in-game settings menu.
+Prathxm Patches brings a native Stockfish chess engine directly into Chess.com on Android. It hooks into the live game board and provides real-time engine analysis, move classification, and visual overlays — all without ever leaving the app.
+
+## ✨ Features
+
+### 🔧 Engine & Analysis
+- **Stockfish 16.1** — Full native engine running locally on device
+- **Multi-PV Best Move Arrows** — Color-coded, opacity-ranked arrows (Green → Blue → Orange → Purple → Red)
+- **Configurable Depth & MultiPV** — Tune analysis strength (depth 1–20, up to 5 lines)
+- **My Side Only Mode** — Only show engine arrows on your turn
+- **ELO Strength Limiting** — Cap engine strength (1350–3190 ELO)
+
+### 📊 Visual Overlays
+- **Evaluation Bar** — Clean vertical bar showing pawn/mate advantage (stable, no flicker)
+- **Win/Draw/Loss Bar** — Horizontal probability strip below the board (e.g. `65% | 22% | 13%`)
+- **Threat Arrow** — Crimson red arrow showing opponent's best response
+- **Mate Announcement** — Premium pill banner: `♟ Mate in X!` or `☠ Opponent Mates in X!`
+
+### 🏷️ Move Feedback
+- **Move Classification** — Toast notifications: Brilliant 💡 / Best 🎯 / Excellent ✨ / Great ✅ / Good 👍 / Inaccuracy ⚠️ / Mistake ❌ / Blunder 💀
+- **Blunder Alerts** — Haptic vibration on blunders & mistakes
+
+### 💎 Premium & Global
+- **Diamond Premium Unlock** — Full premium status
+- **Ads Removal** — Clean, ad-free experience
+- **Dark-Themed Settings UI** — Chess.com-matching in-game settings menu with developer credits
+
+### ⚙️ Default Settings
+
+| Feature | Default |
+|---------|---------|
+| Engine Enabled | ✅ ON |
+| Best Move Arrows | ✅ ON |
+| Evaluation Bar | ✅ ON |
+| My Side Only | ✅ ON |
+| Premium Unlock | ✅ ON |
+| Ads Removed | ✅ ON |
+| Win/Draw/Loss Bar | ❌ OFF |
+| Threat Arrows | ❌ OFF |
+| Move Classification | ❌ OFF |
+| Blunder Alerts | ❌ OFF |
+| Mate Announcement | ❌ OFF |
+| ELO Limit | ❌ OFF |
+
+> All features are toggleable via long-press on the Chess.com logo.
 
 ## 🩹 Patches List
 
@@ -20,8 +63,8 @@ Prathxm Patches brings a native Stockfish chess engine directly into Chess.com o
 | :---: | :---: |
 
 | 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
-|----------|----------------|-----------|
-| [Stockfish Engine Integration](#stockfish-engine-integration) | Injects the Stockfish chess engine into Chess.com for real-time best-move analysis. Shows ranked, color-coded best-move arrows on the board (Green → Blue → Orange → Purple → Red) along with premium Diamond feature unlock, ads removal, side-aware turn analysis, and customizable settings via in-game menu. |  |
+|----------|----------------|-----------| 
+| [Stockfish Engine Integration](#-features) | Injects the Stockfish 16.1 chess engine into Chess.com for real-time best-move analysis with eval bar, WDL probabilities, move classification, mate announcements, threat arrows, premium unlock, and ads removal. |  |
 
 </details>
 
@@ -41,7 +84,7 @@ The easiest way to patch Chess.com is using **Morphe Manager** on your Android d
 2. Open Morphe Manager and go to **Patch Sources**.
 3. Add this repository as a source:
    ```
-   https://github.com/prathxm/Prathxm-Patches
+   https://github.com/PrathxmOp/Prathxm-Patches
    ```
 4. Select **Chess.com** from the app list.
 5. Enable the **Stockfish Engine** patch and tap **Patch**.

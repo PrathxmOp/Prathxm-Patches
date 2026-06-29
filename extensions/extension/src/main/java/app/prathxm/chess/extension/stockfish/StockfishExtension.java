@@ -248,6 +248,7 @@ public class StockfishExtension {
             clearEngineArrows(stateImplObject);
             hideEvalBar();
             hideWdlBar();
+            hideMateAnnouncement();
             return;
         }
 
@@ -925,7 +926,7 @@ public class StockfishExtension {
                 @Override
                 public boolean onDoubleTap(MotionEvent e) {
                     if (isNearLogo(activity, e)) {
-                        toggleArrows(activity);
+                        toggleEverything(activity);
                         return true;
                     }
                     return false;
@@ -973,15 +974,41 @@ public class StockfishExtension {
         return y >= 0 && y <= maxLogoY;
     }
 
-    private static void toggleArrows(Activity activity) {
-        boolean visible = !StockfishSettings.isArrowsVisible(activity);
-        StockfishSettings.setArrowsVisible(activity, visible);
+    private static void toggleEverything(Activity activity) {
+        boolean enabled = !StockfishSettings.isEngineEnabled(activity);
+        StockfishSettings.setEngineEnabled(activity, enabled);
+        
         android.widget.Toast.makeText(activity, 
-            "Engine arrows: " + (visible ? "SHOWN" : "HIDDEN"), 
+            "Stockfish Analysis: " + (enabled ? "ENABLED" : "DISABLED"), 
             android.widget.Toast.LENGTH_SHORT).show();
         
-        if (!visible) {
+        if (!enabled) {
+            Future<?> prev = currentJob;
+            if (prev != null && !prev.isDone()) {
+                prev.cancel(true);
+            }
+            StockfishBridge.stopSearch();
+            
             clearEngineArrows(getStateImpl());
+            hideEvalBar();
+            hideWdlBar();
+            hideMateAnnouncement();
+        } else {
+            Object state = getStateImpl();
+            if (state != null) {
+                try {
+                    java.lang.reflect.Method getPosition = state.getClass().getMethod("getPosition");
+                    Object positionObject = getPosition.invoke(state);
+                    if (positionObject != null) {
+                        String fen = extractFen(positionObject);
+                        if (fen != null) {
+                            scheduleAnalysis(fen);
+                        }
+                    }
+                } catch (Throwable t) {
+                    Log.e(TAG, "Error re-triggering analysis: " + t.getMessage());
+                }
+            }
         }
     }
 

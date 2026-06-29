@@ -106,18 +106,34 @@ public class WdlBarView extends View {
             canvas.drawRect(lossX, 0, lossX + radius, h, paintLoss);
         }
 
+        // Convert permille WDL values (sum=1000) to percentages (sum=100)
+        int pctWin = Math.round(wdlWin / 10.0f);
+        int pctDraw = Math.round(wdlDraw / 10.0f);
+        int pctLoss = Math.round(wdlLoss / 10.0f);
+        int sum = pctWin + pctDraw + pctLoss;
+        if (sum != 100 && sum > 0) {
+            int diff = 100 - sum;
+            if (pctWin >= pctDraw && pctWin >= pctLoss) {
+                pctWin += diff;
+            } else if (pctDraw >= pctWin && pctDraw >= pctLoss) {
+                pctDraw += diff;
+            } else {
+                pctLoss += diff;
+            }
+        }
+
         // Labels — only draw if segment is wide enough
         float textY = h / 2.0f + paintText.getTextSize() / 3.0f;
         float minSegW = 28 * getContext().getResources().getDisplayMetrics().density;
 
         if (winW >= minSegW) {
-            canvas.drawText(wdlWin + "%", winW / 2.0f, textY, paintText);
+            canvas.drawText(pctWin + "%", winW / 2.0f, textY, paintText);
         }
         if (drawW >= minSegW) {
-            canvas.drawText(wdlDraw + "%", winW + drawW / 2.0f, textY, paintText);
+            canvas.drawText(pctDraw + "%", winW + drawW / 2.0f, textY, paintText);
         }
         if (lossW >= minSegW) {
-            canvas.drawText(wdlLoss + "%", lossX + lossW / 2.0f, textY, paintText);
+            canvas.drawText(pctLoss + "%", lossX + lossW / 2.0f, textY, paintText);
         }
     }
 }

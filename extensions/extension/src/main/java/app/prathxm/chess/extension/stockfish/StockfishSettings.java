@@ -137,7 +137,7 @@ public class StockfishSettings {
     private static final String KEY_SHOW_MOVE_CLASSIFICATION = "show_move_classification";
 
     public static boolean isMoveClassificationEnabled(Context context) {
-        return getPrefs(context).getBoolean(KEY_SHOW_MOVE_CLASSIFICATION, true);
+        return getPrefs(context).getBoolean(KEY_SHOW_MOVE_CLASSIFICATION, false);
     }
 
     public static void setMoveClassificationEnabled(Context context, boolean enabled) {
@@ -147,10 +147,21 @@ public class StockfishSettings {
     private static final String KEY_ENABLE_BLUNDER_ALERTS = "enable_blunder_alerts";
 
     public static boolean isBlunderAlertsEnabled(Context context) {
-        return getPrefs(context).getBoolean(KEY_ENABLE_BLUNDER_ALERTS, true);
+        return getPrefs(context).getBoolean(KEY_ENABLE_BLUNDER_ALERTS, false);
     }
 
     public static void setBlunderAlertsEnabled(Context context, boolean enabled) {
         getPrefs(context).edit().putBoolean(KEY_ENABLE_BLUNDER_ALERTS, enabled).apply();
     }
+
+    private static final String KEY_SHOW_MATE_ANNOUNCEMENT = "show_mate_announcement";
+
+    public static boolean isMateAnnouncementEnabled(Context context) {
+        return getPrefs(context).getBoolean(KEY_SHOW_MATE_ANNOUNCEMENT, false);
+    }
+
+    public static void setMateAnnouncementEnabled(Context context, boolean enabled) {
+        getPrefs(context).edit().putBoolean(KEY_SHOW_MATE_ANNOUNCEMENT, enabled).apply();
+    }
 }
+
