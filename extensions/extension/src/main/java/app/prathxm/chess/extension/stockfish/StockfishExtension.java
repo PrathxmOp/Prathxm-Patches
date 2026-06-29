@@ -449,32 +449,32 @@ public class StockfishExtension {
             String emoji = "👍";
             boolean isBlunderOrMistake = false;
 
-            if (delta < -3.0f) {
-                classification = "Blunder";
-                emoji = "💀";
-                isBlunderOrMistake = true;
-            } else if (delta < -1.5f) {
-                classification = "Mistake";
-                emoji = "❌";
-                isBlunderOrMistake = true;
-            } else if (delta < -0.5f) {
-                classification = "Inaccuracy";
-                emoji = "⚠️";
-            } else if (delta < -0.1f) {
-                classification = "Good Move";
-                emoji = "👍";
+            if (uciMove != null && !prevBestMoves.isEmpty() && uciMove.equals(prevBestMoves.get(0))) {
+                if (delta > 0.4f) {
+                    classification = "Brilliant";
+                    emoji = "💡";
+                } else {
+                    classification = "Best Move";
+                    emoji = "🎯";
+                }
+            } else if (uciMove != null && prevBestMoves.contains(uciMove)) {
+                classification = "Excellent";
+                emoji = "✨";
             } else {
-                if (uciMove != null && uciMove.equals(prevBestMoves.get(0))) {
-                    if (delta > 0.4f) {
-                        classification = "Brilliant";
-                        emoji = "💡";
-                    } else {
-                        classification = "Best Move";
-                        emoji = "🎯";
-                    }
-                } else if (uciMove != null && prevBestMoves.contains(uciMove)) {
-                    classification = "Excellent";
-                    emoji = "✨";
+                if (delta < -3.0f) {
+                    classification = "Blunder";
+                    emoji = "💀";
+                    isBlunderOrMistake = true;
+                } else if (delta < -1.5f) {
+                    classification = "Mistake";
+                    emoji = "❌";
+                    isBlunderOrMistake = true;
+                } else if (delta < -0.5f) {
+                    classification = "Inaccuracy";
+                    emoji = "⚠️";
+                } else if (delta < -0.1f) {
+                    classification = "Good Move";
+                    emoji = "👍";
                 } else {
                     classification = "Great Move";
                     emoji = "✅";
