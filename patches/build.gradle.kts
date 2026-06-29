@@ -1,4 +1,4 @@
-group = "app.template"
+group = "app.prathxm.chess"
 
 patches {
     about {
@@ -41,4 +41,5 @@ tasks {
     publish {
         dependsOn("generatePatchesList")
     }
+
 }
