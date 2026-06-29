@@ -55,7 +55,7 @@ public class StockfishSettings {
     }
 
     public static boolean isArrowsVisible(Context context) {
-        return getPrefs(context).getBoolean(KEY_ARROWS_VISIBLE, false);
+        return getPrefs(context).getBoolean(KEY_ARROWS_VISIBLE, true);
     }
 
     public static void setArrowsVisible(Context context, boolean visible) {
