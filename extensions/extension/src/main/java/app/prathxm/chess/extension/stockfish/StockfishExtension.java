@@ -1498,8 +1498,8 @@ public class StockfishExtension {
 
                     float density = decorView.getContext().getResources().getDisplayMetrics().density;
                     int barHeight = (int) (14 * density);
-                    // Position horizontally aligned with the board, just below it
-                    int barY = boardY + boardH + (int)(4 * density);
+                    // Position horizontally aligned with the board, just above it (avoids captures/points below)
+                    int barY = boardY - barHeight - (int)(4 * density);
 
                     View wdlTag = decorView.findViewWithTag("stockfish_wdl_bar");
                     WdlBarView wdlBarView;
@@ -1610,7 +1610,12 @@ public class StockfishExtension {
                     int bw = banner.getMeasuredWidth();
                     int bh = banner.getMeasuredHeight();
                     int centreX = boardX + (boardW - bw) / 2;
-                    int topY = boardY + (int)(10 * density);
+                    int offset = 0;
+                    if (StockfishSettings.isWdlEnabled(decorView.getContext())) {
+                        int barHeight = (int) (14 * density);
+                        offset = barHeight + (int)(4 * density);
+                    }
+                    int topY = Math.max(0, boardY - bh - (int)(8 * density) - offset);
 
                     banner.setTranslationX(centreX);
                     banner.setTranslationY(topY);
