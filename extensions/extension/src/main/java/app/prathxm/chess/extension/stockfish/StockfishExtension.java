@@ -1181,6 +1181,15 @@ public class StockfishExtension {
         engineTv.setGravity(android.view.Gravity.CENTER);
         creditsCard.addView(engineTv);
 
+        addDialogSpacer(creditsCard, 2, density);
+
+        android.widget.TextView patchTv = new android.widget.TextView(activity);
+        patchTv.setText("Patch Version: v1.3.1 (Lichess Ready) 🧩");
+        patchTv.setTextColor(0xFF8B8985);
+        patchTv.setTextSize(11);
+        patchTv.setGravity(android.view.Gravity.CENTER);
+        creditsCard.addView(patchTv);
+
         rootLayout.addView(creditsCard);
 
         addDialogSpacer(rootLayout, 16, density);
