@@ -54,10 +54,15 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
     private View dimOverlay;
     private LinearLayout bottomSheet;
     private Button mainSolveButton;
+    private View solveAndListRow;
     
     // Header & Subtitles
     private TextView titleText;
     private TextView subtitleText;
+    private TextView topBadge;
+
+    // Coach views
+    private android.widget.ImageView coachAvatar;
 
     // Database / Loading
     private LinearLayout downloadOverlay;
@@ -80,7 +85,12 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         super.onCreate(savedInstanceState);
         setupJourneyUI();
 
-        File localFile = new File(getFilesDir(), "puzzles.json");
+        File oldFile = new File(getFilesDir(), "puzzles.json");
+        if (oldFile.exists()) {
+            oldFile.delete();
+        }
+
+        File localFile = new File(getFilesDir(), "puzzles.json.gz");
         if (localFile.exists() && localFile.length() > 0) {
             isDatabaseReady = true;
             refreshProgress();
@@ -134,36 +144,47 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
 
-        // Header Panel
+        // Header Panel (Centered)
         LinearLayout header = new LinearLayout(this);
         header.setOrientation(LinearLayout.HORIZONTAL);
         header.setBackgroundColor(COLOR_CARD);
-        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setGravity(Gravity.CENTER);
         header.setPadding(32, 24, 32, 24);
         header.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         ));
 
-        // Back Arrow
-        TextView backArrow = new TextView(this);
-        backArrow.setText("◀");
-        backArrow.setTextColor(COLOR_TEXT_PRIMARY);
-        backArrow.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-        backArrow.setPadding(16, 16, 32, 16);
-        if (fontBold != null) backArrow.setTypeface(fontBold);
-        backArrow.setOnClickListener(v -> finish());
-        header.addView(backArrow);
+        subtitleText = new TextView(this); // Instantiated to prevent NPE but not added to layout
 
-        // Header text container (Title + Subtitle)
-        LinearLayout headerTextContainer = new LinearLayout(this);
-        headerTextContainer.setOrientation(LinearLayout.VERTICAL);
-        headerTextContainer.setLayoutParams(new LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f
+        // Header Title container with badge
+        LinearLayout headerTitleLayout = new LinearLayout(this);
+        headerTitleLayout.setOrientation(LinearLayout.HORIZONTAL);
+        headerTitleLayout.setGravity(Gravity.CENTER);
+        headerTitleLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
         ));
 
+        // Top Badge (Puzzle piece)
+        topBadge = new TextView(this);
+        topBadge.setText("0");
+        topBadge.setTextColor(Color.WHITE);
+        topBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        if (fontBold != null) {
+            topBadge.setTypeface(fontBold);
+        } else {
+            topBadge.setTypeface(null, android.graphics.Typeface.BOLD);
+        }
+        topBadge.setGravity(Gravity.CENTER);
+        int topBadgeSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24, getResources().getDisplayMetrics());
+        LinearLayout.LayoutParams topBadgeParams = new LinearLayout.LayoutParams(topBadgeSize, topBadgeSize);
+        topBadgeParams.rightMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
+        topBadge.setLayoutParams(topBadgeParams);
+        headerTitleLayout.addView(topBadge);
+
         titleText = new TextView(this);
-        titleText.setText("Puzzle Journey");
+        titleText.setText("Puzzles");
         titleText.setTextColor(COLOR_TEXT_PRIMARY);
         titleText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
         if (fontBold != null) {
@@ -171,43 +192,119 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         } else {
             titleText.setTypeface(null, android.graphics.Typeface.BOLD);
         }
-        headerTextContainer.addView(titleText);
-
-        subtitleText = new TextView(this);
-        subtitleText.setText("Wood Tier");
-        subtitleText.setTextColor(COLOR_TEXT_SECONDARY);
-        subtitleText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        if (fontRegular != null) subtitleText.setTypeface(fontRegular);
-        headerTextContainer.addView(subtitleText);
-
-        header.addView(headerTextContainer);
-
-        // Settings Cog
-        TextView settingsIcon = new TextView(this);
-        settingsIcon.setText("⚙");
-        settingsIcon.setTextColor(COLOR_TEXT_PRIMARY);
-        settingsIcon.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
-        if (fontBold != null) settingsIcon.setTypeface(fontBold);
-        settingsIcon.setPadding(16, 16, 16, 16);
-        header.addView(settingsIcon);
-
+        headerTitleLayout.addView(titleText);
+        header.addView(headerTitleLayout);
         root.addView(header);
 
-        // Stats & Streak Progress Row
+        // --- Coach Avatar & Speech Bubble ---
+        LinearLayout coachLayout = new LinearLayout(this);
+        coachLayout.setOrientation(LinearLayout.HORIZONTAL);
+        coachLayout.setGravity(Gravity.BOTTOM);
+        coachLayout.setPadding(
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics()),
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics()),
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics()),
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics())
+        );
+        coachLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+
+        // Coach Avatar
+        coachAvatar = new android.widget.ImageView(this);
+        coachAvatar.setScaleType(android.widget.ImageView.ScaleType.FIT_END);
+        updateCoachAvatar();
+        
+        int avatarWidth = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 64, getResources().getDisplayMetrics());
+        int avatarHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 64, getResources().getDisplayMetrics());
+        LinearLayout.LayoutParams avatarParams = new LinearLayout.LayoutParams(avatarWidth, avatarHeight);
+        avatarParams.gravity = Gravity.BOTTOM;
+        coachAvatar.setLayoutParams(avatarParams);
+        coachLayout.addView(coachAvatar);
+
+        // Speech Bubble Layout
+        LinearLayout speechBubbleContainer = new LinearLayout(this);
+        speechBubbleContainer.setOrientation(LinearLayout.HORIZONTAL);
+        speechBubbleContainer.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams containerParams = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f
+        );
+        containerParams.leftMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
+        speechBubbleContainer.setLayoutParams(containerParams);
+
+        // Speech Bubble Tail
+        View speechBubbleTail = new SpeechBubbleTail(this);
+        int tailWidth = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics());
+        int tailHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 14, getResources().getDisplayMetrics());
+        LinearLayout.LayoutParams tailParams = new LinearLayout.LayoutParams(tailWidth, tailHeight);
+        tailParams.rightMargin = -1;
+        speechBubbleTail.setLayoutParams(tailParams);
+        speechBubbleContainer.addView(speechBubbleTail);
+
+        // Speech Bubble Body
+        LinearLayout speechBubbleBody = new LinearLayout(this);
+        speechBubbleBody.setOrientation(LinearLayout.VERTICAL);
+        speechBubbleBody.setPadding(
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics()),
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics()),
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics()),
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics())
+        );
+        GradientDrawable bubbleBg = new GradientDrawable();
+        bubbleBg.setColor(Color.WHITE);
+        bubbleBg.setCornerRadius(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics()));
+        speechBubbleBody.setBackground(bubbleBg);
+        speechBubbleBody.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+
+        TextView coachMsgText = new TextView(this);
+        coachMsgText.setText("Feel like speeding things up? Score for solving quickly in Puzzle Rush, where your third mistake is your last!");
+        coachMsgText.setTextColor(Color.parseColor("#484644"));
+        coachMsgText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        if (fontRegular != null) coachMsgText.setTypeface(fontRegular);
+        speechBubbleBody.addView(coachMsgText);
+
+        speechBubbleContainer.addView(speechBubbleBody);
+        coachLayout.addView(speechBubbleContainer);
+        root.addView(coachLayout);
+
+        // Winding Map inside a ScrollView
+        mapScrollView = new ScrollView(this);
+        LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1.0f
+        );
+        mapScrollView.setLayoutParams(scrollParams);
+
+        mapInterface = new PuzzleJourneyMapView(this);
+        mapInterface.setOnLevelClickListener(this);
+        mapScrollView.addView(mapInterface);
+        root.addView(mapScrollView);
+
+        // Stats & Streak Progress Row (Moved to bottom, above buttons)
         LinearLayout statsRow = new LinearLayout(this);
         statsRow.setOrientation(LinearLayout.HORIZONTAL);
         statsRow.setGravity(Gravity.CENTER_VERTICAL);
-        statsRow.setBackgroundColor(COLOR_CARD);
-        statsRow.setPadding(32, 0, 32, 24);
+        statsRow.setBackgroundColor(Color.TRANSPARENT);
+        statsRow.setPadding(
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics()),
+            0,
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics()),
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics())
+        );
         statsRow.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         ));
 
         streakTextView = new TextView(this);
-        streakTextView.setText("Streak: 0");
+        streakTextView.setText("0");
         streakTextView.setTextColor(COLOR_TEXT_PRIMARY);
-        streakTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        streakTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
         if (fontBold != null) {
             streakTextView.setTypeface(fontBold);
         } else {
@@ -240,7 +337,7 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
 
         // Milestone Badge
         streakMilestoneBadge = new TextView(this);
-        streakMilestoneBadge.setText("10");
+        streakMilestoneBadge.setText("0");
         streakMilestoneBadge.setTextColor(Color.WHITE);
         streakMilestoneBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         if (fontBold != null) {
@@ -256,21 +353,44 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
 
         root.addView(statsRow);
 
-        // Winding Map inside a ScrollView
-        mapScrollView = new ScrollView(this);
-        LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
+        // Solve and List buttons horizontal row
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                0,
-                1.0f
+                ViewGroup.LayoutParams.WRAP_CONTENT
         );
-        mapScrollView.setLayoutParams(scrollParams);
+        int margin16 = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics());
+        rowParams.setMargins(margin16, margin16, margin16, margin16);
+        row.setLayoutParams(rowParams);
+        solveAndListRow = row;
 
-        mapInterface = new PuzzleJourneyMapView(this);
-        mapInterface.setOnLevelClickListener(this);
-        mapScrollView.addView(mapInterface);
-        root.addView(mapScrollView);
+        // List menu button on the left
+        LinearLayout listBtn = new LinearLayout(this);
+        listBtn.setGravity(Gravity.CENTER);
+        int listBtnSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 52, getResources().getDisplayMetrics());
+        LinearLayout.LayoutParams listBtnParams = new LinearLayout.LayoutParams(listBtnSize, listBtnSize);
+        listBtnParams.rightMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics());
+        listBtn.setLayoutParams(listBtnParams);
+        
+        GradientDrawable listBg = new GradientDrawable();
+        listBg.setColor(Color.parseColor("#312E2B"));
+        listBg.setCornerRadius(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics()));
+        listBtn.setBackground(listBg);
+        listBtn.setClickable(true);
+        listBtn.setFocusable(true);
+        
+        TextView listIcon = new TextView(this);
+        listIcon.setText("☰");
+        listIcon.setTextColor(COLOR_TEXT_PRIMARY);
+        listIcon.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+        listBtn.addView(listIcon);
+        
+        listBtn.setOnClickListener(v -> showBottomSheet());
+        row.addView(listBtn);
 
-        // Main Solve Puzzles Button (Floating just above the navigation bar)
+        // Solve Puzzles button
         mainSolveButton = new Button(this);
         mainSolveButton.setText("Solve Puzzles");
         mainSolveButton.setTextColor(Color.WHITE);
@@ -281,16 +401,20 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         solveBg.setColor(COLOR_GREEN);
         solveBg.setCornerRadius(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics()));
         mainSolveButton.setBackground(solveBg);
-        
+
         LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 52, getResources().getDisplayMetrics())
+                0,
+                (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 52, getResources().getDisplayMetrics()),
+                1.0f
         );
-        int margin16 = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics());
-        btnParams.setMargins(margin16, margin16, margin16, margin16);
         mainSolveButton.setLayoutParams(btnParams);
-        mainSolveButton.setOnClickListener(v -> showBottomSheet());
-        root.addView(mainSolveButton);
+        mainSolveButton.setOnClickListener(v -> {
+            int unlockedLevel = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                    .getInt("unlocked_level", 1);
+            onLevelClick(unlockedLevel);
+        });
+        row.addView(mainSolveButton);
+        root.addView(row);
 
         // Bottom Navigation Bar
         LinearLayout bottomNav = new LinearLayout(this);
@@ -535,8 +659,8 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
     private void showBottomSheet() {
         if (bottomSheet.getVisibility() == View.VISIBLE) return;
         
-        if (mainSolveButton != null) {
-            mainSolveButton.setVisibility(View.GONE);
+        if (solveAndListRow != null) {
+            solveAndListRow.setVisibility(View.GONE);
         }
         
         dimOverlay.setVisibility(View.VISIBLE);
@@ -558,8 +682,8 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
     private void hideBottomSheet() {
         if (bottomSheet.getVisibility() != View.VISIBLE) return;
         
-        if (mainSolveButton != null) {
-            mainSolveButton.setVisibility(View.VISIBLE);
+        if (solveAndListRow != null) {
+            solveAndListRow.setVisibility(View.VISIBLE);
         }
         
         AlphaAnimation fadeOut = new AlphaAnimation(1.0f, 0.0f);
@@ -592,40 +716,33 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
     private void updateStreakProgress() {
         int currentStreak = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
                 .getInt("puzzle_streak", 0);
+        int unlockedLevel = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                .getInt("unlocked_level", 1);
         
         runOnUiThread(() -> {
             if (streakTextView != null) {
-                streakTextView.setText("Streak: " + currentStreak);
+                streakTextView.setText(String.valueOf(currentStreak));
+            }
+            if (topBadge != null) {
+                topBadge.setText(String.valueOf(Math.max(0, unlockedLevel - 1)));
+                int woodBadgeResId = getDrawableResId("puzzle_tier_wood_pawn");
+                if (woodBadgeResId != 0) {
+                    topBadge.setBackgroundResource(woodBadgeResId);
+                }
             }
             if (streakProgressBar != null && streakMilestoneBadge != null) {
-                int targetMilestone = ((currentStreak / 10) + 1) * 10;
                 streakProgressBar.setMax(10);
-                streakProgressBar.setProgress(currentStreak % 10);
-                streakMilestoneBadge.setText(String.valueOf(targetMilestone));
+                streakProgressBar.setProgress((unlockedLevel - 1) % 10);
+                streakMilestoneBadge.setText(String.valueOf(unlockedLevel));
                 
                 int woodBadgeResId = getDrawableResId("puzzle_tier_wood_pawn");
-                if (targetMilestone <= 10 && woodBadgeResId != 0) {
+                if (woodBadgeResId != 0) {
                     streakMilestoneBadge.setBackgroundResource(woodBadgeResId);
                 } else {
                     GradientDrawable badgeBg = new GradientDrawable();
                     badgeBg.setShape(GradientDrawable.OVAL);
-                    int badgeColor;
-                    int strokeColor;
-                    if (targetMilestone <= 10) {
-                        badgeColor = Color.parseColor("#8B5A2B");
-                        strokeColor = Color.parseColor("#A0522D");
-                    } else if (targetMilestone <= 20) {
-                        badgeColor = Color.parseColor("#C0C0C0");
-                        strokeColor = Color.parseColor("#A9A9A9");
-                    } else if (targetMilestone <= 30) {
-                        badgeColor = Color.parseColor("#FFD700");
-                        strokeColor = Color.parseColor("#DAA520");
-                    } else {
-                        badgeColor = Color.parseColor("#2C3E50");
-                        strokeColor = Color.parseColor("#34495E");
-                    }
-                    badgeBg.setColor(badgeColor);
-                    badgeBg.setStroke((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, getResources().getDisplayMetrics()), strokeColor);
+                    badgeBg.setColor(Color.parseColor("#8B5A2B"));
+                    badgeBg.setStroke((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, getResources().getDisplayMetrics()), Color.parseColor("#A0522D"));
                     streakMilestoneBadge.setBackground(badgeBg);
                 }
             }
@@ -752,8 +869,10 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
 
                 showDownloadProgress("Saving puzzles database to storage...", 100);
 
-                File file = new File(getFilesDir(), "puzzles.json");
-                FileWriter writer = new FileWriter(file);
+                File file = new File(getFilesDir(), "puzzles.json.gz");
+                java.io.FileOutputStream fos = new java.io.FileOutputStream(file);
+                java.util.zip.GZIPOutputStream gzos = new java.util.zip.GZIPOutputStream(fos);
+                java.io.OutputStreamWriter writer = new java.io.OutputStreamWriter(gzos, "UTF-8");
                 writer.write(allPuzzles.toString());
                 writer.flush();
                 writer.close();
@@ -997,5 +1116,50 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
             }
             mapScrollView.setVisibility(View.VISIBLE);
         });
+    }
+
+    private void updateCoachAvatar() {
+        if (coachAvatar == null) return;
+        
+        int avatarResId = getResources().getIdentifier("color_coach_danny", "drawable", getPackageName());
+        if (avatarResId == 0) {
+            avatarResId = getResources().getIdentifier("color_coach_david", "drawable", getPackageName());
+        }
+        if (avatarResId == 0) {
+            avatarResId = getResources().getIdentifier("color_coach_hikaru", "drawable", getPackageName());
+        }
+        if (avatarResId == 0) {
+            avatarResId = getResources().getIdentifier("coach_david", "drawable", getPackageName());
+        }
+        if (avatarResId == 0) {
+            avatarResId = getResources().getIdentifier("coach", "drawable", getPackageName());
+        }
+        if (avatarResId != 0) {
+            coachAvatar.setImageResource(avatarResId);
+        }
+    }
+
+    private static class SpeechBubbleTail extends View {
+        private final android.graphics.Paint paint;
+        private final android.graphics.Path path;
+
+        public SpeechBubbleTail(android.content.Context context) {
+            super(context);
+            paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+            paint.setColor(Color.WHITE);
+            paint.setStyle(android.graphics.Paint.Style.FILL);
+            path = new android.graphics.Path();
+        }
+
+        @Override
+        protected void onDraw(android.graphics.Canvas canvas) {
+            super.onDraw(canvas);
+            path.reset();
+            path.moveTo(getWidth(), getHeight() * 0.3f);
+            path.lineTo(getWidth(), getHeight() * 0.7f);
+            path.lineTo(0, getHeight() * 0.5f);
+            path.close();
+            canvas.drawPath(path, paint);
+        }
     }
 }

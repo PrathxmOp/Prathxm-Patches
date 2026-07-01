@@ -58,6 +58,12 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     private android.graphics.Typeface fontBold;
     private android.graphics.Typeface fontRegular;
 
+    // Low latency sound caching fields
+    private android.media.SoundPool soundPool;
+    private int soundCorrectId = -1;
+    private int soundIncorrectId = -1;
+    private int soundSolvedId = -1;
+
     // Puzzle modes
     private String activeMode = "daily";
     private int rushScore = 0;
@@ -123,8 +129,15 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         super.onCreate(savedInstanceState);
         currentStreak = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE).getInt("puzzle_streak", 0);
         setupPremiumUI();
+        initSoundPool();
 
-        File localFile = new File(getFilesDir(), "puzzles.json");
+        // Migrate/delete old uncompressed puzzles.json
+        File oldFile = new File(getFilesDir(), "puzzles.json");
+        if (oldFile.exists()) {
+            oldFile.delete();
+        }
+
+        File localFile = new File(getFilesDir(), "puzzles.json.gz");
         if (localFile.exists() && localFile.length() > 0) {
             loadOfflinePuzzlesAsync(localFile);
         } else {
@@ -139,6 +152,10 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     @Override
     protected void onDestroy() {
         stopTimer();
+        if (soundPool != null) {
+            soundPool.release();
+            soundPool = null;
+        }
         super.onDestroy();
     }
 
@@ -377,6 +394,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         titleView.setText("Find the best sequence of moves.");
         titleView.setTextColor(Color.parseColor("#484644"));
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        titleView.setMinLines(2); // Fix layout shifts by pre-allocating space for 2 lines
         if (fontRegular != null) {
             titleView.setTypeface(fontRegular);
         }
@@ -877,22 +895,128 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     }
 
     private void showThemeSettingsDialog() {
-        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
-        builder.setTitle("Select Board Theme");
+        android.app.Dialog dialog = new android.app.Dialog(this);
+        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+        }
+
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        
+        // Round corners for dialog
+        float r = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics());
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.parseColor("#262421"));
+        bg.setCornerRadius(r);
+        bg.setStroke((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, getResources().getDisplayMetrics()), Color.parseColor("#3D3A37"));
+        root.setBackground(bg);
+        
+        int padding = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 20, getResources().getDisplayMetrics());
+        root.setPadding(padding, padding, padding, padding);
+
+        TextView title = new TextView(this);
+        title.setText("Board Theme");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        if (fontBold != null) title.setTypeface(fontBold);
+        title.setGravity(Gravity.CENTER_HORIZONTAL);
+        title.setPadding(0, 0, 0, (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics()));
+        root.addView(title);
 
         String[] themes = {"Green (Default)", "Brown", "Blue", "Icy", "Glass"};
         String[] lightColors = {"#EEEED2", "#F0D9B5", "#EFEFEF", "#E2E4E6", "#ECECD7"};
         String[] darkColors = {"#769656", "#B58863", "#7296B6", "#97A3AF", "#567676"};
 
-        builder.setItems(themes, (dialog, which) -> {
-            getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
-                .edit()
-                .putString("board_theme_light", lightColors[which])
-                .putString("board_theme_dark", darkColors[which])
-                .apply();
-            loadBoardTheme();
-        });
-        builder.show();
+        for (int i = 0; i < themes.length; i++) {
+            final int which = i;
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setClickable(true);
+            row.setFocusable(true);
+            
+            int rowPadding = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics());
+            row.setPadding(rowPadding, rowPadding, rowPadding, rowPadding);
+            
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+            rowParams.bottomMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
+            row.setLayoutParams(rowParams);
+            
+            GradientDrawable rowBg = new GradientDrawable();
+            rowBg.setColor(Color.parseColor("#312E2B"));
+            rowBg.setCornerRadius(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics()));
+            row.setBackground(rowBg);
+
+            // 2x2 chess square preview
+            LinearLayout preview = new LinearLayout(this);
+            preview.setOrientation(LinearLayout.VERTICAL);
+            int size = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 28, getResources().getDisplayMetrics());
+            LinearLayout.LayoutParams previewParams = new LinearLayout.LayoutParams(size, size);
+            previewParams.rightMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics());
+            preview.setLayoutParams(previewParams);
+
+            // Top half
+            LinearLayout topHalf = new LinearLayout(this);
+            topHalf.setOrientation(LinearLayout.HORIZONTAL);
+            topHalf.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+            View s1 = new View(this);
+            s1.setBackgroundColor(Color.parseColor(lightColors[i]));
+            s1.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+            View s2 = new View(this);
+            s2.setBackgroundColor(Color.parseColor(darkColors[i]));
+            s2.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+            topHalf.addView(s1);
+            topHalf.addView(s2);
+
+            // Bottom half
+            LinearLayout bottomHalf = new LinearLayout(this);
+            bottomHalf.setOrientation(LinearLayout.HORIZONTAL);
+            bottomHalf.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+            View s3 = new View(this);
+            s3.setBackgroundColor(Color.parseColor(darkColors[i]));
+            s3.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+            View s4 = new View(this);
+            s4.setBackgroundColor(Color.parseColor(lightColors[i]));
+            s4.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+            bottomHalf.addView(s3);
+            bottomHalf.addView(s4);
+
+            preview.addView(topHalf);
+            preview.addView(bottomHalf);
+            
+            GradientDrawable previewBg = new GradientDrawable();
+            previewBg.setCornerRadius(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 4, getResources().getDisplayMetrics()));
+            preview.setBackground(previewBg);
+            preview.setClipToOutline(true);
+
+            row.addView(preview);
+
+            TextView text = new TextView(this);
+            text.setText(themes[i]);
+            text.setTextColor(Color.WHITE);
+            text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            if (fontBold != null) text.setTypeface(fontBold);
+            row.addView(text);
+
+            row.setOnClickListener(v -> {
+                getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                    .edit()
+                    .putString("board_theme_light", lightColors[which])
+                    .putString("board_theme_dark", darkColors[which])
+                    .apply();
+                loadBoardTheme();
+                dialog.dismiss();
+            });
+
+            root.addView(row);
+        }
+
+        dialog.setContentView(root);
+        dialog.show();
     }
 
     private void startTimer() {
@@ -1099,13 +1223,26 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     }
 
     private void showGameOverDialog(String title, String message, int score) {
-        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        android.app.Dialog dialog = new android.app.Dialog(this);
+        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+        dialog.setCancelable(false);
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+        }
         
         // Custom View
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setGravity(Gravity.CENTER_HORIZONTAL);
-        layout.setBackgroundColor(Color.parseColor("#272522"));
+        
+        // Round corners for dialog
+        float r = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics());
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.parseColor("#272522"));
+        bg.setCornerRadius(r);
+        bg.setStroke((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, getResources().getDisplayMetrics()), Color.parseColor("#3D3A37"));
+        layout.setBackground(bg);
+        
         int pad = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24, getResources().getDisplayMetrics());
         layout.setPadding(pad, pad, pad, pad);
         
@@ -1192,9 +1329,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         btnRow.addView(closeBtn);
         layout.addView(btnRow);
         
-        builder.setView(layout);
-        builder.setCancelable(false);
-        android.app.AlertDialog dialog = builder.create();
+        dialog.setContentView(layout);
         
         playAgainBtn.setOnClickListener(v -> {
             dialog.dismiss();
@@ -1248,7 +1383,9 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     }
 
     private void loadOfflinePuzzlesFromLocalFile(File file) throws Exception {
-        BufferedReader br = new BufferedReader(new FileReader(file));
+        java.io.InputStream fileStream = new java.io.FileInputStream(file);
+        java.io.InputStream gzipStream = new java.util.zip.GZIPInputStream(fileStream);
+        BufferedReader br = new BufferedReader(new java.io.InputStreamReader(gzipStream, "UTF-8"));
         StringBuilder sb = new StringBuilder();
         String line;
         while ((line = br.readLine()) != null) {
@@ -1331,8 +1468,10 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
 
                 showDownloadProgress("Saving puzzles database to storage...", 100);
 
-                File file = new File(getFilesDir(), "puzzles.json");
-                FileWriter writer = new FileWriter(file);
+                File file = new File(getFilesDir(), "puzzles.json.gz");
+                java.io.FileOutputStream fos = new java.io.FileOutputStream(file);
+                java.util.zip.GZIPOutputStream gzos = new java.util.zip.GZIPOutputStream(fos);
+                java.io.OutputStreamWriter writer = new java.io.OutputStreamWriter(gzos, "UTF-8");
                 writer.write(allPuzzles.toString());
                 writer.flush();
                 writer.close();
@@ -2009,17 +2148,68 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         }
     }
 
-    private void playSound(String path) {
+    private void initSoundPool() {
         try {
-            android.content.res.AssetFileDescriptor afd = getAssets().openFd(path);
-            android.media.MediaPlayer player = new android.media.MediaPlayer();
-            player.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
-            afd.close();
-            player.prepare();
-            player.start();
-            player.setOnCompletionListener(android.media.MediaPlayer::release);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                android.media.AudioAttributes attrs = new android.media.AudioAttributes.Builder()
+                        .setUsage(android.media.AudioAttributes.USAGE_GAME)
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build();
+                soundPool = new android.media.SoundPool.Builder()
+                        .setMaxStreams(3)
+                        .setAudioAttributes(attrs)
+                        .build();
+            } else {
+                soundPool = new android.media.SoundPool(3, android.media.AudioManager.STREAM_MUSIC, 0);
+            }
+
+            android.content.res.AssetManager am = getAssets();
+            try {
+                soundCorrectId = soundPool.load(am.openFd("sounds/puzzles/correct.mp3"), 1);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to load sound: correct", e);
+            }
+            try {
+                soundIncorrectId = soundPool.load(am.openFd("sounds/puzzles/incorrect.mp3"), 1);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to load sound: incorrect", e);
+            }
+            try {
+                soundSolvedId = soundPool.load(am.openFd("sounds/puzzles/puzzle-path/puzzle-solved.mp3"), 1);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to load sound: solved", e);
+            }
         } catch (Exception e) {
-            Log.e(TAG, "Failed to play sound: " + path, e);
+            Log.e(TAG, "Failed to initialize SoundPool", e);
+        }
+    }
+
+    private void playSound(String path) {
+        if (soundPool == null) return;
+        int soundId = -1;
+        if (path.contains("correct.mp3")) {
+            soundId = soundCorrectId;
+        } else if (path.contains("incorrect.mp3")) {
+            soundId = soundIncorrectId;
+        } else if (path.contains("puzzle-solved.mp3")) {
+            soundId = soundSolvedId;
+        }
+
+        if (soundId != -1) {
+            soundPool.play(soundId, 1.0f, 1.0f, 1, 0, 1.0f);
+        } else {
+            // Fallback
+            try {
+                android.content.res.AssetFileDescriptor afd = getAssets().openFd(path);
+                android.media.MediaPlayer player = new android.media.MediaPlayer();
+                player.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+                afd.close();
+                player.prepare();
+                player.start();
+                player.setOnCompletionListener(android.media.MediaPlayer::release);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to play sound (fallback): " + path, e);
+            }
         }
     }
 

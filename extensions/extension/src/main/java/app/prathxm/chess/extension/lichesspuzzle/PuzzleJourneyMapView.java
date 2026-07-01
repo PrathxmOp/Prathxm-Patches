@@ -113,88 +113,117 @@ public class PuzzleJourneyMapView extends View {
 
         int startLevelIdx = currentPage * LEVELS_PER_PAGE;
 
-        // 1. Draw connecting path line (Base Locked Path)
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics()));
-        paint.setColor(COLOR_PATH_LOCKED);
-        paint.setStrokeCap(Paint.Cap.ROUND);
-        paint.setStrokeJoin(Paint.Join.ROUND);
+        // 1. Draw connecting path (Rustic Rope Bridge with Wooden Planks)
+        for (int i = 0; i < LEVELS_PER_PAGE - 1; i++) {
+            float x1 = getXForIndex(i, w);
+            float y1 = getYForIndex(i, h, spacing);
+            float x2 = getXForIndex(i + 1, w);
+            float y2 = getYForIndex(i + 1, h, spacing);
 
-        path.reset();
-        boolean pathStarted = false;
-        for (int i = 0; i < LEVELS_PER_PAGE; i++) {
-            float px = getXForIndex(i, w);
-            float py = getYForIndex(i, h, spacing);
-            if (!pathStarted) {
-                path.moveTo(px, py);
-                pathStarted = true;
-            } else {
-                path.lineTo(px, py);
+            float dx = x2 - x1;
+            float dy = y2 - y1;
+            float len = (float) Math.hypot(dx, dy);
+            if (len == 0) continue;
+
+            float ux = dx / len;
+            float uy = dy / len;
+            float perpX = -uy;
+            float perpY = ux;
+
+            int globalLevel = startLevelIdx + i + 1;
+            boolean isSegmentUnlocked = globalLevel < unlockedLevel;
+
+            // Draw Ropes
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2.5f, getResources().getDisplayMetrics()));
+            
+            // Unlocked ropes are rich vines/green rope, locked are weathered brown
+            paint.setColor(isSegmentUnlocked ? Color.parseColor("#4E7833") : Color.parseColor("#4E342E"));
+
+            float ropeOffset = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics());
+            canvas.drawLine(x1 + perpX * ropeOffset, y1 + perpY * ropeOffset, x2 + perpX * ropeOffset, y2 + perpY * ropeOffset, paint);
+            canvas.drawLine(x1 - perpX * ropeOffset, y1 - perpY * ropeOffset, x2 - perpX * ropeOffset, y2 - perpY * ropeOffset, paint);
+
+            // Draw Wooden Planks along the bridge
+            paint.setStrokeWidth(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 6, getResources().getDisplayMetrics()));
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            
+            float plankSpacing = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 18, getResources().getDisplayMetrics());
+            float plankWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 14, getResources().getDisplayMetrics());
+
+            for (float dist = plankSpacing / 2.0f; dist < len; dist += plankSpacing) {
+                float px = x1 + ux * dist;
+                float py = y1 + uy * dist;
+                
+                // Unlocked planks are golden wood, locked are dark/weathered wood
+                paint.setColor(isSegmentUnlocked ? Color.parseColor("#A17A4A") : Color.parseColor("#4A3728"));
+                canvas.drawLine(px - perpX * plankWidth, py - perpY * plankWidth, px + perpX * plankWidth, py + perpY * plankWidth, paint);
+
+                // Add dark wood grain lines on planks for realism
+                paint.setStrokeWidth(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1.5f, getResources().getDisplayMetrics()));
+                paint.setColor(isSegmentUnlocked ? Color.parseColor("#5A452B") : Color.parseColor("#2A1F16"));
+                canvas.drawLine(px - perpX * (plankWidth * 0.7f), py - perpY * (plankWidth * 0.7f), px + perpX * (plankWidth * 0.7f), py + perpY * (plankWidth * 0.7f), paint);
+                paint.setStrokeWidth(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 6, getResources().getDisplayMetrics()));
             }
         }
-        canvas.drawPath(path, paint);
 
-        // 2. Draw connecting path line (Unlocked Green Overlay)
-        path.reset();
-        pathStarted = false;
-        for (int i = 0; i < LEVELS_PER_PAGE; i++) {
-            int globalLevel = startLevelIdx + i + 1;
-            if (globalLevel <= unlockedLevel) {
-                float px = getXForIndex(i, w);
-                float py = getYForIndex(i, h, spacing);
-                if (!pathStarted) {
-                    path.moveTo(px, py);
-                    pathStarted = true;
-                } else {
-                    path.lineTo(px, py);
-                }
-            }
-        }
-        if (pathStarted) {
-            paint.setColor(COLOR_PATH_UNLOCKED);
-            canvas.drawPath(path, paint);
-        }
-
-        // 3. Draw Level Gem Nodes
+        // 2. Draw Level Gem Nodes (Tree Trunk slices)
         for (int i = 0; i < LEVELS_PER_PAGE; i++) {
             int globalLevel = startLevelIdx + i + 1;
             float px = getXForIndex(i, w);
             float py = getYForIndex(i, h, spacing);
 
-            // Gem Style
-            paint.setStyle(Paint.Style.FILL);
             boolean isCompleted = globalLevel < unlockedLevel;
             boolean isActive = globalLevel == unlockedLevel;
             boolean isLocked = globalLevel > unlockedLevel;
 
-            if (isCompleted) {
-                paint.setColor(COLOR_GEM_COMPLETED);
+            // Draw grass/foliage backdrop for active/completed levels
+            if (!isLocked) {
+                paint.setStyle(Paint.Style.FILL);
+                paint.setColor(Color.parseColor("#5C7A41")); // Soft Moss Green
+                canvas.drawCircle(px, py, gemSize * 1.25f, paint);
+
+                // Tiny grass blade details
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2.5f, getResources().getDisplayMetrics()));
+                paint.setColor(Color.parseColor("#82B64C"));
+                canvas.drawLine(px - 15, py - 40, px - 10, py - 55, paint);
+                canvas.drawLine(px - 15, py - 40, px - 25, py - 50, paint);
+                canvas.drawLine(px + 20, py + 35, px + 25, py + 50, paint);
+                canvas.drawLine(px + 20, py + 35, px + 12, py + 48, paint);
+            }
+
+            // Draw Outer Bark (Dark wood texture)
+            paint.setStyle(Paint.Style.FILL);
+            if (isLocked) {
+                paint.setColor(Color.parseColor("#3D291F"));
             } else if (isActive) {
-                paint.setColor(COLOR_GEM_UNLOCKED);
+                paint.setColor(Color.parseColor("#4E342E"));
             } else {
-                paint.setColor(COLOR_GEM_LOCKED);
+                paint.setColor(Color.parseColor("#5D4037"));
             }
+            canvas.drawCircle(px, py, gemSize, paint);
 
-            // Draw Diamond shape
-            Path gemPath = new Path();
-            gemPath.moveTo(px, py - gemSize);
-            gemPath.lineTo(px + gemSize, py);
-            gemPath.lineTo(px, py + gemSize);
-            gemPath.lineTo(px - gemSize, py);
-            gemPath.close();
-            canvas.drawPath(gemPath, paint);
+            // Draw Inner Wood (Concentric rings surface)
+            paint.setStyle(Paint.Style.FILL);
+            if (isLocked) {
+                paint.setColor(Color.parseColor("#5D473C"));
+            } else if (isActive) {
+                paint.setColor(Color.parseColor("#CDA275"));
+            } else {
+                paint.setColor(Color.parseColor("#B18E66"));
+            }
+            float innerRadius = gemSize - TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 4, getResources().getDisplayMetrics());
+            canvas.drawCircle(px, py, innerRadius, paint);
 
-            // Draw Gem Border Highlight
+            // Draw tree age rings inside wood slice
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 3, getResources().getDisplayMetrics()));
-            if (isActive) {
-                paint.setColor(Color.WHITE);
-            } else {
-                paint.setColor(Color.argb(60, 255, 255, 255));
-            }
-            canvas.drawPath(gemPath, paint);
+            paint.setStrokeWidth(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1.2f, getResources().getDisplayMetrics()));
+            paint.setColor(isLocked ? Color.parseColor("#4A372D") : Color.parseColor("#7D5E45"));
+            canvas.drawCircle(px, py, innerRadius * 0.45f, paint);
+            canvas.drawCircle(px, py, innerRadius * 0.75f, paint);
 
-            // Draw indicator/text inside gem
+            // Text / Symbol
             paint.setStyle(Paint.Style.FILL);
             paint.setTextAlign(Paint.Align.CENTER);
             if (finalFontBold != null) {
@@ -204,30 +233,31 @@ public class PuzzleJourneyMapView extends View {
             }
 
             if (isCompleted) {
-                // Checkmark
-                paint.setColor(COLOR_TEXT_LIGHT);
-                paint.setTextSize(gemSize * 0.9f);
-                canvas.drawText("✓", px, py + (gemSize * 0.3f), paint);
+                // Completed: green checkmark
+                paint.setColor(Color.parseColor("#388E3C"));
+                paint.setTextSize(gemSize * 1.0f);
+                canvas.drawText("✓", px, py + (gemSize * 0.35f), paint);
             } else {
-                // Level Number
-                paint.setColor(COLOR_TEXT_LIGHT);
-                paint.setTextSize(gemSize * 0.7f);
+                // Number
+                paint.setColor(isLocked ? Color.parseColor("#8D6E63") : Color.parseColor("#3E2723"));
+                paint.setTextSize(gemSize * 0.75f);
                 canvas.drawText(String.valueOf(globalLevel), px, py + (gemSize * 0.25f), paint);
             }
 
-            // 4. Draw Active Pawn / Avatar Indicator
+            // Draw Active Pawn / Avatar Indicator
             if (isActive) {
                 // Glow halo
-                paint.setStyle(Paint.Style.FILL);
-                paint.setColor(Color.argb(50, 129, 182, 76));
-                canvas.drawCircle(px, py, gemSize * 1.6f, paint);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 3.5f, getResources().getDisplayMetrics()));
+                paint.setColor(Color.WHITE);
+                canvas.drawCircle(px, py, gemSize + 1, paint);
 
                 // Fetch pawn drawable from resources
                 int pawnResId = getContext().getResources().getIdentifier("wp", "drawable", getContext().getPackageName());
                 if (pawnResId != 0) {
                     Drawable pawn = getContext().getResources().getDrawable(pawnResId, null);
                     if (pawn != null) {
-                        int pSize = (int) (gemSize * 1.4f);
+                        int pSize = (int) (gemSize * 1.5f);
                         pawn.setBounds((int) px - pSize / 2, (int) py - pSize, (int) px + pSize / 2, (int) py);
                         
                         int sc = canvas.save();
