@@ -79,7 +79,8 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     private LinearLayout downloadOverlay;
     private TextView downloadStatusText;
     private ProgressBar downloadProgressBar;
-    private final List<JSONObject> offlinePuzzles = new ArrayList<>();
+    private LichessPuzzleDatabaseHelper dbHelper;
+    private boolean isRefilling = false;
     
     // Game State
     private String startFen;
@@ -165,15 +166,21 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         setupPremiumUI();
         initSoundPool();
 
-        // Migrate/delete old uncompressed puzzles.json
+        dbHelper = new LichessPuzzleDatabaseHelper(this);
+        
         File oldFile = new File(getFilesDir(), "puzzles.json");
         if (oldFile.exists()) {
             oldFile.delete();
         }
 
         File localFile = new File(getFilesDir(), "puzzles.json.gz");
-        if (localFile.exists() && localFile.length() > 0) {
-            loadOfflinePuzzlesAsync(localFile);
+        if (dbHelper.getPuzzlesCount() > 0) {
+            if (localFile.exists()) {
+                localFile.delete();
+            }
+            loadOfflinePuzzlesAsync();
+        } else if (localFile.exists() && localFile.length() > 0) {
+            migrateJsonToDbAsync(localFile);
         } else {
             if (isNetworkAvailable()) {
                 startDownloadPuzzles();
@@ -1263,30 +1270,19 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     }
 
     private void loadRushOrBattlePuzzle() {
-        if (offlinePuzzles.isEmpty()) {
+        if (dbHelper.getPuzzlesCount() == 0) {
             showError("No offline puzzles available.");
             return;
         }
         int targetRating = 600 + rushScore * 45;
         if (targetRating > 2800) targetRating = 2800;
 
-        int baseIdx = 0;
-        for (int i = 0; i < offlinePuzzles.size(); i++) {
-            if (offlinePuzzles.get(i).optInt("rating", 1500) >= targetRating) {
-                baseIdx = i;
-                break;
-            }
+        JSONObject puzzleObj = dbHelper.getRushPuzzle(targetRating);
+        if (puzzleObj != null) {
+            initOfflinePuzzle(puzzleObj);
+        } else {
+            showError("No suitable puzzle found.");
         }
-        
-        int range = Math.min(15, offlinePuzzles.size() - baseIdx);
-        int randOffset = (range > 0) ? (int)(Math.random() * range) : 0;
-        int selectedIdx = baseIdx + randOffset;
-        if (selectedIdx >= offlinePuzzles.size()) {
-            selectedIdx = offlinePuzzles.size() - 1;
-        }
-        
-        JSONObject puzzleObj = offlinePuzzles.get(selectedIdx);
-        initOfflinePuzzle(puzzleObj);
     }
 
     private void updateStrikesUI() {
@@ -1472,12 +1468,13 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         dialog.show();
     }
 
-    private void loadOfflinePuzzlesAsync(File file) {
+    private void loadOfflinePuzzlesAsync() {
         progressBar.setVisibility(View.VISIBLE);
         updateSpeechBubble("⬜ Initializing...", "Loading offline database...", Color.BLACK);
         new Thread(() -> {
             try {
-                loadOfflinePuzzlesFromLocalFile(file);
+                // Ensure db is loaded
+                int count = dbHelper.getPuzzlesCount();
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
                     int levelIndex = getIntent().getIntExtra("level_index", -1);
@@ -1507,53 +1504,72 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             } catch (Exception e) {
                 Log.e(TAG, "Failed to load offline database", e);
                 runOnUiThread(() -> {
-                    showError("Failed to parse local puzzles.");
+                    progressBar.setVisibility(View.GONE);
+                    showError("Failed to load database.");
                 });
             }
         }).start();
     }
 
-    private void loadOfflinePuzzlesFromLocalFile(File file) throws Exception {
-        java.io.InputStream fileStream = new java.io.FileInputStream(file);
-        java.io.InputStream gzipStream = new java.util.zip.GZIPInputStream(fileStream);
-        BufferedReader br = new BufferedReader(new java.io.InputStreamReader(gzipStream, "UTF-8"));
-        StringBuilder sb = new StringBuilder();
-        String line;
-        while ((line = br.readLine()) != null) {
-            sb.append(line);
-        }
-        br.close();
+    private void migrateJsonToDbAsync(File file) {
+        progressBar.setVisibility(View.VISIBLE);
+        updateSpeechBubble("⬜ Migrating...", "Importing offline puzzles...", Color.BLACK);
+        new Thread(() -> {
+            try {
+                java.io.InputStream fileStream = new java.io.FileInputStream(file);
+                java.io.InputStream gzipStream = new java.util.zip.GZIPInputStream(fileStream);
+                BufferedReader br = new BufferedReader(new java.io.InputStreamReader(gzipStream, "UTF-8"));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) {
+                    sb.append(line);
+                }
+                br.close();
 
-        JSONArray arr = new JSONArray(sb.toString());
-        offlinePuzzles.clear();
-        for (int i = 0; i < arr.length(); i++) {
-            offlinePuzzles.add(arr.getJSONObject(i));
-        }
-        
-        // Sort by rating so that difficulty curve is smooth
-        java.util.Collections.sort(offlinePuzzles, (p1, p2) -> {
-            int r1 = p1.optInt("rating", 1500);
-            int r2 = p2.optInt("rating", 1500);
-            return Integer.compare(r1, r2);
-        });
+                JSONArray arr = new JSONArray(sb.toString());
+                List<JSONObject> list = new ArrayList<>();
+                for (int i = 0; i < arr.length(); i++) {
+                    list.add(arr.getJSONObject(i));
+                }
+                dbHelper.insertPuzzles(list);
+                file.delete(); // Delete local file after migration
+
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    loadOfflinePuzzlesAsync();
+                });
+            } catch (Exception e) {
+                Log.e(TAG, "Migration failed", e);
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    showError("Failed to migrate database.");
+                });
+            }
+        }).start();
     }
 
     private void startDownloadPuzzles() {
-        showDownloadProgress("Downloading 10,000 offline puzzles (0%)...\nPlease wait.", 0);
+        showDownloadProgress("Downloading offline puzzles (0%)...\nPlease wait.", 0);
         new Thread(() -> {
             try {
-                JSONArray allPuzzles = new JSONArray();
-                int totalBatches = 10;
-                int limitPerBatch = 1000;
+                int startOffset = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                        .getInt("download_offset", 0);
+                
+                int totalBatches = 200; // 20,000 puzzles
+                int limitPerBatch = 100;
+                List<JSONObject> batchList = new ArrayList<>();
 
                 for (int i = 0; i < totalBatches; i++) {
-                    int offset = i * limitPerBatch;
+                    int offset = startOffset + (i * limitPerBatch);
                     final int progressPercent = (i * 100) / totalBatches;
                     final int batchNum = i + 1;
-                    showDownloadProgress(
-                            String.format(Locale.US, "Downloading 10,000 offline puzzles...\nBatch %d/%d (%d%%)", batchNum, totalBatches, progressPercent),
-                            progressPercent
-                    );
+                    
+                    if (i % 10 == 0 || i == totalBatches - 1) {
+                        showDownloadProgress(
+                                String.format(Locale.US, "Downloading 20,000 offline puzzles...\nBatch %d/%d (%d%%)", batchNum, totalBatches, progressPercent),
+                                progressPercent
+                        );
+                    }
 
                     String urlStr = String.format(Locale.US, "https://datasets-server.huggingface.co/rows?dataset=Lichess%%2Fchess-puzzles&config=default&split=train&offset=%d&limit=%d", offset, limitPerBatch);
                     URL url = new URL(urlStr);
@@ -1588,59 +1604,145 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                             String theme = (themesArr != null && themesArr.length() > 0) ? themesArr.getString(0) : "tactics";
                             puzzleItem.put("theme", theme);
 
-                            allPuzzles.put(puzzleItem);
+                            batchList.add(puzzleItem);
                         }
+                        
+                        if (batchList.size() >= 500) {
+                            dbHelper.insertPuzzles(batchList);
+                            batchList.clear();
+                        }
+                    } else if (code == 429) {
+                        Log.w(TAG, "Rate limited! Sleeping for 5 seconds...");
+                        Thread.sleep(5000);
+                        i--;
+                        continue;
                     } else {
                         throw new Exception("HTTP server error: " + code);
                     }
                     connection.disconnect();
-                    Thread.sleep(100);
+                    Thread.sleep(50);
                 }
+
+                if (!batchList.isEmpty()) {
+                    dbHelper.insertPuzzles(batchList);
+                    batchList.clear();
+                }
+
+                getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                        .edit()
+                        .putInt("download_offset", startOffset + (totalBatches * limitPerBatch))
+                        .apply();
 
                 showDownloadProgress("Saving puzzles database to storage...", 100);
 
-                File file = new File(getFilesDir(), "puzzles.json.gz");
-                java.io.FileOutputStream fos = new java.io.FileOutputStream(file);
-                java.util.zip.GZIPOutputStream gzos = new java.util.zip.GZIPOutputStream(fos);
-                java.io.OutputStreamWriter writer = new java.io.OutputStreamWriter(gzos, "UTF-8");
-                writer.write(allPuzzles.toString());
-                writer.flush();
-                writer.close();
-
-                loadOfflinePuzzlesFromLocalFile(file);
-
                 runOnUiThread(() -> {
                     hideDownloadUI();
-                    int levelIndex = getIntent().getIntExtra("level_index", -1);
-                    if (levelIndex != -1) {
-                        activeMode = "journey";
-                    } else {
-                        activeMode = getIntent().getStringExtra("puzzle_mode");
-                        if (activeMode == null) {
-                            activeMode = "daily";
-                        }
-                    }
-                    adjustUIForActiveMode();
-                    
-                    if (activeMode.equals("journey")) {
-                        loadSpecificOfflineLevel(levelIndex);
-                    } else if (activeMode.equals("rush") || activeMode.equals("battle")) {
-                        resetRushOrBattleRun();
-                    } else if (activeMode.equals("custom")) {
-                        loadRandomOfflinePuzzle();
-                    } else if (activeMode.equals("theme")) {
-                        selectedTheme = getIntent().getStringExtra("puzzle_theme");
-                        loadRandomThemeOfflinePuzzle();
-                    } else {
-                        loadPuzzle(null);
-                    }
+                    loadOfflinePuzzlesAsync();
                 });
 
             } catch (Exception e) {
                 Log.e(TAG, "Download failed", e);
-                runOnUiThread(() -> showDownloadFailed("Failed to download puzzles: " + e.getMessage()));
+                runOnUiThread(() -> {
+                    hideDownloadUI();
+                    showDownloadFailed("Failed to download puzzles: " + e.getMessage());
+                });
             }
         }).start();
+    }
+
+    private void checkAndRefillPuzzlesAsync() {
+        new Thread(() -> {
+            try {
+                if (dbHelper.getUnsolvedCount() < 2000) {
+                    Log.i(TAG, "Unsolved puzzles count is low. Starting background refill...");
+                    refillPuzzlesInBackground();
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error in checkAndRefillPuzzlesAsync", e);
+            }
+        }).start();
+    }
+
+    private void refillPuzzlesInBackground() {
+        synchronized (this) {
+            if (isRefilling) return;
+            isRefilling = true;
+        }
+        try {
+            int startOffset = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                    .getInt("download_offset", 0);
+            int totalBatches = 100; // 10,000 puzzles
+            int limitPerBatch = 100;
+            List<JSONObject> batchList = new ArrayList<>();
+
+            for (int i = 0; i < totalBatches; i++) {
+                if (!isNetworkAvailable()) break;
+                int offset = startOffset + (i * limitPerBatch);
+                String urlStr = String.format(Locale.US, "https://datasets-server.huggingface.co/rows?dataset=Lichess%%2Fchess-puzzles&config=default&split=train&offset=%d&limit=%d", offset, limitPerBatch);
+                URL url = new URL(urlStr);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setRequestProperty("Accept", "application/json");
+                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+                connection.setConnectTimeout(10000);
+                connection.setReadTimeout(15000);
+
+                int code = connection.getResponseCode();
+                if (code == HttpURLConnection.HTTP_OK) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    reader.close();
+
+                    JSONObject responseJson = new JSONObject(response.toString());
+                    JSONArray rows = responseJson.getJSONArray("rows");
+                    for (int j = 0; j < rows.length(); j++) {
+                        JSONObject rowObj = rows.getJSONObject(j).getJSONObject("row");
+                        JSONObject puzzleItem = new JSONObject();
+                        puzzleItem.put("id", rowObj.getString("PuzzleId"));
+                        puzzleItem.put("fen", rowObj.getString("FEN"));
+                        puzzleItem.put("moves", rowObj.getString("Moves"));
+                        puzzleItem.put("rating", rowObj.getInt("Rating"));
+
+                        JSONArray themesArr = rowObj.optJSONArray("Themes");
+                        String theme = (themesArr != null && themesArr.length() > 0) ? themesArr.getString(0) : "tactics";
+                        puzzleItem.put("theme", theme);
+
+                        batchList.add(puzzleItem);
+                    }
+                    if (batchList.size() >= 500) {
+                        dbHelper.insertPuzzles(batchList);
+                        batchList.clear();
+                    }
+                } else if (code == 429) {
+                    Thread.sleep(5000);
+                    i--;
+                    continue;
+                } else {
+                    break;
+                }
+                connection.disconnect();
+                Thread.sleep(100);
+            }
+
+            if (!batchList.isEmpty()) {
+                dbHelper.insertPuzzles(batchList);
+            }
+
+            getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                    .edit()
+                    .putInt("download_offset", startOffset + (totalBatches * limitPerBatch))
+                    .apply();
+
+            Log.i(TAG, "Background refill completed successfully.");
+        } catch (Exception e) {
+            Log.e(TAG, "Background refill failed", e);
+        } finally {
+            isRefilling = false;
+        }
     }
 
     private void showDownloadProgress(String message, int progressVal) {
@@ -1945,8 +2047,6 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             return;
         }
 
-
-
         if (historyIndex < puzzleHistory.size() - 1) {
             historyIndex++;
             loadHistoryItem(puzzleHistory.get(historyIndex));
@@ -1956,7 +2056,8 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                 int nextLevel = levelIndex + 1;
                 int unlockedLevel = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
                         .getInt("unlocked_level", 1);
-                if (nextLevel <= unlockedLevel && nextLevel <= offlinePuzzles.size()) {
+                int totalSize = dbHelper.getPuzzlesCount();
+                if (nextLevel <= unlockedLevel && nextLevel <= totalSize) {
                     getIntent().putExtra("level_index", nextLevel);
                     loadSpecificOfflineLevel(nextLevel);
                 } else if (nextLevel > unlockedLevel) {
@@ -1965,7 +2066,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                     updateSpeechBubble("Completed!", "You have completed all levels!", COLOR_GREEN);
                 }
             } else {
-                if (!offlinePuzzles.isEmpty()) {
+                if (dbHelper.getPuzzlesCount() > 0) {
                     if (activeMode.equals("theme")) {
                         loadRandomThemeOfflinePuzzle();
                     } else {
@@ -1979,52 +2080,38 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     }
 
     private void loadRandomOfflinePuzzle() {
-        if (offlinePuzzles.isEmpty()) {
+        if (dbHelper.getPuzzlesCount() == 0) {
             showError("No offline puzzles available.");
             return;
         }
-        int randIdx = (int) (Math.random() * offlinePuzzles.size());
-        JSONObject puzzleObj = offlinePuzzles.get(randIdx);
+        JSONObject puzzleObj = dbHelper.getRandomUnsolvedPuzzle(null);
+        if (puzzleObj == null) {
+            showError("All offline puzzles solved! Download more.");
+            return;
+        }
         initOfflinePuzzle(puzzleObj);
+        checkAndRefillPuzzlesAsync();
     }
 
     private void loadRandomThemeOfflinePuzzle() {
-        if (offlinePuzzles.isEmpty()) {
+        if (dbHelper.getPuzzlesCount() == 0) {
             showError("No offline puzzles available.");
             return;
         }
-        if (selectedTheme == null || selectedTheme.equalsIgnoreCase("healthyMix")) {
-            loadRandomOfflinePuzzle();
-            return;
+        JSONObject puzzleObj = dbHelper.getRandomUnsolvedPuzzle(selectedTheme);
+        if (puzzleObj == null) {
+            puzzleObj = dbHelper.getRandomUnsolvedPuzzle(null);
         }
-        List<JSONObject> filtered = new ArrayList<>();
-        for (JSONObject p : offlinePuzzles) {
-            String pTheme = p.optString("theme", "");
-            if (pTheme.equalsIgnoreCase(selectedTheme)) {
-                filtered.add(p);
-            }
+        if (puzzleObj != null) {
+            initOfflinePuzzle(puzzleObj);
+        } else {
+            showError("No puzzles available. Please connect to internet.");
         }
-        if (filtered.isEmpty()) {
-            // Fallback to substring matching (e.g. "endgame" matching "rookEndgame")
-            for (JSONObject p : offlinePuzzles) {
-                String pTheme = p.optString("theme", "").toLowerCase();
-                if (pTheme.contains(selectedTheme.toLowerCase())) {
-                    filtered.add(p);
-                }
-            }
-        }
-        if (filtered.isEmpty()) {
-            // absolute fallback
-            loadRandomOfflinePuzzle();
-            return;
-        }
-        int randIdx = (int) (Math.random() * filtered.size());
-        JSONObject puzzleObj = filtered.get(randIdx);
-        initOfflinePuzzle(puzzleObj);
+        checkAndRefillPuzzlesAsync();
     }
 
     private void loadSpecificOfflineLevel(int levelIndex) {
-        if (offlinePuzzles.isEmpty()) {
+        if (dbHelper.getPuzzlesCount() == 0) {
             showError("No offline puzzles available.");
             return;
         }
@@ -2037,11 +2124,11 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         }
 
         int idx = levelIndex - 1;
-        if (idx < 0 || idx >= offlinePuzzles.size()) {
+        JSONObject puzzleObj = dbHelper.getSpecificPuzzleByOffset(idx);
+        if (puzzleObj == null) {
             showError("Invalid level select: " + levelIndex);
             return;
         }
-        JSONObject puzzleObj = offlinePuzzles.get(idx);
         initOfflinePuzzle(puzzleObj);
     }
 
@@ -2054,7 +2141,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             int rating = puzzleObj.getInt("rating");
             String theme = puzzleObj.optString("theme", "tactics");
 
-            int idx = offlinePuzzles.indexOf(puzzleObj);
+            int idx = dbHelper.getOffsetOfPuzzleId(currentPuzzleId);
             int levelIdx = (idx != -1) ? (idx + 1) : -1;
 
             this.isOnlinePuzzle = false;
@@ -2299,6 +2386,10 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                             .edit()
                             .putInt(prefKey, currentStreak)
                             .apply();
+
+                    if (currentPuzzleId != null) {
+                        dbHelper.markAsSolved(currentPuzzleId);
+                    }
 
                     PuzzleHistoryItem currentItem = null;
                     if (historyIndex >= 0 && historyIndex < puzzleHistory.size()) {
