@@ -74,6 +74,7 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
     private int selectedDownloadLimit = 50000;
     private LichessPuzzleDatabaseHelper dbHelper;
     private LinearLayout themeScrollContent;
+    private final java.util.Map<String, TextView> themeCountViews = new java.util.HashMap<>();
 
     // Theme Colors
     private final int COLOR_BG = Color.parseColor("#121214");
@@ -1395,6 +1396,7 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
     private void populateThemeList() {
         if (themeScrollContent == null) return;
         themeScrollContent.removeAllViews();
+        themeCountViews.clear();
 
         // Category: Recommended
         addThemeCategoryHeader(themeScrollContent, "Recommended");
@@ -1415,6 +1417,28 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         addThemeRow(themeScrollContent, "Knight endgame", "♞", "An endgame with only knights and pawns.", "", "theme", "knightEndgame");
         addThemeRow(themeScrollContent, "Queen endgame", "♛", "An endgame with only queens and pawns.", "", "theme", "queenEndgame");
         addThemeRow(themeScrollContent, "Queen and Rook", "🏰", "An endgame with only queens, rooks, and pawns.", "", "theme", "queenRookEndgame");
+
+        loadThemeCountsAsync();
+    }
+
+    private void loadThemeCountsAsync() {
+        if (!isDatabaseReady || dbHelper == null || themeCountViews.isEmpty()) return;
+        new Thread(() -> {
+            final java.util.Map<String, String> results = new java.util.HashMap<>();
+            for (String themeKey : themeCountViews.keySet()) {
+                int localCount = dbHelper.getThemeCount(themeKey);
+                String formatted = java.text.NumberFormat.getInstance().format(localCount);
+                results.put(themeKey, formatted);
+            }
+            runOnUiThread(() -> {
+                for (java.util.Map.Entry<String, String> entry : results.entrySet()) {
+                    TextView tv = themeCountViews.get(entry.getKey());
+                    if (tv != null) {
+                        tv.setText(entry.getValue());
+                    }
+                }
+            });
+        }).start();
     }
 
     private void addThemeRow(LinearLayout parent, String name, String emoji, String description, String count, String mode, String themeKey) {
@@ -1484,15 +1508,13 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
 
         // Count Badge
         String displayCount = count;
-        if (themeKey != null && dbHelper != null && isDatabaseReady) {
-            int localCount = dbHelper.getThemeCount(themeKey);
-            displayCount = java.text.NumberFormat.getInstance().format(localCount);
-        } else if (themeKey != null) {
-            displayCount = "0";
+        if (themeKey != null) {
+            displayCount = "...";
         }
 
+        TextView countView = null;
         if (displayCount != null && !displayCount.isEmpty()) {
-            TextView countView = new TextView(this);
+            countView = new TextView(this);
             countView.setText(displayCount);
             countView.setTextColor(Color.parseColor("#B1B0AE"));
             countView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
@@ -1515,6 +1537,10 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
             countLp.leftMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
             countView.setLayoutParams(countLp);
             row.addView(countView);
+        }
+
+        if (themeKey != null && countView != null) {
+            themeCountViews.put(themeKey, countView);
         }
 
         row.setOnClickListener(v -> {
