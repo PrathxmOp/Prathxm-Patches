@@ -21,6 +21,10 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.view.animation.AlphaAnimation;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -40,6 +44,16 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
     private FrameLayout mainContainer;
     private ScrollView mapScrollView;
     private PuzzleJourneyMapView mapInterface;
+    
+    // Streak Progress UI
+    private TextView streakTextView;
+    private ProgressBar streakProgressBar;
+    private TextView streakMilestoneBadge;
+    
+    // Bottom navigation/overlay views
+    private View dimOverlay;
+    private LinearLayout bottomSheet;
+    private Button mainSolveButton;
     
     // Header & Subtitles
     private TextView titleText;
@@ -84,6 +98,8 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         super.onResume();
         if (isDatabaseReady) {
             refreshProgress();
+        } else {
+            updateStreakProgress();
         }
     }
 
@@ -103,6 +119,7 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         }
 
         mainContainer = new FrameLayout(this);
+        mainContainer.setFitsSystemWindows(true);
         mainContainer.setBackgroundColor(COLOR_BG);
         mainContainer.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -176,21 +193,447 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
 
         root.addView(header);
 
+        // Stats & Streak Progress Row
+        LinearLayout statsRow = new LinearLayout(this);
+        statsRow.setOrientation(LinearLayout.HORIZONTAL);
+        statsRow.setGravity(Gravity.CENTER_VERTICAL);
+        statsRow.setBackgroundColor(COLOR_CARD);
+        statsRow.setPadding(32, 0, 32, 24);
+        statsRow.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+
+        streakTextView = new TextView(this);
+        streakTextView.setText("Streak: 0");
+        streakTextView.setTextColor(COLOR_TEXT_PRIMARY);
+        streakTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        if (fontBold != null) {
+            streakTextView.setTypeface(fontBold);
+        } else {
+            streakTextView.setTypeface(null, android.graphics.Typeface.BOLD);
+        }
+        LinearLayout.LayoutParams textLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        textLp.rightMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics());
+        streakTextView.setLayoutParams(textLp);
+        statsRow.addView(streakTextView);
+
+        // Progress Bar
+        streakProgressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        streakProgressBar.setMax(10);
+        streakProgressBar.setProgress(0);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            streakProgressBar.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#FF5B00")));
+            streakProgressBar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#403E3B")));
+        }
+        LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(
+                0,
+                (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics()),
+                1.0f
+        );
+        progressParams.rightMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics());
+        streakProgressBar.setLayoutParams(progressParams);
+        statsRow.addView(streakProgressBar);
+
+        // Milestone Badge
+        streakMilestoneBadge = new TextView(this);
+        streakMilestoneBadge.setText("10");
+        streakMilestoneBadge.setTextColor(Color.WHITE);
+        streakMilestoneBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        if (fontBold != null) {
+            streakMilestoneBadge.setTypeface(fontBold);
+        } else {
+            streakMilestoneBadge.setTypeface(null, android.graphics.Typeface.BOLD);
+        }
+        streakMilestoneBadge.setGravity(Gravity.CENTER);
+        int badgeSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24, getResources().getDisplayMetrics());
+        LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(badgeSize, badgeSize);
+        streakMilestoneBadge.setLayoutParams(badgeParams);
+        statsRow.addView(streakMilestoneBadge);
+
+        root.addView(statsRow);
+
         // Winding Map inside a ScrollView
         mapScrollView = new ScrollView(this);
-        mapScrollView.setLayoutParams(new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-        ));
+                0,
+                1.0f
+        );
+        mapScrollView.setLayoutParams(scrollParams);
 
         mapInterface = new PuzzleJourneyMapView(this);
         mapInterface.setOnLevelClickListener(this);
         mapScrollView.addView(mapInterface);
-
         root.addView(mapScrollView);
+
+        // Main Solve Puzzles Button (Floating just above the navigation bar)
+        mainSolveButton = new Button(this);
+        mainSolveButton.setText("Solve Puzzles");
+        mainSolveButton.setTextColor(Color.WHITE);
+        mainSolveButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        if (fontBold != null) mainSolveButton.setTypeface(fontBold);
+        mainSolveButton.setAllCaps(false);
+        GradientDrawable solveBg = new GradientDrawable();
+        solveBg.setColor(COLOR_GREEN);
+        solveBg.setCornerRadius(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics()));
+        mainSolveButton.setBackground(solveBg);
+        
+        LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 52, getResources().getDisplayMetrics())
+        );
+        int margin16 = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics());
+        btnParams.setMargins(margin16, margin16, margin16, margin16);
+        mainSolveButton.setLayoutParams(btnParams);
+        mainSolveButton.setOnClickListener(v -> showBottomSheet());
+        root.addView(mainSolveButton);
+
+        // Bottom Navigation Bar
+        LinearLayout bottomNav = new LinearLayout(this);
+        bottomNav.setOrientation(LinearLayout.HORIZONTAL);
+        bottomNav.setBackgroundColor(Color.parseColor("#121214")); // Pure AMOLED dark
+        int navHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 56, getResources().getDisplayMetrics());
+        bottomNav.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                navHeight
+        ));
+        
+        String[] tabNames = {"Home", "Puzzles", "Learn", "Watch", "More"};
+        String[] tabIcons = {"♟️", "🧩", "🎓", "👀", "☰"};
+        String[] tabGlyphs = {"glyph_local_home", "glyph_game_type_puzzle", "glyph_board_classroom", "glyph_board_simple_watch", "glyph_mark_menu"};
+        
+        for (int i = 0; i < 5; i++) {
+            LinearLayout tabLayout = new LinearLayout(this);
+            tabLayout.setOrientation(LinearLayout.VERTICAL);
+            tabLayout.setGravity(Gravity.CENTER);
+            LinearLayout.LayoutParams tabParams = new LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.MATCH_PARENT, 1.0f
+            );
+            tabLayout.setLayoutParams(tabParams);
+            tabLayout.setClickable(true);
+            tabLayout.setFocusable(true);
+            TypedValue outVal = new TypedValue();
+            getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outVal, true);
+            tabLayout.setBackgroundResource(outVal.resourceId);
+            
+            final int index = i;
+            int glyphRes = getDrawableResId(tabGlyphs[i]);
+            if (glyphRes != 0) {
+                ImageView icon = new ImageView(this);
+                icon.setImageResource(glyphRes);
+                int iconSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 22, getResources().getDisplayMetrics());
+                LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(iconSize, iconSize);
+                icon.setLayoutParams(iconLp);
+                if (i == 1) {
+                    icon.setColorFilter(COLOR_GREEN);
+                } else {
+                    icon.setColorFilter(COLOR_TEXT_SECONDARY);
+                }
+                tabLayout.addView(icon);
+            } else {
+                TextView icon = new TextView(this);
+                icon.setText(tabIcons[i]);
+                icon.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+                if (i == 1) {
+                    icon.setTextColor(COLOR_GREEN);
+                } else {
+                    icon.setTextColor(COLOR_TEXT_SECONDARY);
+                }
+                tabLayout.addView(icon);
+            }
+            
+            TextView label = new TextView(this);
+            label.setText(tabNames[i]);
+            label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9);
+            if (fontBold != null) label.setTypeface(fontBold);
+            if (i == 1) {
+                label.setTextColor(COLOR_GREEN);
+            } else {
+                label.setTextColor(COLOR_TEXT_SECONDARY);
+            }
+            label.setPadding(0, (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2, getResources().getDisplayMetrics()), 0, 0);
+            tabLayout.addView(label);
+            
+            tabLayout.setOnClickListener(v -> {
+                if (index != 1) {
+                    finish();
+                }
+            });
+            bottomNav.addView(tabLayout);
+        }
+        root.addView(bottomNav);
+
         mainContainer.addView(root);
 
+        // Dimming Overlay
+        dimOverlay = new View(this);
+        dimOverlay.setBackgroundColor(Color.parseColor("#90000000"));
+        dimOverlay.setVisibility(View.GONE);
+        dimOverlay.setLayoutParams(new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+        dimOverlay.setOnClickListener(v -> hideBottomSheet());
+        mainContainer.addView(dimOverlay);
+
+        // Bottom Sheet Layout
+        bottomSheet = new LinearLayout(this);
+        bottomSheet.setOrientation(LinearLayout.VERTICAL);
+        bottomSheet.setVisibility(View.GONE);
+        
+        float r = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24, getResources().getDisplayMetrics());
+        GradientDrawable sheetBg = new GradientDrawable();
+        sheetBg.setColor(Color.parseColor("#22211F"));
+        sheetBg.setCornerRadii(new float[]{r, r, r, r, 0, 0, 0, 0});
+        bottomSheet.setBackground(sheetBg);
+        bottomSheet.setPadding(margin16, margin16, margin16, margin16);
+        
+        FrameLayout.LayoutParams sheetParams = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM
+        );
+        sheetParams.bottomMargin = navHeight;
+        bottomSheet.setLayoutParams(sheetParams);
+        
+        String[] optionNames = {"Daily Puzzle", "Puzzle Rush", "Puzzle Battle", "Custom Puzzles"};
+        String[] optionEmojis = {"📅", "🔥", "⚔️", "📖"};
+        String[] optionGlyphs = {"color_calendar_dailypuzzle", "glyph_game_type_puzzle_rush", "glyph_game_type_puzzle_battle", "color_book_open_knight"};
+        String[] optionModes = {"daily", "rush", "battle", "custom"};
+        
+        for (int i = 0; i < 4; i++) {
+            final String modeName = optionModes[i];
+            
+            LinearLayout optionRow = new LinearLayout(this);
+            optionRow.setOrientation(LinearLayout.HORIZONTAL);
+            optionRow.setGravity(Gravity.CENTER_VERTICAL);
+            int optHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 52, getResources().getDisplayMetrics());
+            LinearLayout.LayoutParams optLp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    optHeight
+            );
+            optLp.bottomMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
+            optionRow.setLayoutParams(optLp);
+            optionRow.setPadding(margin16, 0, margin16, 0);
+            
+            GradientDrawable optBg = new GradientDrawable();
+            optBg.setColor(Color.parseColor("#2D2B29"));
+            optBg.setCornerRadius(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics()));
+            optionRow.setBackground(optBg);
+            optionRow.setClickable(true);
+            optionRow.setFocusable(true);
+            TypedValue rowVal = new TypedValue();
+            getTheme().resolveAttribute(android.R.attr.selectableItemBackground, rowVal, true);
+            
+            int iconRes = getDrawableResId(optionGlyphs[i]);
+            if (iconRes != 0) {
+                ImageView icon = new ImageView(this);
+                icon.setImageResource(iconRes);
+                int iconSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 26, getResources().getDisplayMetrics());
+                LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(iconSize, iconSize);
+                iconLp.rightMargin = margin16;
+                icon.setLayoutParams(iconLp);
+                optionRow.addView(icon);
+            } else {
+                TextView icon = new TextView(this);
+                icon.setText(optionEmojis[i]);
+                icon.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+                LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+                iconLp.rightMargin = margin16;
+                icon.setLayoutParams(iconLp);
+                optionRow.addView(icon);
+            }
+            
+            TextView text = new TextView(this);
+            text.setText(optionNames[i]);
+            text.setTextColor(Color.WHITE);
+            text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            if (fontBold != null) {
+                text.setTypeface(fontBold);
+            } else {
+                text.setTypeface(null, android.graphics.Typeface.BOLD);
+            }
+            optionRow.addView(text);
+            
+            optionRow.setOnClickListener(v -> {
+                hideBottomSheet();
+                Intent intent = new Intent(LichessPuzzleJourneyActivity.this, StandaloneLichessActivity.class);
+                intent.putExtra("puzzle_mode", modeName);
+                startActivity(intent);
+            });
+            bottomSheet.addView(optionRow);
+        }
+        
+        View spacer = new View(this);
+        LinearLayout.LayoutParams spacerLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics())
+        );
+        spacer.setLayoutParams(spacerLp);
+        bottomSheet.addView(spacer);
+        
+        LinearLayout bottomRow = new LinearLayout(this);
+        bottomRow.setOrientation(LinearLayout.HORIZONTAL);
+        bottomRow.setGravity(Gravity.CENTER_VERTICAL);
+        bottomRow.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+        
+        Button closeBtn = new Button(this);
+        closeBtn.setText("✕");
+        closeBtn.setTextColor(Color.WHITE);
+        closeBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        if (fontBold != null) closeBtn.setTypeface(fontBold);
+        GradientDrawable closeBg = new GradientDrawable();
+        closeBg.setColor(Color.parseColor("#2D2B29"));
+        closeBg.setCornerRadius(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics()));
+        closeBtn.setBackground(closeBg);
+        int closeSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 52, getResources().getDisplayMetrics());
+        LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(closeSize, closeSize);
+        closeBtn.setLayoutParams(closeLp);
+        closeBtn.setOnClickListener(v -> hideBottomSheet());
+        bottomRow.addView(closeBtn);
+        
+        Button innerSolveBtn = new Button(this);
+        innerSolveBtn.setText("Solve Puzzles");
+        innerSolveBtn.setTextColor(Color.WHITE);
+        innerSolveBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        if (fontBold != null) innerSolveBtn.setTypeface(fontBold);
+        innerSolveBtn.setAllCaps(false);
+        GradientDrawable innerSolveBg = new GradientDrawable();
+        innerSolveBg.setColor(COLOR_GREEN);
+        innerSolveBg.setCornerRadius(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics()));
+        innerSolveBtn.setBackground(innerSolveBg);
+        LinearLayout.LayoutParams innerSolveLp = new LinearLayout.LayoutParams(
+                0, closeSize, 1.0f
+        );
+        innerSolveLp.leftMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics());
+        innerSolveBtn.setLayoutParams(innerSolveLp);
+        innerSolveBtn.setOnClickListener(v -> {
+            hideBottomSheet();
+            int unlockedLevel = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                    .getInt("unlocked_level", 1);
+            onLevelClick(unlockedLevel);
+        });
+        bottomRow.addView(innerSolveBtn);
+        bottomSheet.addView(bottomRow);
+        
+        mainContainer.addView(bottomSheet);
+
         setContentView(mainContainer);
+        updateStreakProgress();
+    }
+
+    private void showBottomSheet() {
+        if (bottomSheet.getVisibility() == View.VISIBLE) return;
+        
+        if (mainSolveButton != null) {
+            mainSolveButton.setVisibility(View.GONE);
+        }
+        
+        dimOverlay.setVisibility(View.VISIBLE);
+        AlphaAnimation fadeIn = new AlphaAnimation(0.0f, 1.0f);
+        fadeIn.setDuration(250);
+        fadeIn.setFillAfter(true);
+        dimOverlay.startAnimation(fadeIn);
+        
+        bottomSheet.setVisibility(View.VISIBLE);
+        android.view.animation.TranslateAnimation slideUp = new android.view.animation.TranslateAnimation(
+                0, 0,
+                bottomSheet.getHeight() > 0 ? bottomSheet.getHeight() : 1000, 0
+        );
+        slideUp.setDuration(250);
+        slideUp.setInterpolator(new android.view.animation.DecelerateInterpolator());
+        bottomSheet.startAnimation(slideUp);
+    }
+    
+    private void hideBottomSheet() {
+        if (bottomSheet.getVisibility() != View.VISIBLE) return;
+        
+        if (mainSolveButton != null) {
+            mainSolveButton.setVisibility(View.VISIBLE);
+        }
+        
+        AlphaAnimation fadeOut = new AlphaAnimation(1.0f, 0.0f);
+        fadeOut.setDuration(200);
+        fadeOut.setAnimationListener(new android.view.animation.Animation.AnimationListener() {
+            @Override public void onAnimationStart(android.view.animation.Animation animation) {}
+            @Override public void onAnimationRepeat(android.view.animation.Animation animation) {}
+            @Override public void onAnimationEnd(android.view.animation.Animation animation) {
+                dimOverlay.setVisibility(View.GONE);
+            }
+        });
+        dimOverlay.startAnimation(fadeOut);
+        
+        android.view.animation.TranslateAnimation slideDown = new android.view.animation.TranslateAnimation(
+                0, 0,
+                0, bottomSheet.getHeight()
+        );
+        slideDown.setDuration(200);
+        slideDown.setInterpolator(new android.view.animation.AccelerateInterpolator());
+        slideDown.setAnimationListener(new android.view.animation.Animation.AnimationListener() {
+            @Override public void onAnimationStart(android.view.animation.Animation animation) {}
+            @Override public void onAnimationRepeat(android.view.animation.Animation animation) {}
+            @Override public void onAnimationEnd(android.view.animation.Animation animation) {
+                bottomSheet.setVisibility(View.GONE);
+            }
+        });
+        bottomSheet.startAnimation(slideDown);
+    }
+
+    private void updateStreakProgress() {
+        int currentStreak = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                .getInt("puzzle_streak", 0);
+        
+        runOnUiThread(() -> {
+            if (streakTextView != null) {
+                streakTextView.setText("Streak: " + currentStreak);
+            }
+            if (streakProgressBar != null && streakMilestoneBadge != null) {
+                int targetMilestone = ((currentStreak / 10) + 1) * 10;
+                streakProgressBar.setMax(10);
+                streakProgressBar.setProgress(currentStreak % 10);
+                streakMilestoneBadge.setText(String.valueOf(targetMilestone));
+                
+                int woodBadgeResId = getDrawableResId("puzzle_tier_wood_pawn");
+                if (targetMilestone <= 10 && woodBadgeResId != 0) {
+                    streakMilestoneBadge.setBackgroundResource(woodBadgeResId);
+                } else {
+                    GradientDrawable badgeBg = new GradientDrawable();
+                    badgeBg.setShape(GradientDrawable.OVAL);
+                    int badgeColor;
+                    int strokeColor;
+                    if (targetMilestone <= 10) {
+                        badgeColor = Color.parseColor("#8B5A2B");
+                        strokeColor = Color.parseColor("#A0522D");
+                    } else if (targetMilestone <= 20) {
+                        badgeColor = Color.parseColor("#C0C0C0");
+                        strokeColor = Color.parseColor("#A9A9A9");
+                    } else if (targetMilestone <= 30) {
+                        badgeColor = Color.parseColor("#FFD700");
+                        strokeColor = Color.parseColor("#DAA520");
+                    } else {
+                        badgeColor = Color.parseColor("#2C3E50");
+                        strokeColor = Color.parseColor("#34495E");
+                    }
+                    badgeBg.setColor(badgeColor);
+                    badgeBg.setStroke((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, getResources().getDisplayMetrics()), strokeColor);
+                    streakMilestoneBadge.setBackground(badgeBg);
+                }
+            }
+        });
+    }
+
+    private int getDrawableResId(String name) {
+        return getResources().getIdentifier(name, "drawable", getPackageName());
     }
 
     private void refreshProgress() {
@@ -202,6 +645,7 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         // Update Title & Subtitle based on progress
         titleText.setText(String.format(Locale.US, "%d Puzzles", unlockedLevel - 1));
         subtitleText.setText(getTierName(unlockedLevel) + " • Complete Level to Advance");
+        updateStreakProgress();
 
         // Focus scrolling near the active level (with safety check after layout finishes)
         mapScrollView.post(() -> {
