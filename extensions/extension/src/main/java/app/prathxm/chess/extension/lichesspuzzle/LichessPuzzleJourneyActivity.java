@@ -1076,7 +1076,7 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         runOnUiThread(() -> {
             mapScrollView.setVisibility(View.GONE);
             
-            if (downloadOverlay == null || downloadOverlay.getParent() == null) {
+            if (downloadOverlay == null || downloadOverlay.getParent() == null || downloadStatusText == null || downloadProgressBar == null) {
                 if (downloadOverlay != null) {
                     mainContainer.removeView(downloadOverlay);
                 }
