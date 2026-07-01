@@ -163,6 +163,48 @@ public class LichessPuzzleDatabaseHelper extends SQLiteOpenHelper {
         return list.get(randIdx);
     }
 
+    public int getThemeCount(String theme) {
+        try {
+            SQLiteDatabase db = getReadableDatabase();
+            if (theme == null || theme.equalsIgnoreCase("healthyMix")) {
+                Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_PUZZLES, null);
+                int count = 0;
+                if (cursor.moveToFirst()) {
+                    count = cursor.getInt(0);
+                }
+                cursor.close();
+                return count;
+            } else {
+                Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_PUZZLES + " WHERE theme = ?", new String[]{theme});
+                int count = 0;
+                if (cursor.moveToFirst()) {
+                    count = cursor.getInt(0);
+                }
+                cursor.close();
+                if (count == 0) {
+                    cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_PUZZLES + " WHERE theme LIKE ?", new String[]{"%" + theme + "%"});
+                    if (cursor.moveToFirst()) {
+                        count = cursor.getInt(0);
+                    }
+                    cursor.close();
+                }
+                return count;
+            }
+        } catch (Exception e) {
+            Log.e("LichessDb", "Failed to get theme count", e);
+            return 0;
+        }
+    }
+
+    public void clearAllPuzzles() {
+        try {
+            SQLiteDatabase db = getWritableDatabase();
+            db.execSQL("DELETE FROM " + TABLE_PUZZLES);
+        } catch (Exception e) {
+            Log.e("LichessDb", "Failed to clear all puzzles", e);
+        }
+    }
+
     private JSONObject cursorToJSON(Cursor cursor) {
         try {
             JSONObject obj = new JSONObject();
