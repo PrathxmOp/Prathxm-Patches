@@ -27,14 +27,12 @@ Prathxm Patches integrates the Stockfish chess engine directly into Chess.com on
 - **Best Move & Threat Arrows** — Local arrow indicators showing engine recommendations.
 
 ### 🧩 Lichess Puzzle Journey
-- **SQLite-Backed Offline Storage** — Replaced memory-intensive JSON loading with a high-performance SQLite database helper (`LichessPuzzleDatabaseHelper`), completely eliminating Out-Of-Memory (OOM) crashes and app startup lag.
-- **Thematic & Difficulty-Based Selection** — Features indexable SQL queries (`idx_theme`, `idx_solved`) allowing instant category-specific matching (Opening, Middlegame, Endgame, specific endgame types, etc.) and difficulty-graded selection for Rush/Battle modes.
-- **Hybrid Sync & Background Auto-Refill** — Automatically fetches initial database batches from the Hugging Face API and utilizes a background thread to refill the local inventory when unsolved puzzles drop below 2,000, supporting download resuming across app restarts.
-- **State Persistence & Journey Progress** — Fully tracks and persists solved puzzle states to disk to support long-term offline level progression, milestones, and streak calculations.
-- **Minimalist Puzzle Journey Map** — Progress through puzzle levels with a scenic map view, custom rustic bridge pathing, tree trunk level gem nodes, and active pawn position indicators.
-- **State-Hardened Board View** — Custom canvas-based board drawing (`LichessBoardView`) with strict paint state resetting to prevent visual artifacts and auto-reset logic on incorrect moves.
-- **Interactive Game Sounds** — Full SoundPool integration for move, capture, correct, incorrect, and puzzle-solved sound effects.
-- **Premium Themes & Fonts** — Custom wood assets, custom chess typography, and glassmorphic UI overlay styling.
+- **Offline Puzzle Database** — Play fully offline with a local database of puzzles.
+- **Thematic Practice & Challenges** — Practice specific chess themes (Opening, Middlegame, Endgame, specific endgames) or test your skills in Rush and Battle modes.
+- **Choose Your Download Size** — Select your preferred puzzle dataset size (10k, 50k, 100k, or all puzzles) directly on first launch to fit your device's storage.
+- **Streak & Milestone Progression** — Track your daily puzzle solving, active theme streaks, and milestones with custom status badges.
+- **Scenic Puzzle Journey Map** — Progress through levels on a visual custom-styled board map.
+- **Interactive Sounds & Custom UI** — Features chess game sounds (moves, captures, solving) and premium wood-styled themes.
 
 > [!NOTE]
 > **A Note on UI & Design**:

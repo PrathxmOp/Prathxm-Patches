@@ -12,7 +12,7 @@ import java.util.List;
 
 public class LichessPuzzleDatabaseHelper extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "lichess_puzzles.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
     private static final String TABLE_PUZZLES = "puzzles";
 
     public LichessPuzzleDatabaseHelper(Context context) {
