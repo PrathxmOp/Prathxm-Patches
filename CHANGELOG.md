@@ -1,3 +1,9 @@
+## [1.6.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.5.1...v1.6.0) (2026-07-01)
+
+### ✨ New Features
+
+* Cache theme counts in SharedPreferences to make UI loading instant ([e672ae1](https://github.com/PrathxmOp/Prathxm-Patches/commit/e672ae12ae091b502aa9886153c7c249049f5fd1))
+
 ## [1.5.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.5.0...v1.5.1) (2026-07-01)
 
 ### 🔧 Improvements
