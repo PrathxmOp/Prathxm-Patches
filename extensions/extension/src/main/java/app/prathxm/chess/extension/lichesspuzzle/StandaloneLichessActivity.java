@@ -57,6 +57,15 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     private android.widget.ImageView coachAvatar;
     private android.graphics.Typeface fontBold;
     private android.graphics.Typeface fontRegular;
+
+    // Puzzle modes
+    private String activeMode = "daily";
+    private int rushScore = 0;
+    private int rushStrikes = 0;
+    private int rushTimeLeft = 180;
+    private int opponentScore = 0;
+    private int opponentSolveCountdown = 20;
+    private android.widget.ImageView flameIcon;
     
     // Offline Database
     private LinearLayout downloadOverlay;
@@ -450,7 +459,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         ratingStreakContainer.addView(ratingView);
 
         // Flame icon
-        android.widget.ImageView flameIcon = new android.widget.ImageView(this);
+        flameIcon = new android.widget.ImageView(this);
         int flameResId = getDrawableResId("ic_col_flame_24");
         if (flameResId != 0) {
             flameIcon.setImageResource(flameResId);
@@ -888,20 +897,67 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
 
     private void startTimer() {
         stopTimer();
-        elapsedSeconds = 0;
-        timerView.setText("00:00");
-        timer = new Timer();
-        timer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                elapsedSeconds++;
-                runOnUiThread(() -> {
-                    int mins = elapsedSeconds / 60;
-                    int secs = elapsedSeconds % 60;
-                    timerView.setText(String.format(Locale.US, "%02d:%02d", mins, secs));
-                });
-            }
-        }, 1000, 1000);
+        if (activeMode.equals("rush") || activeMode.equals("battle")) {
+            timerView.setText("03:00");
+            timer = new Timer();
+            timer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    rushTimeLeft--;
+                    
+                    // Simulated opponent tick in Battle mode
+                    if (activeMode.equals("battle") && !isFinished) {
+                        opponentSolveCountdown--;
+                        if (opponentSolveCountdown <= 0) {
+                            opponentScore++;
+                            runOnUiThread(() -> {
+                                if (ratingView != null) {
+                                    ratingView.setText("You: " + rushScore + "  vs  Opponent: " + opponentScore);
+                                }
+                                updateSpeechBubble("⚔️ Battle Status", "Opponent solved a puzzle! (" + opponentScore + ")", Color.parseColor("#E74C3C"));
+                            });
+                            opponentSolveCountdown = 12 + (int)(Math.random() * 12);
+                        }
+                    }
+
+                    runOnUiThread(() -> {
+                        if (rushTimeLeft <= 0) {
+                            rushTimeLeft = 0;
+                            stopTimer();
+                            isFinished = true;
+                            isPlayerTurn = false;
+                            chessboard.setInteractable(false);
+                            if (activeMode.equals("rush")) {
+                                endRushRun();
+                            } else {
+                                endBattleRun();
+                            }
+                        }
+                        int mins = rushTimeLeft / 60;
+                        int secs = rushTimeLeft % 60;
+                        timerView.setText(String.format(Locale.US, "%02d:%02d", mins, secs));
+                        if (streakProgressBar != null) {
+                            streakProgressBar.setProgress(rushTimeLeft);
+                        }
+                    });
+                }
+            }, 1000, 1000);
+        } else {
+            elapsedSeconds = 0;
+            timerView.setText("00:00");
+            timer = new Timer();
+            timer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    elapsedSeconds++;
+                    runOnUiThread(() -> {
+                        int mins = elapsedSeconds / 60;
+                        int secs = elapsedSeconds % 60;
+                        timerView.setText(String.format(Locale.US, "%02d:%02d", mins, secs));
+                    });
+                }
+            }, 1000, 1000);
+        }
     }
 
     private void stopTimer() {
@@ -909,6 +965,248 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             timer.cancel();
             timer = null;
         }
+    }
+
+    private void adjustUIForActiveMode() {
+        runOnUiThread(() -> {
+            if (activeMode.equals("rush")) {
+                if (headerTitle != null) headerTitle.setText("Puzzle Rush");
+                if (ratingView != null) ratingView.setText("Score: 0");
+                if (streakTextView != null) streakTextView.setText("⬜ ⬜ ⬜");
+                if (streakMilestoneBadge != null) streakMilestoneBadge.setVisibility(View.GONE);
+                if (flameIcon != null) flameIcon.setVisibility(View.GONE);
+                if (streakProgressBar != null) {
+                    streakProgressBar.setVisibility(View.VISIBLE);
+                    streakProgressBar.setMax(180);
+                    streakProgressBar.setProgress(180);
+                }
+            } else if (activeMode.equals("battle")) {
+                if (headerTitle != null) headerTitle.setText("Puzzle Battle");
+                if (ratingView != null) ratingView.setText("You: 0  vs  Opponent: 0");
+                if (streakTextView != null) streakTextView.setText("⬜ ⬜ ⬜");
+                if (streakMilestoneBadge != null) streakMilestoneBadge.setVisibility(View.GONE);
+                if (flameIcon != null) flameIcon.setVisibility(View.GONE);
+                if (streakProgressBar != null) {
+                    streakProgressBar.setVisibility(View.VISIBLE);
+                    streakProgressBar.setMax(180);
+                    streakProgressBar.setProgress(180);
+                }
+            } else if (activeMode.equals("custom")) {
+                if (headerTitle != null) headerTitle.setText("Custom Puzzles");
+                if (streakMilestoneBadge != null) streakMilestoneBadge.setVisibility(View.VISIBLE);
+                if (flameIcon != null) flameIcon.setVisibility(View.VISIBLE);
+                if (streakProgressBar != null) streakProgressBar.setVisibility(View.VISIBLE);
+            } else if (activeMode.equals("journey")) {
+                if (headerTitle != null) headerTitle.setText("Puzzle Journey");
+                if (streakMilestoneBadge != null) streakMilestoneBadge.setVisibility(View.VISIBLE);
+                if (flameIcon != null) flameIcon.setVisibility(View.VISIBLE);
+                if (streakProgressBar != null) streakProgressBar.setVisibility(View.VISIBLE);
+            } else {
+                if (headerTitle != null) headerTitle.setText("Lichess Puzzles");
+                if (streakMilestoneBadge != null) streakMilestoneBadge.setVisibility(View.VISIBLE);
+                if (flameIcon != null) flameIcon.setVisibility(View.VISIBLE);
+                if (streakProgressBar != null) streakProgressBar.setVisibility(View.VISIBLE);
+            }
+        });
+    }
+
+    private void loadRushOrBattlePuzzle() {
+        if (offlinePuzzles.isEmpty()) {
+            showError("No offline puzzles available.");
+            return;
+        }
+        int targetRating = 600 + rushScore * 45;
+        if (targetRating > 2800) targetRating = 2800;
+
+        int baseIdx = 0;
+        for (int i = 0; i < offlinePuzzles.size(); i++) {
+            if (offlinePuzzles.get(i).optInt("rating", 1500) >= targetRating) {
+                baseIdx = i;
+                break;
+            }
+        }
+        
+        int range = Math.min(15, offlinePuzzles.size() - baseIdx);
+        int randOffset = (range > 0) ? (int)(Math.random() * range) : 0;
+        int selectedIdx = baseIdx + randOffset;
+        if (selectedIdx >= offlinePuzzles.size()) {
+            selectedIdx = offlinePuzzles.size() - 1;
+        }
+        
+        JSONObject puzzleObj = offlinePuzzles.get(selectedIdx);
+        initOfflinePuzzle(puzzleObj);
+    }
+
+    private void updateStrikesUI() {
+        runOnUiThread(() -> {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 3; i++) {
+                if (i < rushStrikes) {
+                    sb.append("❌ ");
+                } else {
+                    sb.append("⬜ ");
+                }
+            }
+            if (streakTextView != null) {
+                streakTextView.setText(sb.toString().trim());
+            }
+        });
+    }
+
+    private void resetRushOrBattleRun() {
+        rushScore = 0;
+        rushStrikes = 0;
+        rushTimeLeft = 180;
+        opponentScore = 0;
+        opponentSolveCountdown = 15 + (int)(Math.random() * 10);
+        isFinished = false;
+        
+        if (activeMode.equals("rush")) {
+            if (ratingView != null) ratingView.setText("Score: 0");
+        } else if (activeMode.equals("battle")) {
+            if (ratingView != null) ratingView.setText("You: 0  vs  Opponent: 0");
+        }
+        
+        updateStrikesUI();
+        loadRushOrBattlePuzzle();
+        startTimer();
+    }
+
+    private void endRushRun() {
+        runOnUiThread(() -> {
+            stopTimer();
+            showGameOverDialog("Puzzle Rush Complete!", "You solved " + rushScore + " puzzles!", rushScore);
+        });
+    }
+
+    private void endBattleRun() {
+        runOnUiThread(() -> {
+            stopTimer();
+            String title;
+            String message;
+            if (rushScore > opponentScore) {
+                title = "🏆 Victory!";
+                message = "You defeated your opponent " + rushScore + " to " + opponentScore + "!";
+            } else if (rushScore < opponentScore) {
+                title = "💀 Defeat!";
+                message = "Opponent won the battle " + opponentScore + " to " + rushScore + ".";
+            } else {
+                title = "🤝 Draw!";
+                message = "A close match! Both scored " + rushScore + ".";
+            }
+            showGameOverDialog(title, message, rushScore);
+        });
+    }
+
+    private void showGameOverDialog(String title, String message, int score) {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        
+        // Custom View
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setGravity(Gravity.CENTER_HORIZONTAL);
+        layout.setBackgroundColor(Color.parseColor("#272522"));
+        int pad = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24, getResources().getDisplayMetrics());
+        layout.setPadding(pad, pad, pad, pad);
+        
+        // Trophy / Skull Emoji
+        TextView trophyView = new TextView(this);
+        trophyView.setText(title.contains("Defeat") ? "💀" : "🏆");
+        trophyView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 48);
+        trophyView.setGravity(Gravity.CENTER);
+        layout.addView(trophyView);
+        
+        // Title text
+        TextView titleText = new TextView(this);
+        titleText.setText(title);
+        titleText.setTextColor(Color.WHITE);
+        titleText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
+        titleText.setPadding(0, 12, 0, 8);
+        if (fontBold != null) {
+            titleText.setTypeface(fontBold);
+        } else {
+            titleText.setTypeface(null, android.graphics.Typeface.BOLD);
+        }
+        titleText.setGravity(Gravity.CENTER);
+        layout.addView(titleText);
+        
+        // Message text
+        TextView msgText = new TextView(this);
+        msgText.setText(message);
+        msgText.setTextColor(Color.parseColor("#C3C2C1"));
+        msgText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        msgText.setPadding(0, 0, 0, 24);
+        if (fontRegular != null) {
+            msgText.setTypeface(fontRegular);
+        }
+        msgText.setGravity(Gravity.CENTER);
+        layout.addView(msgText);
+        
+        // Buttons Row
+        LinearLayout btnRow = new LinearLayout(this);
+        btnRow.setOrientation(LinearLayout.HORIZONTAL);
+        btnRow.setGravity(Gravity.CENTER);
+        
+        // Play Again Button (Green)
+        TextView playAgainBtn = new TextView(this);
+        playAgainBtn.setText("Play Again");
+        playAgainBtn.setTextColor(Color.WHITE);
+        playAgainBtn.setGravity(Gravity.CENTER);
+        playAgainBtn.setPadding(32, 16, 32, 16);
+        GradientDrawable greenBg = new GradientDrawable();
+        greenBg.setColor(Color.parseColor("#81B64C"));
+        greenBg.setCornerRadius(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics()));
+        playAgainBtn.setBackground(greenBg);
+        if (fontBold != null) {
+            playAgainBtn.setTypeface(fontBold);
+        }
+        playAgainBtn.setClickable(true);
+        
+        // Close Button (Grey)
+        TextView closeBtn = new TextView(this);
+        closeBtn.setText("Close");
+        closeBtn.setTextColor(Color.WHITE);
+        closeBtn.setGravity(Gravity.CENTER);
+        closeBtn.setPadding(32, 16, 32, 16);
+        GradientDrawable greyBg = new GradientDrawable();
+        greyBg.setColor(Color.parseColor("#484644"));
+        greyBg.setCornerRadius(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics()));
+        closeBtn.setBackground(greyBg);
+        if (fontBold != null) {
+            closeBtn.setTypeface(fontBold);
+        }
+        closeBtn.setClickable(true);
+        
+        LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f
+        );
+        btnLp.rightMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
+        playAgainBtn.setLayoutParams(btnLp);
+        
+        LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f
+        );
+        closeBtn.setLayoutParams(closeLp);
+        
+        btnRow.addView(playAgainBtn);
+        btnRow.addView(closeBtn);
+        layout.addView(btnRow);
+        
+        builder.setView(layout);
+        builder.setCancelable(false);
+        android.app.AlertDialog dialog = builder.create();
+        
+        playAgainBtn.setOnClickListener(v -> {
+            dialog.dismiss();
+            resetRushOrBattleRun();
+        });
+        
+        closeBtn.setOnClickListener(v -> {
+            dialog.dismiss();
+            finish();
+        });
+        
+        dialog.show();
     }
 
     private void loadOfflinePuzzlesAsync(File file) {
@@ -921,7 +1219,21 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                     progressBar.setVisibility(View.GONE);
                     int levelIndex = getIntent().getIntExtra("level_index", -1);
                     if (levelIndex != -1) {
+                        activeMode = "journey";
+                    } else {
+                        activeMode = getIntent().getStringExtra("puzzle_mode");
+                        if (activeMode == null) {
+                            activeMode = "daily";
+                        }
+                    }
+                    adjustUIForActiveMode();
+                    
+                    if (activeMode.equals("journey")) {
                         loadSpecificOfflineLevel(levelIndex);
+                    } else if (activeMode.equals("rush") || activeMode.equals("battle")) {
+                        resetRushOrBattleRun();
+                    } else if (activeMode.equals("custom")) {
+                        loadRandomOfflinePuzzle();
                     } else {
                         loadPuzzle(null);
                     }
@@ -949,6 +1261,13 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         for (int i = 0; i < arr.length(); i++) {
             offlinePuzzles.add(arr.getJSONObject(i));
         }
+        
+        // Sort by rating so that difficulty curve is smooth
+        java.util.Collections.sort(offlinePuzzles, (p1, p2) -> {
+            int r1 = p1.optInt("rating", 1500);
+            int r2 = p2.optInt("rating", 1500);
+            return Integer.compare(r1, r2);
+        });
     }
 
     private void startDownloadPuzzles() {
@@ -1024,7 +1343,21 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                     hideDownloadUI();
                     int levelIndex = getIntent().getIntExtra("level_index", -1);
                     if (levelIndex != -1) {
+                        activeMode = "journey";
+                    } else {
+                        activeMode = getIntent().getStringExtra("puzzle_mode");
+                        if (activeMode == null) {
+                            activeMode = "daily";
+                        }
+                    }
+                    adjustUIForActiveMode();
+                    
+                    if (activeMode.equals("journey")) {
                         loadSpecificOfflineLevel(levelIndex);
+                    } else if (activeMode.equals("rush") || activeMode.equals("battle")) {
+                        resetRushOrBattleRun();
+                    } else if (activeMode.equals("custom")) {
+                        loadRandomOfflinePuzzle();
                     } else {
                         loadPuzzle(null);
                     }
@@ -1332,6 +1665,12 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     }
 
     private void loadNextPuzzle() {
+        if (activeMode.equals("rush") || activeMode.equals("battle")) {
+            if (isFinished) return;
+            loadRushOrBattlePuzzle();
+            return;
+        }
+
         if (!isFinished) {
             currentStreak = 0;
             getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
@@ -1455,7 +1794,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         // Auto-play the first move (which is the opponent's setup move)
         String firstMove = solutionMoves[0];
         String from = firstMove.substring(0, 2);
-        String to = firstMove.substring(2, 4);
+        String to = firstMove.substring(2);
         
         // Auto-orient board based on player turn
         boolean opponentIsWhite = startFen.contains(" w ");
@@ -1489,7 +1828,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         chessboard.setFEN(startFen);
         for (int i = 0; i < currentMoveIdx; i++) {
             String move = solutionMoves[i];
-            chessboard.makeMove(move.substring(0, 2), move.substring(2, 4));
+            chessboard.makeMove(move.substring(0, 2), move.substring(2));
         }
 
         String sideToMoveText = playerIsWhite ? "⬜ White to Move" : "⬛ Black to Move";
@@ -1503,7 +1842,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
 
         // Replay the player's move
         String playerMove = solutionMoves[currentMoveIdx];
-        chessboard.makeMove(playerMove.substring(0, 2), playerMove.substring(2, 4));
+        chessboard.makeMove(playerMove.substring(0, 2), playerMove.substring(2));
         currentMoveIdx++;
         playSound("sounds/puzzles/correct.mp3");
 
@@ -1522,7 +1861,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         // Replay the opponent's reply (if it was already reached/played before)
         if (currentMoveIdx < maxMoveIdxReached) {
             String opponentMove = solutionMoves[currentMoveIdx];
-            chessboard.makeMove(opponentMove.substring(0, 2), opponentMove.substring(2, 4));
+            chessboard.makeMove(opponentMove.substring(0, 2), opponentMove.substring(2));
             currentMoveIdx++;
             playSound("sounds/puzzles/correct.mp3");
         }
@@ -1540,7 +1879,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         String expectedMove = solutionMoves[currentMoveIdx];
 
         if (playerMove.equalsIgnoreCase(expectedMove.substring(0, 4))) {
-            chessboard.makeMove(fromSquare, toSquare);
+            chessboard.makeMove(fromSquare, expectedMove.substring(2));
             currentMoveIdx++;
             if (currentMoveIdx > maxMoveIdxReached) {
                 maxMoveIdxReached = currentMoveIdx;
@@ -1554,34 +1893,47 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                 stopTimer();
                 updateSpeechBubble("🎉 Success!", "Puzzle Solved!", COLOR_GREEN);
                 playSound("sounds/puzzles/puzzle-path/puzzle-solved.mp3");
-                updateBottomActionPanel();
 
-                // Update streak
-                currentStreak++;
-                getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
-                        .edit()
-                        .putInt("puzzle_streak", currentStreak)
-                        .apply();
+                if (activeMode.equals("rush") || activeMode.equals("battle")) {
+                    rushScore++;
+                    if (activeMode.equals("rush")) {
+                        if (ratingView != null) ratingView.setText("Score: " + rushScore);
+                    } else {
+                        if (ratingView != null) ratingView.setText("You: " + rushScore + "  vs  Opponent: " + opponentScore);
+                    }
+                    chessboard.postDelayed(() -> {
+                        loadNextPuzzle();
+                    }, 1500);
+                } else {
+                    updateBottomActionPanel();
 
-                PuzzleHistoryItem currentItem = null;
-                if (historyIndex >= 0 && historyIndex < puzzleHistory.size()) {
-                    currentItem = puzzleHistory.get(historyIndex);
-                }
-                int levelIdx = (currentItem != null) ? currentItem.levelIndex : -1;
-                int rating = (currentItem != null) ? currentItem.rating : 1500;
-                String theme = (currentItem != null) ? currentItem.theme : "tactics";
-                updatePuzzleHeaderAndStats(levelIdx, rating, theme);
+                    // Update streak
+                    currentStreak++;
+                    getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                            .edit()
+                            .putInt("puzzle_streak", currentStreak)
+                            .apply();
 
-                // Save level progress
-                int levelIndex = getIntent().getIntExtra("level_index", -1);
-                if (levelIndex != -1) {
-                    int currentUnlocked = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
-                            .getInt("unlocked_level", 1);
-                    if (levelIndex == currentUnlocked) {
-                        getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
-                                .edit()
-                                .putInt("unlocked_level", currentUnlocked + 1)
-                                .apply();
+                    PuzzleHistoryItem currentItem = null;
+                    if (historyIndex >= 0 && historyIndex < puzzleHistory.size()) {
+                        currentItem = puzzleHistory.get(historyIndex);
+                    }
+                    int levelIdx = (currentItem != null) ? currentItem.levelIndex : -1;
+                    int rating = (currentItem != null) ? currentItem.rating : 1500;
+                    String theme = (currentItem != null) ? currentItem.theme : "tactics";
+                    updatePuzzleHeaderAndStats(levelIdx, rating, theme);
+
+                    // Save level progress
+                    int levelIndex = getIntent().getIntExtra("level_index", -1);
+                    if (levelIndex != -1) {
+                        int currentUnlocked = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                                .getInt("unlocked_level", 1);
+                        if (levelIndex == currentUnlocked) {
+                            getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                                    .edit()
+                                    .putInt("unlocked_level", currentUnlocked + 1)
+                                    .apply();
+                        }
                     }
                 }
             } else {
@@ -1593,7 +1945,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                 chessboard.postDelayed(() -> {
                     if (isFinished) return;
                     String opponentMove = solutionMoves[currentMoveIdx];
-                    chessboard.makeMove(opponentMove.substring(0, 2), opponentMove.substring(2, 4));
+                    chessboard.makeMove(opponentMove.substring(0, 2), opponentMove.substring(2));
                     currentMoveIdx++;
                     if (currentMoveIdx > maxMoveIdxReached) {
                         maxMoveIdxReached = currentMoveIdx;
@@ -1610,21 +1962,50 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             updateSpeechBubble("❌ Wrong move!", "Try a different sequence of moves.", COLOR_RED);
             playSound("sounds/puzzles/incorrect.mp3");
 
-            // Reset streak
-            currentStreak = 0;
-            getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
-                    .edit()
-                    .putInt("puzzle_streak", currentStreak)
-                    .apply();
+            if (activeMode.equals("rush") || activeMode.equals("battle")) {
+                rushStrikes++;
+                updateStrikesUI();
 
-            PuzzleHistoryItem currentItem = null;
-            if (historyIndex >= 0 && historyIndex < puzzleHistory.size()) {
-                currentItem = puzzleHistory.get(historyIndex);
+                // Highlight correct move
+                if (solutionMoves != null && currentMoveIdx < solutionMoves.length) {
+                    String correctMove = solutionMoves[currentMoveIdx];
+                    chessboard.showArrow(correctMove.substring(0, 2), correctMove.substring(2, 4));
+                }
+
+                if (rushStrikes >= 3) {
+                    isFinished = true;
+                    isPlayerTurn = false;
+                    chessboard.setInteractable(false);
+                    stopTimer();
+                    if (activeMode.equals("rush")) {
+                        endRushRun();
+                    } else {
+                        endBattleRun();
+                    }
+                } else {
+                    isPlayerTurn = false;
+                    chessboard.setInteractable(false);
+                    chessboard.postDelayed(() -> {
+                        loadNextPuzzle();
+                    }, 1500);
+                }
+            } else {
+                // Reset streak
+                currentStreak = 0;
+                getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                        .edit()
+                        .putInt("puzzle_streak", currentStreak)
+                        .apply();
+
+                PuzzleHistoryItem currentItem = null;
+                if (historyIndex >= 0 && historyIndex < puzzleHistory.size()) {
+                    currentItem = puzzleHistory.get(historyIndex);
+                }
+                int levelIdx = (currentItem != null) ? currentItem.levelIndex : -1;
+                int rating = (currentItem != null) ? currentItem.rating : 1500;
+                String theme = (currentItem != null) ? currentItem.theme : "tactics";
+                updatePuzzleHeaderAndStats(levelIdx, rating, theme);
             }
-            int levelIdx = (currentItem != null) ? currentItem.levelIndex : -1;
-            int rating = (currentItem != null) ? currentItem.rating : 1500;
-            String theme = (currentItem != null) ? currentItem.theme : "tactics";
-            updatePuzzleHeaderAndStats(levelIdx, rating, theme);
         }
     }
 
@@ -1683,11 +2064,28 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
 
     private void updatePuzzleHeaderAndStats(int levelIdx, int rating, String theme) {
         runOnUiThread(() -> {
+            if (activeMode.equals("rush")) {
+                if (headerTitle != null) headerTitle.setText("Puzzle Rush");
+                if (ratingView != null) ratingView.setText("Score: " + rushScore);
+                updateStrikesUI();
+                return;
+            }
+            if (activeMode.equals("battle")) {
+                if (headerTitle != null) headerTitle.setText("Puzzle Battle");
+                if (ratingView != null) ratingView.setText("You: " + rushScore + "  vs  Opponent: " + opponentScore);
+                updateStrikesUI();
+                return;
+            }
+
             if (headerTitle != null) {
                 if (levelIdx != -1) {
                     headerTitle.setText(levelIdx + " Puzzles");
                 } else {
-                    headerTitle.setText("Lichess Puzzles");
+                    if (activeMode.equals("custom")) {
+                        headerTitle.setText("Custom Puzzles");
+                    } else {
+                        headerTitle.setText("Lichess Puzzles");
+                    }
                 }
             }
             if (ratingView != null) {

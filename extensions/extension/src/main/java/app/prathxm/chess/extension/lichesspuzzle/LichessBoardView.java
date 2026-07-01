@@ -164,8 +164,53 @@ public class LichessBoardView extends View {
             int toRank = '8' - to.charAt(1);
             
             char piece = board[fromRank][fromFile];
+            
+            // Check castling: King moves 2 squares horizontally
+            if ((piece == 'K' || piece == 'k') && Math.abs(fromFile - toFile) == 2) {
+                // White short castle
+                if (piece == 'K' && toFile == 6) {
+                    board[7][7] = ' ';
+                    board[7][5] = 'R';
+                }
+                // White long castle
+                else if (piece == 'K' && toFile == 2) {
+                    board[7][0] = ' ';
+                    board[7][3] = 'R';
+                }
+                // Black short castle
+                else if (piece == 'k' && toFile == 6) {
+                    board[0][7] = ' ';
+                    board[0][5] = 'r';
+                }
+                // Black long castle
+                else if (piece == 'k' && toFile == 2) {
+                    board[0][0] = ' ';
+                    board[0][3] = 'r';
+                }
+            }
+            
+            // Check en passant: Pawn moves diagonally to an empty square
+            if ((piece == 'P' || piece == 'p') && fromFile != toFile && board[toRank][toFile] == ' ') {
+                // Clear the captured pawn
+                board[fromRank][toFile] = ' ';
+            }
+            
             board[fromRank][fromFile] = ' ';
             board[toRank][toFile] = piece;
+
+            // Check promotion: if destination has a 3rd character or if pawn reaches back rank
+            if (to.length() > 2) {
+                char promo = Character.toLowerCase(to.charAt(2));
+                boolean isWhite = Character.isUpperCase(piece);
+                if (promo == 'q') piece = isWhite ? 'Q' : 'q';
+                else if (promo == 'r') piece = isWhite ? 'R' : 'r';
+                else if (promo == 'b') piece = isWhite ? 'B' : 'b';
+                else if (promo == 'n') piece = isWhite ? 'N' : 'n';
+                board[toRank][toFile] = piece;
+            } else if ((piece == 'P' && toRank == 0) || (piece == 'p' && toRank == 7)) {
+                // Auto promote to queen if no promo char is explicitly given
+                board[toRank][toFile] = Character.isUpperCase(piece) ? 'Q' : 'q';
+            }
 
             // Update last move highlights
             lastFromFile = fromFile;
