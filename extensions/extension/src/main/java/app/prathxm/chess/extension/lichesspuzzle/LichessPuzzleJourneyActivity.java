@@ -36,6 +36,8 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Locale;
+import java.util.List;
+import java.util.ArrayList;
 
 public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJourneyMapView.OnLevelClickListener {
 
@@ -69,6 +71,7 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
     private TextView downloadStatusText;
     private ProgressBar downloadProgressBar;
     private boolean isDatabaseReady = false;
+    private LichessPuzzleDatabaseHelper dbHelper;
 
     // Theme Colors
     private final int COLOR_BG = Color.parseColor("#121214");
@@ -85,15 +88,22 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         super.onCreate(savedInstanceState);
         setupJourneyUI();
 
+        dbHelper = new LichessPuzzleDatabaseHelper(this);
+
         File oldFile = new File(getFilesDir(), "puzzles.json");
         if (oldFile.exists()) {
             oldFile.delete();
         }
 
         File localFile = new File(getFilesDir(), "puzzles.json.gz");
-        if (localFile.exists() && localFile.length() > 0) {
+        if (dbHelper.getPuzzlesCount() > 0) {
+            if (localFile.exists()) {
+                localFile.delete();
+            }
             isDatabaseReady = true;
             refreshProgress();
+        } else if (localFile.exists() && localFile.length() > 0) {
+            migrateJsonToDbAsync(localFile);
         } else {
             if (isNetworkAvailable()) {
                 startDownloadDatabase();
@@ -766,21 +776,27 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
     }
 
     private void startDownloadDatabase() {
-        showDownloadProgress("Downloading 10,000 offline puzzles (0%)...\nPlease wait.", 0);
+        showDownloadProgress("Downloading offline puzzles (0%)...\nPlease wait.", 0);
         new Thread(() -> {
             try {
-                JSONArray allPuzzles = new JSONArray();
-                int totalBatches = 10;
-                int limitPerBatch = 1000;
+                int startOffset = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                        .getInt("download_offset", 0);
+                
+                int totalBatches = 200; // 20,000 puzzles
+                int limitPerBatch = 100;
+                List<JSONObject> batchList = new ArrayList<>();
 
                 for (int i = 0; i < totalBatches; i++) {
-                    int offset = i * limitPerBatch;
+                    int offset = startOffset + (i * limitPerBatch);
                     final int progressPercent = (i * 100) / totalBatches;
                     final int batchNum = i + 1;
-                    showDownloadProgress(
-                            String.format(Locale.US, "Downloading 10,000 offline puzzles...\nBatch %d/%d (%d%%)", batchNum, totalBatches, progressPercent),
-                            progressPercent
-                    );
+                    
+                    if (i % 10 == 0 || i == totalBatches - 1) {
+                        showDownloadProgress(
+                                String.format(Locale.US, "Downloading 20,000 offline puzzles...\nBatch %d/%d (%d%%)", batchNum, totalBatches, progressPercent),
+                                progressPercent
+                        );
+                    }
 
                     String urlStr = String.format(Locale.US, "https://datasets-server.huggingface.co/rows?dataset=Lichess%%2Fchess-puzzles&config=default&split=train&offset=%d&limit=%d", offset, limitPerBatch);
                     URL url = new URL(urlStr);
@@ -815,24 +831,36 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
                             String theme = (themesArr != null && themesArr.length() > 0) ? themesArr.getString(0) : "tactics";
                             puzzleItem.put("theme", theme);
 
-                            allPuzzles.put(puzzleItem);
+                            batchList.add(puzzleItem);
                         }
+                        
+                        if (batchList.size() >= 500) {
+                            dbHelper.insertPuzzles(batchList);
+                            batchList.clear();
+                        }
+                    } else if (code == 429) {
+                        Log.w(TAG, "Rate limited! Sleeping for 5 seconds...");
+                        Thread.sleep(5000);
+                        i--;
+                        continue;
                     } else {
                         throw new Exception("HTTP server error: " + code);
                     }
                     connection.disconnect();
-                    Thread.sleep(100);
+                    Thread.sleep(50);
                 }
 
-                showDownloadProgress("Saving puzzles database to storage...", 100);
+                if (!batchList.isEmpty()) {
+                    dbHelper.insertPuzzles(batchList);
+                    batchList.clear();
+                }
 
-                File file = new File(getFilesDir(), "puzzles.json.gz");
-                java.io.FileOutputStream fos = new java.io.FileOutputStream(file);
-                java.util.zip.GZIPOutputStream gzos = new java.util.zip.GZIPOutputStream(fos);
-                java.io.OutputStreamWriter writer = new java.io.OutputStreamWriter(gzos, "UTF-8");
-                writer.write(allPuzzles.toString());
-                writer.flush();
-                writer.close();
+                getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                        .edit()
+                        .putInt("download_offset", startOffset + (totalBatches * limitPerBatch))
+                        .apply();
+
+                showDownloadProgress("Saving puzzles database to storage...", 100);
 
                 runOnUiThread(() -> {
                     hideDownloadUI();
@@ -842,7 +870,47 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
 
             } catch (Exception e) {
                 Log.e(TAG, "Download failed", e);
-                runOnUiThread(() -> showDownloadFailed("Failed to download database: " + e.getMessage()));
+                runOnUiThread(() -> {
+                    hideDownloadUI();
+                    showDownloadFailed("Failed to download database: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+
+    private void migrateJsonToDbAsync(File file) {
+        showDownloadProgress("Migrating offline database...\nPlease wait.", 0);
+        new Thread(() -> {
+            try {
+                java.io.InputStream fileStream = new java.io.FileInputStream(file);
+                java.io.InputStream gzipStream = new java.util.zip.GZIPInputStream(fileStream);
+                BufferedReader br = new BufferedReader(new java.io.InputStreamReader(gzipStream, "UTF-8"));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) {
+                    sb.append(line);
+                }
+                br.close();
+
+                JSONArray arr = new JSONArray(sb.toString());
+                List<JSONObject> list = new ArrayList<>();
+                for (int i = 0; i < arr.length(); i++) {
+                    list.add(arr.getJSONObject(i));
+                }
+                dbHelper.insertPuzzles(list);
+                file.delete(); // Delete local file after migration
+
+                runOnUiThread(() -> {
+                    hideDownloadUI();
+                    isDatabaseReady = true;
+                    refreshProgress();
+                });
+            } catch (Exception e) {
+                Log.e(TAG, "Migration failed", e);
+                runOnUiThread(() -> {
+                    hideDownloadUI();
+                    showDownloadFailed("Failed to migrate database.");
+                });
             }
         }).start();
     }
