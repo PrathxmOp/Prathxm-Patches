@@ -98,10 +98,11 @@ You can scan the QR code below or click the payment link:
 
 ### Option 1: Morphe Manager (Recommended)
 1. Download and install [Morphe Manager](https://morphe.software) on your Android device.
-2. Go to **Patch Sources** and add this repository:
-   ```
-   https://github.com/PrathxmOp/Prathxm-Patches
-   ```
+2. Add this repository source to Morphe Manager by clicking:
+   
+   👉 **[Add Patches to Morphe Manager](https://morphe.software/add-source?github=PrathxmOp/Prathxm-Patches)**
+   
+   *(Alternatively, copy `https://github.com/PrathxmOp/Prathxm-Patches` and add it manually in **Patch Sources**)*
 3. Select **Chess.com** from the app list, choose your patches, and tap **Patch**.
 4. Install the output APK.
 

@@ -175,7 +175,23 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         }
 
         File localFile = new File(getFilesDir(), "puzzles.json.gz");
-        if (dbHelper.getPuzzlesCount() > 0) {
+        boolean forceDownload = getIntent().getBooleanExtra("force_download", false);
+        if (forceDownload) {
+            if (getIntent().hasExtra("download_limit")) {
+                selectedDownloadLimit = getIntent().getIntExtra("download_limit", 50000);
+                if (isNetworkAvailable()) {
+                    startDownloadPuzzles();
+                } else {
+                    showOfflineWarningOverlay();
+                }
+            } else {
+                if (isNetworkAvailable()) {
+                    showDownloadSelectionOverlay();
+                } else {
+                    showOfflineWarningOverlay();
+                }
+            }
+        } else if (dbHelper.getPuzzlesCount() > 0) {
             if (localFile.exists()) {
                 localFile.delete();
             }
@@ -245,6 +261,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
 
         // Back Chevron Button
         android.widget.ImageView backButton = new android.widget.ImageView(this);
+        backButton.setId(1001);
         int chevronLeftResId = getDrawableResId("glyph_arrow_chevron_left");
         if (chevronLeftResId != 0) {
             backButton.setImageResource(chevronLeftResId);
@@ -267,43 +284,9 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         backButton.setOnClickListener(v -> finish());
         header.addView(backButton);
 
-        // Center Title Block
-        LinearLayout titleContainer = new LinearLayout(this);
-        titleContainer.setOrientation(LinearLayout.HORIZONTAL);
-        titleContainer.setGravity(Gravity.CENTER_VERTICAL);
-        RelativeLayout.LayoutParams titleParams = new RelativeLayout.LayoutParams(
-            RelativeLayout.LayoutParams.WRAP_CONTENT,
-            RelativeLayout.LayoutParams.MATCH_PARENT
-        );
-        titleParams.addRule(RelativeLayout.CENTER_IN_PARENT);
-        titleContainer.setLayoutParams(titleParams);
-
-        // Wooden board badge
-        android.widget.ImageView woodBadge = new android.widget.ImageView(this);
-        int woodBadgeResId = getDrawableResId("puzzle_tier_wood_pawn");
-        if (woodBadgeResId != 0) {
-            woodBadge.setImageResource(woodBadgeResId);
-        }
-        int badgeIconSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 28, getResources().getDisplayMetrics());
-        LinearLayout.LayoutParams badgeLp = new LinearLayout.LayoutParams(badgeIconSize, badgeIconSize);
-        badgeLp.rightMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
-        woodBadge.setLayoutParams(badgeLp);
-        titleContainer.addView(woodBadge);
-
-        headerTitle = new TextView(this);
-        headerTitle.setText("Lichess Puzzles");
-        headerTitle.setTextColor(COLOR_TEXT_PRIMARY);
-        headerTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-        if (fontBold != null) {
-            headerTitle.setTypeface(fontBold);
-        } else {
-            headerTitle.setTypeface(null, android.graphics.Typeface.BOLD);
-        }
-        titleContainer.addView(headerTitle);
-        header.addView(titleContainer);
-
-        // Settings Cog Button
+        // Settings Cog Button (defined early so ID 1002 is available for RelativeLayout layout params)
         android.widget.ImageView settingsBtn = new android.widget.ImageView(this);
+        settingsBtn.setId(1002);
         int cogResId = getDrawableResId("glyph_board_cogwheel");
         if (cogResId == 0) {
             cogResId = getDrawableResId("glyph_utility_cogwheel");
@@ -324,6 +307,54 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         settingsBtn.setClickable(true);
         settingsBtn.setBackgroundResource(outVal.resourceId);
         settingsBtn.setOnClickListener(v -> showThemeSettingsDialog());
+
+        // Center Title Block
+        LinearLayout titleContainer = new LinearLayout(this);
+        titleContainer.setOrientation(LinearLayout.HORIZONTAL);
+        titleContainer.setGravity(Gravity.CENTER);
+        RelativeLayout.LayoutParams titleParams = new RelativeLayout.LayoutParams(
+            RelativeLayout.LayoutParams.WRAP_CONTENT,
+            RelativeLayout.LayoutParams.MATCH_PARENT
+        );
+        titleParams.addRule(RelativeLayout.CENTER_IN_PARENT);
+        titleParams.addRule(RelativeLayout.RIGHT_OF, 1001);
+        titleParams.addRule(RelativeLayout.LEFT_OF, 1002);
+        titleParams.leftMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
+        titleParams.rightMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
+        titleContainer.setLayoutParams(titleParams);
+
+        // Wooden board badge
+        android.widget.ImageView woodBadge = new android.widget.ImageView(this);
+        int woodBadgeResId = getDrawableResId("puzzle_tier_wood_pawn");
+        if (woodBadgeResId != 0) {
+            woodBadge.setImageResource(woodBadgeResId);
+        }
+        int badgeIconSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 28, getResources().getDisplayMetrics());
+        LinearLayout.LayoutParams badgeLp = new LinearLayout.LayoutParams(badgeIconSize, badgeIconSize);
+        badgeLp.rightMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
+        woodBadge.setLayoutParams(badgeLp);
+        titleContainer.addView(woodBadge);
+
+        headerTitle = new TextView(this);
+        headerTitle.setText("Lichess Puzzles");
+        headerTitle.setTextColor(COLOR_TEXT_PRIMARY);
+        headerTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        headerTitle.setSingleLine(true);
+        headerTitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        if (fontBold != null) {
+            headerTitle.setTypeface(fontBold);
+        } else {
+            headerTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+        }
+        LinearLayout.LayoutParams textLp = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        textLp.weight = 1.0f;
+        headerTitle.setLayoutParams(textLp);
+        titleContainer.addView(headerTitle);
+
+        header.addView(titleContainer);
         header.addView(settingsBtn);
 
         gameLayout.addView(header);
@@ -1553,6 +1584,9 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         showDownloadProgress("Downloading offline puzzles (0%)...\nPlease wait.", 0);
         new Thread(() -> {
             try {
+                if (dbHelper != null) {
+                    dbHelper.clearAllPuzzles();
+                }
                 String fileSuffix;
                 String urlStr;
                 if (selectedDownloadLimit == 20000) {
@@ -1683,7 +1717,11 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
 
                 runOnUiThread(() -> {
                     hideDownloadUI();
-                    loadOfflinePuzzlesAsync();
+                    if (getIntent().getBooleanExtra("force_download", false)) {
+                        finish();
+                    } else {
+                        loadOfflinePuzzlesAsync();
+                    }
                 });
 
             } catch (Exception e) {
