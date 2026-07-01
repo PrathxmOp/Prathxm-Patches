@@ -1425,11 +1425,14 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         if (!isDatabaseReady || dbHelper == null || themeCountViews.isEmpty()) return;
         new Thread(() -> {
             final java.util.Map<String, String> results = new java.util.HashMap<>();
+            android.content.SharedPreferences.Editor editor = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE).edit();
             for (String themeKey : themeCountViews.keySet()) {
                 int localCount = dbHelper.getThemeCount(themeKey);
                 String formatted = java.text.NumberFormat.getInstance().format(localCount);
                 results.put(themeKey, formatted);
+                editor.putString("cached_count_" + themeKey, formatted);
             }
+            editor.apply();
             runOnUiThread(() -> {
                 for (java.util.Map.Entry<String, String> entry : results.entrySet()) {
                     TextView tv = themeCountViews.get(entry.getKey());
@@ -1509,7 +1512,8 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         // Count Badge
         String displayCount = count;
         if (themeKey != null) {
-            displayCount = "...";
+            String cacheKey = "cached_count_" + themeKey;
+            displayCount = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE).getString(cacheKey, "...");
         }
 
         TextView countView = null;
