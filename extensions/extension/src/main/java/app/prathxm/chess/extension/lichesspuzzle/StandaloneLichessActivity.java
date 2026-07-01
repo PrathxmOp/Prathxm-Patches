@@ -1717,6 +1717,10 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                         dbHelper.insertPuzzles(batchList);
                         batchList.clear();
                     }
+                    getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                            .edit()
+                            .putInt("download_offset", offset + limitPerBatch)
+                            .apply();
                 } else if (code == 429) {
                     Thread.sleep(5000);
                     i--;

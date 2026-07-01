@@ -135,7 +135,7 @@ public class LichessPuzzleDatabaseHelper extends SQLiteOpenHelper {
             puzzle = cursorToJSON(cursor);
         }
         cursor.close();
-        return cursor.getCount() > 0 ? puzzle : null;
+        return puzzle;
     }
 
     public JSONObject getRushPuzzle(int targetRating) {
