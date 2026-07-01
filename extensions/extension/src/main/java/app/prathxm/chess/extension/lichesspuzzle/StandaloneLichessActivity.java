@@ -90,6 +90,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     private boolean isFinished = false;
     private boolean isAnalysisMode = false;
     private boolean playerIsWhite = true;
+    private boolean isOnlinePuzzle = false;
     private LinearLayout actionsLayout;
     private View speechBubbleTail;
 
@@ -114,13 +115,19 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         final int rating;
         final String theme;
         final int levelIndex;
+        final boolean isOnline;
 
         PuzzleHistoryItem(String fen, String[] moves, int rating, String theme, int levelIndex) {
+            this(fen, moves, rating, theme, levelIndex, false);
+        }
+
+        PuzzleHistoryItem(String fen, String[] moves, int rating, String theme, int levelIndex, boolean isOnline) {
             this.fen = fen;
             this.moves = moves;
             this.rating = rating;
             this.theme = theme;
             this.levelIndex = levelIndex;
+            this.isOnline = isOnline;
         }
     }
 
@@ -1840,6 +1847,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         this.startFen = item.fen;
         this.solutionMoves = item.moves;
         this.hintClickCount = 0;
+        this.isOnlinePuzzle = item.isOnline;
 
         if (item.levelIndex != -1) {
             getIntent().putExtra("level_index", item.levelIndex);
@@ -1950,7 +1958,8 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             int idx = offlinePuzzles.indexOf(puzzleObj);
             int levelIdx = (idx != -1) ? (idx + 1) : -1;
 
-            PuzzleHistoryItem item = new PuzzleHistoryItem(startFen, solutionMoves, rating, theme, levelIdx);
+            this.isOnlinePuzzle = false;
+            PuzzleHistoryItem item = new PuzzleHistoryItem(startFen, solutionMoves, rating, theme, levelIdx, false);
             addToHistory(item);
 
             runOnUiThread(() -> {
@@ -1982,7 +1991,8 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             final String themes = puzzleObj.optJSONArray("themes") != null ? 
                     puzzleObj.getJSONArray("themes").optString(0, "tactics") : "tactics";
 
-            PuzzleHistoryItem item = new PuzzleHistoryItem(startFen, solutionMoves, rating, themes, -1);
+            this.isOnlinePuzzle = true;
+            PuzzleHistoryItem item = new PuzzleHistoryItem(startFen, solutionMoves, rating, themes, -1, true);
             addToHistory(item);
 
             boolean isDailyCompleted = false;
@@ -2029,22 +2039,35 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         isFinished = false;
         hintClickCount = 0;
 
-        // Auto-play the first move (which is the opponent's setup move)
-        String firstMove = solutionMoves[0];
-        String from = firstMove.substring(0, 2);
-        String to = firstMove.substring(2);
-        
-        // Auto-orient board based on player turn
-        boolean opponentIsWhite = startFen.contains(" w ");
-        playerIsWhite = !opponentIsWhite;
-        chessboard.setFlipped(!opponentIsWhite);
+        if (isOnlinePuzzle) {
+            // Online/daily puzzle FEN is already after the opponent's setup move
+            boolean playerIsWhiteInFen = startFen.contains(" w ");
+            playerIsWhite = playerIsWhiteInFen;
+            chessboard.setFlipped(!playerIsWhiteInFen);
 
-        chessboard.makeMove(from, to);
-        currentMoveIdx = 1;
-        maxMoveIdxReached = 1;
-        isPlayerTurn = true;
-        chessboard.setInteractable(true);
-        chessboard.setPlayerColor(playerIsWhite ? 'w' : 'b');
+            currentMoveIdx = 0;
+            maxMoveIdxReached = 0;
+            isPlayerTurn = true;
+            chessboard.setInteractable(true);
+            chessboard.setPlayerColor(playerIsWhite ? 'w' : 'b');
+        } else {
+            // Auto-play the first move (which is the opponent's setup move)
+            String firstMove = solutionMoves[0];
+            String from = firstMove.substring(0, 2);
+            String to = firstMove.substring(2);
+            
+            // Auto-orient board based on player turn
+            boolean opponentIsWhite = startFen.contains(" w ");
+            playerIsWhite = !opponentIsWhite;
+            chessboard.setFlipped(!opponentIsWhite);
+
+            chessboard.makeMove(from, to);
+            currentMoveIdx = 1;
+            maxMoveIdxReached = 1;
+            isPlayerTurn = true;
+            chessboard.setInteractable(true);
+            chessboard.setPlayerColor(playerIsWhite ? 'w' : 'b');
+        }
         
         startTimer();
 
@@ -2272,6 +2295,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                         String move = solutionMoves[i];
                         chessboard.makeMove(move.substring(0, 2), move.substring(2));
                     }
+                    hintClickCount = 0;
                     isPlayerTurn = true;
                     chessboard.setInteractable(true);
                     String sideToMoveText = playerIsWhite ? "⬜ White to Move" : "⬛ Black to Move";
