@@ -780,7 +780,25 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         showDownloadProgress("Downloading offline puzzles (0%)...\nPlease wait.", 0);
         new Thread(() -> {
             try {
-                String urlStr = "https://raw.githubusercontent.com/PrathxmOp/Prathxm-Patches/main/lichess_offline_puzzles.csv.gz";
+                String fileSuffix;
+                String urlStr;
+                if (selectedDownloadLimit == 20000) {
+                    fileSuffix = "_20k.csv.gz";
+                    urlStr = "https://raw.githubusercontent.com/PrathxmOp/Prathxm-Patches/main/lichess_offline_puzzles" + fileSuffix;
+                } else if (selectedDownloadLimit == 50000) {
+                    fileSuffix = "_50k.csv.gz";
+                    urlStr = "https://raw.githubusercontent.com/PrathxmOp/Prathxm-Patches/main/lichess_offline_puzzles" + fileSuffix;
+                } else if (selectedDownloadLimit == 100000) {
+                    fileSuffix = "_100k.csv.gz";
+                    urlStr = "https://raw.githubusercontent.com/PrathxmOp/Prathxm-Patches/main/lichess_offline_puzzles" + fileSuffix;
+                } else if (selectedDownloadLimit == 500000) {
+                    fileSuffix = "_500k.csv.gz";
+                    urlStr = "https://raw.githubusercontent.com/PrathxmOp/Prathxm-Patches/main/lichess_offline_puzzles" + fileSuffix;
+                } else {
+                    fileSuffix = "_all.csv.gz";
+                    // For the full dataset (all 6M+ puzzles), use the GitHub Release URL since it exceeds the 100MB git push limit
+                    urlStr = "https://github.com/PrathxmOp/Prathxm-Patches/releases/download/database/lichess_offline_puzzles" + fileSuffix;
+                }
                 URL url = new URL(urlStr);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
@@ -841,6 +859,7 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
                 String line;
                 int count = 0;
                 int totalPuzzles = selectedDownloadLimit;
+                int progressTotal = (totalPuzzles > 500000) ? 6100000 : totalPuzzles;
 
                 while ((line = reader.readLine()) != null) {
                     line = line.trim();
@@ -874,9 +893,9 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
                         
                         final int currentCount = count;
                         runOnUiThread(() -> {
-                            int importProgress = (currentCount * 100) / totalPuzzles;
+                            int importProgress = Math.min(100, (currentCount * 100) / progressTotal);
                             showDownloadProgress(
-                                    String.format(Locale.US, "Importing database...\n%d / %d (%d%%)", currentCount, totalPuzzles, importProgress),
+                                    String.format(Locale.US, "Importing database...\n%d / %d (%d%%)", currentCount, progressTotal, importProgress),
                                     importProgress
                             );
                         });
@@ -982,13 +1001,19 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
             descText.setPadding(0, 0, 0, 32);
             downloadOverlay.addView(descText);
 
-            int[] limits = {20000, 50000, 100000};
-            String[] titles = {"Lightweight Mode", "Standard Mode", "Full Database"};
-            String[] descs = {"20,000 puzzles (~1.0 MB download)", "50,000 puzzles (~2.3 MB download)", "100,000 puzzles (~4.5 MB download)"};
+            int[] limits = {20000, 50000, 100000, 500000, 10000000};
+            String[] titles = {"Lightweight Mode", "Standard Mode", "Full Database", "Mega Database", "All Puzzles"};
+            String[] descs = {
+                "20,000 puzzles (~1.0 MB download)",
+                "50,000 puzzles (~2.3 MB download)",
+                "100,000 puzzles (~4.5 MB download)",
+                "500,000 puzzles (~22 MB download)",
+                "All 6M+ puzzles (~150 MB download)"
+            };
 
             float density = getResources().getDisplayMetrics().density;
 
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < limits.length; i++) {
                 final int limit = limits[i];
                 LinearLayout optBtn = new LinearLayout(this);
                 optBtn.setOrientation(LinearLayout.VERTICAL);

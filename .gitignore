@@ -139,3 +139,4 @@ patches/src/main/resources/stockfish/armeabi-v7a/stockfish
 scratch/
 
 morphe-data/
+lichess_offline_puzzles_all.csv.gz
