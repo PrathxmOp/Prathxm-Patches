@@ -9,12 +9,18 @@ import android.view.MotionEvent;
 import android.view.View;
 
 public class LichessBoardView extends View {
-    private final int COLOR_LIGHT = Color.parseColor("#EEEED2");
-    private final int COLOR_DARK = Color.parseColor("#769656");
+    private int COLOR_LIGHT = Color.parseColor("#EEEED2");
+    private int COLOR_DARK = Color.parseColor("#769656");
     private final int COLOR_SELECTED = Color.argb(130, 247, 247, 105);
     private final int COLOR_LAST_MOVE = Color.argb(120, 186, 202, 68); // #baca44 with opacity
     private final int COLOR_HINT = Color.argb(150, 243, 156, 18); // soft orange for hints
     private final int COLOR_ARROW = Color.argb(180, 243, 156, 18); // orange for arrows
+
+    public void setBoardThemeColors(int lightColor, int darkColor) {
+        this.COLOR_LIGHT = lightColor;
+        this.COLOR_DARK = darkColor;
+        invalidate();
+    }
     
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private boolean isFlipped = false;
@@ -40,6 +46,17 @@ public class LichessBoardView extends View {
     private int arrowToFile = -1;
     private int arrowToRank = -1;
     
+    private boolean isInteractable = false;
+    private char playerColor = 'w'; // 'w' or 'b'
+    
+    public void setInteractable(boolean interactable) {
+        this.isInteractable = interactable;
+    }
+    
+    public void setPlayerColor(char color) {
+        this.playerColor = color;
+    }
+    
     public interface BoardListener {
         void onMove(String fromSquare, String toSquare);
     }
@@ -48,6 +65,7 @@ public class LichessBoardView extends View {
 
     public LichessBoardView(Context context) {
         super(context);
+        paint.setFilterBitmap(true);
     }
 
     public void setBoardListener(BoardListener listener) {
@@ -169,12 +187,7 @@ public class LichessBoardView extends View {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int width = MeasureSpec.getSize(widthMeasureSpec);
-        int height = MeasureSpec.getSize(heightMeasureSpec);
-        int size = Math.min(width, height);
-        if (size == 0) {
-            size = 800; // Fallback default size
-        }
-        setMeasuredDimension(size, size);
+        setMeasuredDimension(width, width);
     }
 
     @Override
@@ -284,8 +297,48 @@ public class LichessBoardView extends View {
                                 // Padding around piece for perfect spacing
                                 int pad = (int) (squareSize * 0.05f);
                                 
-                                drawable.setBounds(left + pad, top + pad, right - pad, bottom - pad);
-                                drawable.draw(canvas);
+                                if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
+                                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
+                                    if (bitmap != null) {
+                                        int bmpW = bitmap.getWidth();
+                                        int bmpH = bitmap.getHeight();
+                                        int intrinsicHeight = (bmpH * 2) / 3;
+                                        
+                                        android.graphics.Rect srcRect = new android.graphics.Rect();
+                                        int destWidth = right - left - 2 * pad;
+                                        
+                                        if (destWidth < bmpW / 8) {
+                                            srcRect.left = (bmpW / 2) + (bmpW / 4);
+                                            srcRect.right = (bmpW / 2) + (bmpW / 4) + (bmpW / 8);
+                                            srcRect.top = intrinsicHeight;
+                                            srcRect.bottom = intrinsicHeight + (intrinsicHeight / 8);
+                                        } else if (destWidth < bmpW / 4) {
+                                            srcRect.left = bmpW / 2;
+                                            srcRect.right = (bmpW / 2) + (bmpW / 4);
+                                            srcRect.top = intrinsicHeight;
+                                            srcRect.bottom = intrinsicHeight + (intrinsicHeight / 4);
+                                        } else if (destWidth < bmpW / 2) {
+                                            srcRect.left = 0;
+                                            srcRect.right = bmpW / 2;
+                                            srcRect.top = intrinsicHeight;
+                                            srcRect.bottom = intrinsicHeight + (intrinsicHeight / 2);
+                                        } else {
+                                            srcRect.left = 0;
+                                            srcRect.right = bmpW;
+                                            srcRect.top = 0;
+                                            srcRect.bottom = intrinsicHeight;
+                                        }
+                                        
+                                        android.graphics.Rect dstRect = new android.graphics.Rect(left + pad, top + pad, right - pad, bottom - pad);
+                                        canvas.drawBitmap(bitmap, srcRect, dstRect, paint);
+                                    } else {
+                                        drawable.setBounds(left + pad, top + pad, right - pad, bottom - pad);
+                                        drawable.draw(canvas);
+                                    }
+                                } else {
+                                    drawable.setBounds(left + pad, top + pad, right - pad, bottom - pad);
+                                    drawable.draw(canvas);
+                                }
                             }
                         }
                     }
@@ -372,6 +425,8 @@ public class LichessBoardView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (!isInteractable) return false;
+        
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             float squareSize = getWidth() / 8.0f;
             int drawFile = (int) (event.getX() / squareSize);
@@ -383,10 +438,15 @@ public class LichessBoardView extends View {
                 
                 if (selectedFile == -1 && selectedRank == -1) {
                     // Selecting a piece
-                    if (board[r][f] != ' ') {
-                        selectedFile = f;
-                        selectedRank = r;
-                        invalidate();
+                    char piece = board[r][f];
+                    if (piece != ' ') {
+                        boolean isPieceWhite = Character.isUpperCase(piece);
+                        boolean isPlayerWhite = (playerColor == 'w');
+                        if (isPieceWhite == isPlayerWhite) {
+                            selectedFile = f;
+                            selectedRank = r;
+                            invalidate();
+                        }
                     }
                 } else {
                     // Moving a piece
