@@ -72,9 +72,9 @@ You can scan the QR code below or click the payment link:
 ## 🩹 Patches List
 
 <!-- PATCHES_START EXPANDED -->
-> **[v1.3.1](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.3.1)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;2 patches total
+> **[v1.4.0](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.4.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;3 patches total
 <details open>
-<summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;2 patches</summary>
+<summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;3 patches</summary>
 <br>
 
 **🎯 Supported versions:**
@@ -85,8 +85,8 @@ You can scan the QR code below or click the payment link:
 | 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
 |----------|----------------|-----------|
 | [Ad-Free & Local Analysis](#ad-free-local-analysis) | Removes advertisements, unlocks ad-free features, and enables local Stockfish engine for post-game review & analysis. |  |
-| [Lichess Puzzle Journey](#lichess-puzzle-journey) | Embeds a standalone, premium, and fully-featured Lichess Daily Puzzle & level-based Puzzle Journey within the app. |  |
 | [Clone Chess.com](#clone-chess-com) | Changes the package name to com.chess.prathxm, allowing the patched app to be installed side-by-side with the original Chess.com app. |  |
+| [Lichess Puzzles](#lichess-puzzles) | Loads daily puzzles from Lichess and bypasses Chess.com puzzle premium limits. |  |
 
 </details>
 
