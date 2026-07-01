@@ -257,12 +257,35 @@ public class PuzzleJourneyMapView extends View {
                 if (pawnResId != 0) {
                     Drawable pawn = getContext().getResources().getDrawable(pawnResId, null);
                     if (pawn != null) {
+                        pawn = pawn.mutate();
                         int pSize = (int) (gemSize * 1.5f);
-                        pawn.setBounds((int) px - pSize / 2, (int) py - pSize, (int) px + pSize / 2, (int) py);
-                        
-                        int sc = canvas.save();
-                        pawn.draw(canvas);
-                        canvas.restoreToCount(sc);
+                        int left = (int) px - pSize / 2;
+                        int top = (int) py - pSize;
+                        int right = (int) px + pSize / 2;
+                        int bottom = (int) py;
+
+                        if (pawn instanceof android.graphics.drawable.BitmapDrawable) {
+                            android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) pawn).getBitmap();
+                            if (bitmap != null && !bitmap.isRecycled()) {
+                                int bmpW = bitmap.getWidth();
+                                int bmpH = bitmap.getHeight();
+                                // Crop top 2/3 containing the high-res piece
+                                int intrinsicHeight = (bmpH * 2) / 3;
+                                android.graphics.Rect srcRect = new android.graphics.Rect(0, 0, bmpW, intrinsicHeight);
+                                android.graphics.Rect dstRect = new android.graphics.Rect(left, top, right, bottom);
+                                
+                                Paint piecePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                                piecePaint.setAlpha(255);
+                                piecePaint.setColorFilter(null);
+                                canvas.drawBitmap(bitmap, srcRect, dstRect, piecePaint);
+                            } else {
+                                pawn.setBounds(left, top, right, bottom);
+                                pawn.draw(canvas);
+                            }
+                        } else {
+                            pawn.setBounds(left, top, right, bottom);
+                            pawn.draw(canvas);
+                        }
                     }
                 }
             }

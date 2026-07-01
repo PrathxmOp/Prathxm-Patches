@@ -23,6 +23,7 @@ public class LichessBoardView extends View {
     }
     
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint piecePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private boolean isFlipped = false;
     
     // Board state: 8x8 matrix of pieces (e.g. 'P', 'p', 'N', etc. or ' ')
@@ -66,6 +67,7 @@ public class LichessBoardView extends View {
     public LichessBoardView(Context context) {
         super(context);
         paint.setFilterBitmap(true);
+        piecePaint.setFilterBitmap(true);
     }
 
     public void setBoardListener(BoardListener listener) {
@@ -240,13 +242,21 @@ public class LichessBoardView extends View {
         super.onDraw(canvas);
         float squareSize = getWidth() / 8.0f;
         
-        // Draw squares
+        java.util.List<int[]> legalDests = null;
+        if (selectedFile != -1 && selectedRank != -1) {
+            legalDests = getLegalDestinations(selectedFile, selectedRank);
+        }
+
+        // Draw squares, highlights, indicators, and pieces
         for (int r = 0; r < 8; r++) {
             for (int f = 0; f < 8; f++) {
                 int drawRank = isFlipped ? 7 - r : r;
                 int drawFile = isFlipped ? 7 - f : f;
                 
                 // Draw base square color
+                paint.setStyle(Paint.Style.FILL);
+                paint.setStrokeWidth(0);
+                paint.setTextAlign(Paint.Align.LEFT);
                 paint.setColor((r + f) % 2 == 0 ? COLOR_LIGHT : COLOR_DARK);
                 canvas.drawRect(
                         drawFile * squareSize,
@@ -292,34 +302,30 @@ public class LichessBoardView extends View {
                     );
                 }
 
-                // Draw coordinate numbers (ranks 1-8) on left-most visible file
-                if (drawFile == 0) {
-                    int rankNum = isFlipped ? (r + 1) : (8 - r);
-                    paint.setColor((r + f) % 2 == 0 ? COLOR_DARK : COLOR_LIGHT);
-                    paint.setTextSize(squareSize * 0.18f);
-                    paint.setTypeface(android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD));
-                    paint.setTextAlign(Paint.Align.LEFT);
-                    canvas.drawText(
-                            String.valueOf(rankNum),
-                            drawFile * squareSize + (squareSize * 0.06f),
-                            drawRank * squareSize + (squareSize * 0.20f),
-                            paint
-                    );
-                }
-                
-                // Draw coordinate letters (files a-h) on bottom-most visible rank
-                if (drawRank == 7) {
-                    char fileChar = isFlipped ? (char) ('h' - f) : (char) ('a' + f);
-                    paint.setColor((r + f) % 2 == 0 ? COLOR_DARK : COLOR_LIGHT);
-                    paint.setTextSize(squareSize * 0.18f);
-                    paint.setTypeface(android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD));
-                    paint.setTextAlign(Paint.Align.RIGHT);
-                    canvas.drawText(
-                            String.valueOf(fileChar),
-                            (drawFile + 1) * squareSize - (squareSize * 0.06f),
-                            (drawRank + 1) * squareSize - (squareSize * 0.06f),
-                            paint
-                    );
+                // Draw legal move indicator if this square is a legal destination
+                if (legalDests != null) {
+                    boolean isLegal = false;
+                    for (int[] d : legalDests) {
+                        if (d[0] == f && d[1] == r) {
+                            isLegal = true;
+                            break;
+                        }
+                    }
+                    if (isLegal) {
+                        float centerX = drawFile * squareSize + squareSize / 2.0f;
+                        float centerY = drawRank * squareSize + squareSize / 2.0f;
+                        char target = board[r][f];
+                        if (target == ' ') {
+                            paint.setStyle(Paint.Style.FILL);
+                            paint.setColor(Color.argb(45, 0, 0, 0));
+                            canvas.drawCircle(centerX, centerY, squareSize * 0.14f, paint);
+                        } else {
+                            paint.setStyle(Paint.Style.STROKE);
+                            paint.setStrokeWidth(squareSize * 0.08f);
+                            paint.setColor(Color.argb(45, 0, 0, 0));
+                            canvas.drawCircle(centerX, centerY, squareSize * 0.43f, paint);
+                        }
+                    }
                 }
                 
                 // Draw piece drawable from host application assets
@@ -334,6 +340,10 @@ public class LichessBoardView extends View {
                         if (resId != 0) {
                             Drawable drawable = getContext().getResources().getDrawable(resId, null);
                             if (drawable != null) {
+                                drawable = drawable.mutate();
+                                drawable.setAlpha(255);
+                                drawable.setColorFilter(null);
+
                                 int left = (int) (drawFile * squareSize);
                                 int top = (int) (drawRank * squareSize);
                                 int right = (int) ((drawFile + 1) * squareSize);
@@ -344,38 +354,16 @@ public class LichessBoardView extends View {
                                 
                                 if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
                                     android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
-                                    if (bitmap != null) {
+                                    if (bitmap != null && !bitmap.isRecycled()) {
                                         int bmpW = bitmap.getWidth();
                                         int bmpH = bitmap.getHeight();
+                                        // Crop top 2/3 containing the high-res piece
                                         int intrinsicHeight = (bmpH * 2) / 3;
-                                        
-                                        android.graphics.Rect srcRect = new android.graphics.Rect();
-                                        int destWidth = right - left - 2 * pad;
-                                        
-                                        if (destWidth < bmpW / 8) {
-                                            srcRect.left = (bmpW / 2) + (bmpW / 4);
-                                            srcRect.right = (bmpW / 2) + (bmpW / 4) + (bmpW / 8);
-                                            srcRect.top = intrinsicHeight;
-                                            srcRect.bottom = intrinsicHeight + (intrinsicHeight / 8);
-                                        } else if (destWidth < bmpW / 4) {
-                                            srcRect.left = bmpW / 2;
-                                            srcRect.right = (bmpW / 2) + (bmpW / 4);
-                                            srcRect.top = intrinsicHeight;
-                                            srcRect.bottom = intrinsicHeight + (intrinsicHeight / 4);
-                                        } else if (destWidth < bmpW / 2) {
-                                            srcRect.left = 0;
-                                            srcRect.right = bmpW / 2;
-                                            srcRect.top = intrinsicHeight;
-                                            srcRect.bottom = intrinsicHeight + (intrinsicHeight / 2);
-                                        } else {
-                                            srcRect.left = 0;
-                                            srcRect.right = bmpW;
-                                            srcRect.top = 0;
-                                            srcRect.bottom = intrinsicHeight;
-                                        }
-                                        
+                                        android.graphics.Rect srcRect = new android.graphics.Rect(0, 0, bmpW, intrinsicHeight);
                                         android.graphics.Rect dstRect = new android.graphics.Rect(left + pad, top + pad, right - pad, bottom - pad);
-                                        canvas.drawBitmap(bitmap, srcRect, dstRect, paint);
+                                        piecePaint.setAlpha(255);
+                                        piecePaint.setColorFilter(null);
+                                        canvas.drawBitmap(bitmap, srcRect, dstRect, piecePaint);
                                     } else {
                                         drawable.setBounds(left + pad, top + pad, right - pad, bottom - pad);
                                         drawable.draw(canvas);
@@ -387,6 +375,43 @@ public class LichessBoardView extends View {
                             }
                         }
                     }
+                }
+            }
+        }
+
+        // Draw coordinate text over everything else
+        for (int r = 0; r < 8; r++) {
+            for (int f = 0; f < 8; f++) {
+                int drawRank = isFlipped ? 7 - r : r;
+                int drawFile = isFlipped ? 7 - f : f;
+
+                paint.setTextSize(squareSize * 0.18f);
+                paint.setTypeface(android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD));
+
+                // Draw rank numbers (1-8) on left-most visible file
+                if (drawFile == 0) {
+                    int rankNum = isFlipped ? (r + 1) : (8 - r);
+                    paint.setColor((r + f) % 2 == 0 ? COLOR_DARK : COLOR_LIGHT);
+                    paint.setTextAlign(Paint.Align.LEFT);
+                    canvas.drawText(
+                            String.valueOf(rankNum),
+                            drawFile * squareSize + (squareSize * 0.06f),
+                            drawRank * squareSize + (squareSize * 0.20f),
+                            paint
+                    );
+                }
+                
+                // Draw file letters (a-h) on bottom-most visible rank
+                if (drawRank == 7) {
+                    char fileChar = isFlipped ? (char) ('h' - f) : (char) ('a' + f);
+                    paint.setColor((r + f) % 2 == 0 ? COLOR_DARK : COLOR_LIGHT);
+                    paint.setTextAlign(Paint.Align.RIGHT);
+                    canvas.drawText(
+                            String.valueOf(fileChar),
+                            (drawFile + 1) * squareSize - (squareSize * 0.06f),
+                            (drawRank + 1) * squareSize - (squareSize * 0.06f),
+                            paint
+                    );
                 }
             }
         }
@@ -468,6 +493,146 @@ public class LichessBoardView extends View {
         return Character.isUpperCase(p1) == Character.isUpperCase(p2);
     }
 
+    private java.util.List<int[]> getLegalDestinations(int f, int r) {
+        java.util.List<int[]> dests = new java.util.ArrayList<>();
+        if (f < 0 || f >= 8 || r < 0 || r >= 8) return dests;
+        char piece = board[r][f];
+        if (piece == ' ') return dests;
+
+        boolean isWhite = Character.isUpperCase(piece);
+        char type = Character.toLowerCase(piece);
+
+        switch (type) {
+            case 'p': {
+                int dir = isWhite ? -1 : 1;
+                int nextR = r + dir;
+                if (nextR >= 0 && nextR < 8 && board[nextR][f] == ' ') {
+                    dests.add(new int[]{f, nextR});
+                    int startRow = isWhite ? 6 : 1;
+                    if (r == startRow) {
+                        int nextR2 = r + 2 * dir;
+                        if (board[nextR2][f] == ' ') {
+                            dests.add(new int[]{f, nextR2});
+                        }
+                    }
+                }
+                int[] capFiles = {f - 1, f + 1};
+                for (int cf : capFiles) {
+                    if (cf >= 0 && cf < 8 && nextR >= 0 && nextR < 8) {
+                        char target = board[nextR][cf];
+                        if (target != ' ' && Character.isUpperCase(target) != isWhite) {
+                            dests.add(new int[]{cf, nextR});
+                        }
+                    }
+                }
+                break;
+            }
+            case 'n': {
+                int[][] jumps = {
+                    {1, 2}, {1, -2}, {-1, 2}, {-1, -2},
+                    {2, 1}, {2, -1}, {-2, 1}, {-2, -1}
+                };
+                for (int[] j : jumps) {
+                    int nf = f + j[0];
+                    int nr = r + j[1];
+                    if (nf >= 0 && nf < 8 && nr >= 0 && nr < 8) {
+                        char target = board[nr][nf];
+                        if (target == ' ' || Character.isUpperCase(target) != isWhite) {
+                            dests.add(new int[]{nf, nr});
+                        }
+                    }
+                }
+                break;
+            }
+            case 'k': {
+                for (int dr = -1; dr <= 1; dr++) {
+                    for (int df = -1; df <= 1; df++) {
+                        if (dr == 0 && df == 0) continue;
+                        int nf = f + df;
+                        int nr = r + dr;
+                        if (nf >= 0 && nf < 8 && nr >= 0 && nr < 8) {
+                            char target = board[nr][nf];
+                            if (target == ' ' || Character.isUpperCase(target) != isWhite) {
+                                dests.add(new int[]{nf, nr});
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+            case 'r': {
+                int[][] dirs = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+                for (int[] d : dirs) {
+                    int nf = f;
+                    int nr = r;
+                    while (true) {
+                        nf += d[0];
+                        nr += d[1];
+                        if (nf < 0 || nf >= 8 || nr < 0 || nr >= 8) break;
+                        char target = board[nr][nf];
+                        if (target == ' ') {
+                            dests.add(new int[]{nf, nr});
+                        } else {
+                            if (Character.isUpperCase(target) != isWhite) {
+                                dests.add(new int[]{nf, nr});
+                            }
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+            case 'b': {
+                int[][] dirs = {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+                for (int[] d : dirs) {
+                    int nf = f;
+                    int nr = r;
+                    while (true) {
+                        nf += d[0];
+                        nr += d[1];
+                        if (nf < 0 || nf >= 8 || nr < 0 || nr >= 8) break;
+                        char target = board[nr][nf];
+                        if (target == ' ') {
+                            dests.add(new int[]{nf, nr});
+                        } else {
+                            if (Character.isUpperCase(target) != isWhite) {
+                                dests.add(new int[]{nf, nr});
+                            }
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+            case 'q': {
+                int[][] dirs = {
+                    {0, 1}, {0, -1}, {1, 0}, {-1, 0},
+                    {1, 1}, {1, -1}, {-1, 1}, {-1, -1}
+                };
+                for (int[] d : dirs) {
+                    int nf = f;
+                    int nr = r;
+                    while (true) {
+                        nf += d[0];
+                        nr += d[1];
+                        if (nf < 0 || nf >= 8 || nr < 0 || nr >= 8) break;
+                        char target = board[nr][nf];
+                        if (target == ' ') {
+                            dests.add(new int[]{nf, nr});
+                        } else {
+                            if (Character.isUpperCase(target) != isWhite) {
+                                dests.add(new int[]{nf, nr});
+                            }
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        return dests;
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (!isInteractable) return false;
@@ -486,8 +651,8 @@ public class LichessBoardView extends View {
                     char piece = board[r][f];
                     if (piece != ' ') {
                         boolean isPieceWhite = Character.isUpperCase(piece);
-                        boolean isPlayerWhite = (playerColor == 'w');
-                        if (isPieceWhite == isPlayerWhite) {
+                        boolean isPlayerWhite = (playerColor == 'w' || playerColor == 'a');
+                        if (isPieceWhite == isPlayerWhite || playerColor == 'a') {
                             selectedFile = f;
                             selectedRank = r;
                             invalidate();
@@ -506,10 +671,21 @@ public class LichessBoardView extends View {
                         selectedRank = r;
                         invalidate();
                     } else {
-                        String fromSquare = toAlgebraic(selectedFile, selectedRank);
-                        String toSquare = toAlgebraic(f, r);
-                        if (listener != null) {
-                            listener.onMove(fromSquare, toSquare);
+                        // Move validation
+                        java.util.List<int[]> legal = getLegalDestinations(selectedFile, selectedRank);
+                        boolean isLegal = false;
+                        for (int[] d : legal) {
+                            if (d[0] == f && d[1] == r) {
+                                isLegal = true;
+                                break;
+                            }
+                        }
+                        if (isLegal) {
+                            String fromSquare = toAlgebraic(selectedFile, selectedRank);
+                            String toSquare = toAlgebraic(f, r);
+                            if (listener != null) {
+                                listener.onMove(fromSquare, toSquare);
+                            }
                         }
                         selectedFile = -1;
                         selectedRank = -1;

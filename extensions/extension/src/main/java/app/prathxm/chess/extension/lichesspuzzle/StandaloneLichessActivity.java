@@ -63,6 +63,8 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     private int soundCorrectId = -1;
     private int soundIncorrectId = -1;
     private int soundSolvedId = -1;
+    private int soundMoveSelfId = -1;
+    private int soundCaptureId = -1;
 
     // Puzzle modes
     private String activeMode = "daily";
@@ -81,10 +83,12 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     
     // Game State
     private String startFen;
+    private String currentPuzzleId = null;
     private String[] solutionMoves;
     private int currentMoveIdx = 0;
     private boolean isPlayerTurn = false;
     private boolean isFinished = false;
+    private boolean isAnalysisMode = false;
     private boolean playerIsWhite = true;
     private LinearLayout actionsLayout;
     private View speechBubbleTail;
@@ -310,7 +314,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         );
         coachLayout.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
+                (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 110, getResources().getDisplayMetrics())
         ));
 
         // Coach Avatar
@@ -709,8 +713,6 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                 actionsLayout.addView(createActionItem("glyph_arrow_chevron_left", "Back", v -> {
                     if (solutionMoves != null && currentMoveIdx > 1) {
                         undoLastMove();
-                    } else {
-                        loadPreviousPuzzle();
                     }
                 }));
 
@@ -718,33 +720,52 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                 actionsLayout.addView(createActionItem("glyph_arrow_chevron_right", "Forward", v -> {
                     if (solutionMoves != null && currentMoveIdx < maxMoveIdxReached) {
                         redoNextMove();
-                    } else {
-                        if (!isFinished) {
-                            currentStreak = 0;
-                            getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
-                                    .edit()
-                                    .putInt("puzzle_streak", currentStreak)
-                                    .apply();
-                        }
-                        loadNextPuzzle();
                     }
                 }));
             } else {
-                // Solved: Restart, Analysis, Next (Green Button)
-                // Restart
-                actionsLayout.addView(createActionItem("glyph_arrow_spin_redo", "Restart", v -> {
-                    resetPuzzleState();
-                }));
+                boolean isDailyCompleted = false;
+                if (activeMode.equals("daily") && currentPuzzleId != null) {
+                    String completedId = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                            .getString("completed_daily_puzzle_id", "");
+                    if (currentPuzzleId.equals(completedId)) {
+                        isDailyCompleted = true;
+                    }
+                }
 
-                // Analysis
-                actionsLayout.addView(createActionItem("glyph_board_analysis", "Analysis", v -> {
-                    chessboard.setInteractable(true);
-                    chessboard.setPlayerColor('a'); // 'a' for any / both sides
-                    updateSpeechBubble("🔍 Analysis Mode", "Explore moves freely on the board.", Color.parseColor("#2980B9"));
-                }));
+                if (isAnalysisMode) {
+                    // In Analysis Mode: Reset, Next (Green Button)
+                    final boolean dailyComp = isDailyCompleted;
+                    actionsLayout.addView(createActionItem("glyph_arrow_spin_redo", "Reset", v -> {
+                        if (dailyComp) {
+                            updateSpeechBubble("🎉 Completed!", "Today's daily puzzle is complete!", COLOR_GREEN);
+                            return;
+                        }
+                        isAnalysisMode = false;
+                        resetPuzzleState();
+                    }));
 
-                // Next (Green Button)
-                actionsLayout.addView(createGreenNextButton());
+                    actionsLayout.addView(createGreenNextButton());
+                } else {
+                    // Solved: Restart, Analysis, Next (Green Button)
+                    // Restart
+                    if (!isDailyCompleted) {
+                        actionsLayout.addView(createActionItem("glyph_arrow_spin_redo", "Restart", v -> {
+                            resetPuzzleState();
+                        }));
+                    }
+
+                    // Analysis
+                    actionsLayout.addView(createActionItem("glyph_board_analysis", "Analysis", v -> {
+                        isAnalysisMode = true;
+                        chessboard.setInteractable(true);
+                        chessboard.setPlayerColor('a'); // 'a' for any / both sides
+                        updateSpeechBubble("🔍 Analysis Mode", "Explore moves freely on the board.", Color.parseColor("#2980B9"));
+                        updateBottomActionPanel();
+                    }));
+
+                    // Next (Green Button)
+                    actionsLayout.addView(createGreenNextButton());
+                }
             }
         });
     }
@@ -760,13 +781,30 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         params.leftMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
         btnLayout.setLayoutParams(params);
 
+        boolean isDailyCompleted = false;
+        if (activeMode.equals("daily") && currentPuzzleId != null) {
+            String completedId = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                    .getString("completed_daily_puzzle_id", "");
+            if (currentPuzzleId.equals(completedId)) {
+                isDailyCompleted = true;
+            }
+        }
+
         GradientDrawable bg = new GradientDrawable();
-        bg.setColor(Color.parseColor("#81B64C"));
+        if (isDailyCompleted) {
+            bg.setColor(Color.parseColor("#5F5E5C"));
+        } else {
+            bg.setColor(Color.parseColor("#81B64C"));
+        }
         bg.setCornerRadius(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics()));
         btnLayout.setBackground(bg);
 
         TextView text = new TextView(this);
-        text.setText("Next");
+        if (isDailyCompleted) {
+            text.setText("Daily Completed");
+        } else {
+            text.setText("Next");
+        }
         text.setTextColor(Color.WHITE);
         text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         if (fontBold != null) {
@@ -777,11 +815,16 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         text.setGravity(Gravity.CENTER);
         btnLayout.addView(text);
 
-        btnLayout.setClickable(true);
-        btnLayout.setFocusable(true);
-        btnLayout.setOnClickListener(v -> {
-            loadNextPuzzle();
-        });
+        if (isDailyCompleted) {
+            btnLayout.setClickable(false);
+            btnLayout.setFocusable(false);
+        } else {
+            btnLayout.setClickable(true);
+            btnLayout.setFocusable(true);
+            btnLayout.setOnClickListener(v -> {
+                loadNextPuzzle();
+            });
+        }
 
         return btnLayout;
     }
@@ -897,9 +940,6 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     private void showThemeSettingsDialog() {
         android.app.Dialog dialog = new android.app.Dialog(this);
         dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
-        }
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -928,8 +968,13 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         String[] lightColors = {"#EEEED2", "#F0D9B5", "#EFEFEF", "#E2E4E6", "#ECECD7"};
         String[] darkColors = {"#769656", "#B58863", "#7296B6", "#97A3AF", "#567676"};
 
+        android.content.SharedPreferences prefs = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE);
+        String savedLight = prefs.getString("board_theme_light", "#EEEED2");
+
         for (int i = 0; i < themes.length; i++) {
             final int which = i;
+            boolean isSelected = lightColors[i].equalsIgnoreCase(savedLight);
+
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
@@ -949,6 +994,10 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             GradientDrawable rowBg = new GradientDrawable();
             rowBg.setColor(Color.parseColor("#312E2B"));
             rowBg.setCornerRadius(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics()));
+            
+            if (isSelected) {
+                rowBg.setStroke((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2, getResources().getDisplayMetrics()), Color.parseColor("#81B64C"));
+            }
             row.setBackground(rowBg);
 
             // 2x2 chess square preview
@@ -1002,6 +1051,18 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             if (fontBold != null) text.setTypeface(fontBold);
             row.addView(text);
 
+            if (isSelected) {
+                View spacer = new View(this);
+                row.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1.0f));
+                
+                TextView checkMark = new TextView(this);
+                checkMark.setText("✔");
+                checkMark.setTextColor(Color.parseColor("#81B64C"));
+                checkMark.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+                if (fontBold != null) checkMark.setTypeface(fontBold);
+                row.addView(checkMark);
+            }
+
             row.setOnClickListener(v -> {
                 getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
                     .edit()
@@ -1016,6 +1077,12 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         }
 
         dialog.setContentView(root);
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+            android.view.WindowManager.LayoutParams params = dialog.getWindow().getAttributes();
+            params.width = (int) (getResources().getDisplayMetrics().widthPixels * 0.85);
+            dialog.getWindow().setAttributes(params);
+        }
         dialog.show();
     }
 
@@ -1810,13 +1877,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             return;
         }
 
-        if (!isFinished) {
-            currentStreak = 0;
-            getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
-                    .edit()
-                    .putInt("puzzle_streak", 0)
-                    .apply();
-        }
+
 
         if (historyIndex < puzzleHistory.size() - 1) {
             historyIndex++;
@@ -1825,9 +1886,13 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             int levelIndex = getIntent().getIntExtra("level_index", -1);
             if (levelIndex != -1) {
                 int nextLevel = levelIndex + 1;
-                if (nextLevel <= offlinePuzzles.size()) {
+                int unlockedLevel = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                        .getInt("unlocked_level", 1);
+                if (nextLevel <= unlockedLevel && nextLevel <= offlinePuzzles.size()) {
                     getIntent().putExtra("level_index", nextLevel);
                     loadSpecificOfflineLevel(nextLevel);
+                } else if (nextLevel > unlockedLevel) {
+                    updateSpeechBubble("Locked 🔒", "Solve the current puzzle to unlock the next level!", COLOR_RED);
                 } else {
                     updateSpeechBubble("Completed!", "You have completed all levels!", COLOR_GREEN);
                 }
@@ -1856,6 +1921,14 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             showError("No offline puzzles available.");
             return;
         }
+
+        int unlockedLevel = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                .getInt("unlocked_level", 1);
+        if (levelIndex > unlockedLevel) {
+            levelIndex = unlockedLevel;
+            getIntent().putExtra("level_index", levelIndex);
+        }
+
         int idx = levelIndex - 1;
         if (idx < 0 || idx >= offlinePuzzles.size()) {
             showError("Invalid level select: " + levelIndex);
@@ -1867,6 +1940,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
 
     private void initOfflinePuzzle(JSONObject puzzleObj) {
         try {
+            currentPuzzleId = puzzleObj.optString("id", null);
             startFen = puzzleObj.getString("fen");
             String movesStr = puzzleObj.getString("moves");
             solutionMoves = movesStr.split(" ");
@@ -1895,6 +1969,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             JSONObject root = new JSONObject(jsonString);
             JSONObject puzzleObj = root.getJSONObject("puzzle");
 
+            currentPuzzleId = puzzleObj.optString("id", null);
             startFen = puzzleObj.getString("fen");
             JSONArray solutionArr = puzzleObj.getJSONArray("solution");
             
@@ -1910,10 +1985,33 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             PuzzleHistoryItem item = new PuzzleHistoryItem(startFen, solutionMoves, rating, themes, -1);
             addToHistory(item);
 
+            boolean isDailyCompleted = false;
+            if (activeMode.equals("daily") && currentPuzzleId != null) {
+                String completedId = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                        .getString("completed_daily_puzzle_id", "");
+                if (currentPuzzleId.equals(completedId)) {
+                    isDailyCompleted = true;
+                }
+            }
+
+            final boolean finalIsDailyCompleted = isDailyCompleted;
             runOnUiThread(() -> {
                 progressBar.setVisibility(View.GONE);
                 updatePuzzleHeaderAndStats(-1, rating, themes);
-                resetPuzzleState();
+                if (finalIsDailyCompleted) {
+                    isFinished = true;
+                    isPlayerTurn = false;
+                    chessboard.setFEN(startFen);
+                    chessboard.setInteractable(false);
+                    if (solutionMoves != null && solutionMoves.length > 0) {
+                        String firstMove = solutionMoves[0];
+                        chessboard.makeMove(firstMove.substring(0, 2), firstMove.substring(2));
+                    }
+                    updateSpeechBubble("🎉 Completed!", "Today's daily puzzle is complete!", COLOR_GREEN);
+                    updateBottomActionPanel();
+                } else {
+                    resetPuzzleState();
+                }
             });
         } catch (Exception e) {
             Log.e(TAG, "Failed to parse online puzzle", e);
@@ -1924,6 +2022,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     private void resetPuzzleState() {
         if (startFen == null || solutionMoves == null || solutionMoves.length == 0) return;
 
+        isAnalysisMode = false;
         updateCoachAvatar();
         chessboard.setFEN(startFen);
         currentMoveIdx = 0;
@@ -1981,7 +2080,11 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
 
         // Replay the player's move
         String playerMove = solutionMoves[currentMoveIdx];
-        chessboard.makeMove(playerMove.substring(0, 2), playerMove.substring(2));
+        String fromP = playerMove.substring(0, 2);
+        String toP = playerMove.substring(2, 4);
+        boolean isCaptureP = chessboard.getPieceAt(toP) != ' ';
+        chessboard.makeMove(fromP, toP);
+        playMoveSound(isCaptureP);
         currentMoveIdx++;
         playSound("sounds/puzzles/correct.mp3");
 
@@ -2000,9 +2103,12 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         // Replay the opponent's reply (if it was already reached/played before)
         if (currentMoveIdx < maxMoveIdxReached) {
             String opponentMove = solutionMoves[currentMoveIdx];
-            chessboard.makeMove(opponentMove.substring(0, 2), opponentMove.substring(2));
+            String fromO = opponentMove.substring(0, 2);
+            String toO = opponentMove.substring(2, 4);
+            boolean isCaptureO = chessboard.getPieceAt(toO) != ' ';
+            chessboard.makeMove(fromO, toO);
+            playMoveSound(isCaptureO);
             currentMoveIdx++;
-            playSound("sounds/puzzles/correct.mp3");
         }
 
         // Update turn indicator
@@ -2012,12 +2118,25 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
 
     @Override
     public void onMove(String fromSquare, String toSquare) {
+        // Check if move is a capture first
+        char targetPiece = chessboard.getPieceAt(toSquare);
+        boolean isCapture = targetPiece != ' ';
+
+        if (isAnalysisMode) {
+            chessboard.makeMove(fromSquare, toSquare);
+            playMoveSound(isCapture);
+            return;
+        }
+
         if (!isPlayerTurn || isFinished) return;
 
         String playerMove = fromSquare + toSquare;
         String expectedMove = solutionMoves[currentMoveIdx];
 
         if (playerMove.equalsIgnoreCase(expectedMove.substring(0, 4))) {
+            // Play move/capture sound
+            playMoveSound(isCapture);
+            
             chessboard.makeMove(fromSquare, expectedMove.substring(2));
             currentMoveIdx++;
             if (currentMoveIdx > maxMoveIdxReached) {
@@ -2074,17 +2193,31 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                                     .apply();
                         }
                     }
+
+                    // Save daily puzzle completion
+                    if (activeMode.equals("daily") && currentPuzzleId != null) {
+                        getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                                .edit()
+                                .putString("completed_daily_puzzle_id", currentPuzzleId)
+                                .apply();
+                        updateSpeechBubble("🎉 Success!", "Today's daily puzzle is complete!", COLOR_GREEN);
+                        updateBottomActionPanel();
+                    }
                 }
             } else {
                 isPlayerTurn = false;
                 chessboard.setInteractable(false);
                 updateSpeechBubble("✅ Correct!", "Opponent is moving...", COLOR_GREEN);
-                playSound("sounds/puzzles/correct.mp3");
                 
                 chessboard.postDelayed(() -> {
                     if (isFinished) return;
                     String opponentMove = solutionMoves[currentMoveIdx];
-                    chessboard.makeMove(opponentMove.substring(0, 2), opponentMove.substring(2));
+                    // Check opponent capture
+                    String oppFrom = opponentMove.substring(0, 2);
+                    String oppTo = opponentMove.substring(2, 4);
+                    char oppTarget = chessboard.getPieceAt(oppTo);
+                    playMoveSound(oppTarget != ' ');
+                    chessboard.makeMove(oppFrom, oppTo);
                     currentMoveIdx++;
                     if (currentMoveIdx > maxMoveIdxReached) {
                         maxMoveIdxReached = currentMoveIdx;
@@ -2129,13 +2262,23 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                     }, 1500);
                 }
             } else {
-                // Reset streak
-                currentStreak = 0;
-                getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
-                        .edit()
-                        .putInt("puzzle_streak", currentStreak)
-                        .apply();
+                // For level/daily puzzles: lock board temporarily, and reset to last correct state after 1s
+                isPlayerTurn = false;
+                chessboard.setInteractable(false);
+                chessboard.postDelayed(() -> {
+                    if (isFinished) return;
+                    chessboard.setFEN(startFen);
+                    for (int i = 0; i < currentMoveIdx; i++) {
+                        String move = solutionMoves[i];
+                        chessboard.makeMove(move.substring(0, 2), move.substring(2));
+                    }
+                    isPlayerTurn = true;
+                    chessboard.setInteractable(true);
+                    String sideToMoveText = playerIsWhite ? "⬜ White to Move" : "⬛ Black to Move";
+                    updateSpeechBubble(sideToMoveText, "Find the next move.", Color.BLACK);
+                }, 1000);
 
+                // Do not reset streak on incorrect moves
                 PuzzleHistoryItem currentItem = null;
                 if (historyIndex >= 0 && historyIndex < puzzleHistory.size()) {
                     currentItem = puzzleHistory.get(historyIndex);
@@ -2156,11 +2299,11 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                         .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build();
                 soundPool = new android.media.SoundPool.Builder()
-                        .setMaxStreams(3)
+                        .setMaxStreams(5)
                         .setAudioAttributes(attrs)
                         .build();
             } else {
-                soundPool = new android.media.SoundPool(3, android.media.AudioManager.STREAM_MUSIC, 0);
+                soundPool = new android.media.SoundPool(5, android.media.AudioManager.STREAM_MUSIC, 0);
             }
 
             android.content.res.AssetManager am = getAssets();
@@ -2179,6 +2322,16 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             } catch (Exception e) {
                 Log.e(TAG, "Failed to load sound: solved", e);
             }
+            try {
+                soundMoveSelfId = soundPool.load(am.openFd("sounds/game-actions/move-self.mp3"), 1);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to load sound: move-self", e);
+            }
+            try {
+                soundCaptureId = soundPool.load(am.openFd("sounds/game-actions/capture.mp3"), 1);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to load sound: capture", e);
+            }
         } catch (Exception e) {
             Log.e(TAG, "Failed to initialize SoundPool", e);
         }
@@ -2193,6 +2346,10 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             soundId = soundIncorrectId;
         } else if (path.contains("puzzle-solved.mp3")) {
             soundId = soundSolvedId;
+        } else if (path.contains("move-self.mp3")) {
+            soundId = soundMoveSelfId;
+        } else if (path.contains("capture.mp3")) {
+            soundId = soundCaptureId;
         }
 
         if (soundId != -1) {
@@ -2210,6 +2367,14 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             } catch (Exception e) {
                 Log.e(TAG, "Failed to play sound (fallback): " + path, e);
             }
+        }
+    }
+
+    private void playMoveSound(boolean isCapture) {
+        if (isCapture) {
+            playSound("sounds/game-actions/capture.mp3");
+        } else {
+            playSound("sounds/game-actions/move-self.mp3");
         }
     }
 
@@ -2267,6 +2432,14 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                 return;
             }
 
+            // Calculate target puzzle context metric (use level index or global tracker fallback)
+            int referenceCount = levelIdx;
+            if (referenceCount == -1) {
+                int unlockedLevel = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                        .getInt("unlocked_level", 1);
+                referenceCount = Math.max(0, unlockedLevel - 1);
+            }
+
             if (headerTitle != null) {
                 if (levelIdx != -1) {
                     headerTitle.setText(levelIdx + " Puzzles");
@@ -2282,12 +2455,12 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                 ratingView.setText(String.valueOf(rating));
             }
             if (streakTextView != null) {
-                streakTextView.setText(String.valueOf(currentStreak));
+                streakTextView.setText(String.valueOf(referenceCount));
             }
             if (streakProgressBar != null && streakMilestoneBadge != null) {
-                int targetMilestone = ((currentStreak / 10) + 1) * 10;
+                int targetMilestone = referenceCount <= 0 ? 10 : ((referenceCount / 10) + 1) * 10;
                 streakProgressBar.setMax(10);
-                streakProgressBar.setProgress(currentStreak % 10);
+                streakProgressBar.setProgress(referenceCount % 10);
                 streakMilestoneBadge.setText(String.valueOf(targetMilestone));
                 
                 // Dynamic Milestone Badge Styling

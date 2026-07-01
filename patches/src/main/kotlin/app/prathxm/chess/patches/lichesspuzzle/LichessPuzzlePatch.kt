@@ -74,5 +74,68 @@ val lichessPuzzlePatch = bytecodePatch(
                 throw v0
             """
         )
+
+        // Replace Chess.com daily puzzle data with Lichess data.
+        NewDailyPuzzleGetFingerprint.method.addInstructions(
+            0,
+            """
+                invoke-static {p1, p2}, $EXTENSION_CLASS->getDailyPuzzle(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/Object;
+                move-result-object v0
+                return-object v0
+            """
+        )
+
+        NewDailyPuzzleSubmitFingerprint.method.addInstructions(
+            0,
+            """
+                invoke-static {p1, p2, p3, p4}, $EXTENSION_CLASS->submitDailyPuzzleAction(ILjava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+                move-result-object v0
+                return-object v0
+            """
+        )
+
+        // Bypass PuzzlePaywallGate mode check
+        PuzzlePaywallGateModeFingerprint.method.addInstructions(
+            0,
+            """
+                const/4 v0, 0x1
+                return v0
+            """
+        )
+
+        // Bypass PuzzlePaywallGate error check
+        PuzzlePaywallGateErrorFingerprint.method.addInstructions(
+            0,
+            """
+                const/4 v0, 0x0
+                return v0
+            """
+        )
+
+        // Bypass SessionStore premium checks (i() and t() methods)
+        SessionStorePremiumFingerprint1.method.addInstructions(
+            0,
+            """
+                const/4 v0, 0x1
+                return v0
+            """
+        )
+
+        SessionStorePremiumFingerprint2.method.addInstructions(
+            0,
+            """
+                const/4 v0, 0x1
+                return v0
+            """
+        )
+
+        // Bypass PuzzleOfflineLimit
+        PuzzleOfflineLimitSetFingerprint.method.addInstructions(
+            0,
+            """
+                sget-object v0, Lkotlin/Unit;->a:Lkotlin/Unit;
+                return-object v0
+            """
+        )
     }
 }

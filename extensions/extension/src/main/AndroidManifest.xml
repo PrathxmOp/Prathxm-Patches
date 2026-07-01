@@ -1,14 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
     <application>
         <activity
             android:name="app.prathxm.chess.extension.lichesspuzzle.StandaloneLichessActivity"
             android:theme="@android:style/Theme.NoTitleBar"
-            android:exported="false" />
+            android:exported="true" />
         <activity
             android:name="app.prathxm.chess.extension.lichesspuzzle.LichessPuzzleJourneyActivity"
             android:theme="@android:style/Theme.NoTitleBar"
-            android:exported="false" />
+            android:exported="true" />
     </application>
 </manifest>
