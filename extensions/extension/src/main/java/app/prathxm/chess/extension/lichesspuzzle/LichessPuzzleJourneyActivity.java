@@ -73,6 +73,7 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
     private boolean isDatabaseReady = false;
     private int selectedDownloadLimit = 50000;
     private LichessPuzzleDatabaseHelper dbHelper;
+    private LinearLayout themeScrollContent;
 
     // Theme Colors
     private final int COLOR_BG = Color.parseColor("#121214");
@@ -164,15 +165,13 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
 
-        // Header Panel (Centered)
-        LinearLayout header = new LinearLayout(this);
-        header.setOrientation(LinearLayout.HORIZONTAL);
+        // Header Panel (Centered with DB button on the right)
+        RelativeLayout header = new RelativeLayout(this);
         header.setBackgroundColor(Color.parseColor("#E6272522"));
-        header.setGravity(Gravity.CENTER);
-        header.setPadding(32, 24, 32, 24);
+        int headerHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 64, getResources().getDisplayMetrics());
         header.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
+                headerHeight
         ));
 
         subtitleText = new TextView(this); // Instantiated to prevent NPE but not added to layout
@@ -181,10 +180,12 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         LinearLayout headerTitleLayout = new LinearLayout(this);
         headerTitleLayout.setOrientation(LinearLayout.HORIZONTAL);
         headerTitleLayout.setGravity(Gravity.CENTER);
-        headerTitleLayout.setLayoutParams(new LinearLayout.LayoutParams(
+        RelativeLayout.LayoutParams titleParams = new RelativeLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        ));
+                ViewGroup.LayoutParams.MATCH_PARENT
+        );
+        titleParams.addRule(RelativeLayout.CENTER_IN_PARENT);
+        headerTitleLayout.setLayoutParams(titleParams);
 
         // Top Badge (Puzzle piece)
         topBadge = new TextView(this);
@@ -214,6 +215,76 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         }
         headerTitleLayout.addView(titleText);
         header.addView(headerTitleLayout);
+
+        // DB Download Button on the right
+        int dbBtnResId = getDrawableResId("glyph_utility_download");
+        if (dbBtnResId == 0) dbBtnResId = getDrawableResId("glyph_board_download");
+        if (dbBtnResId == 0) dbBtnResId = getDrawableResId("glyph_utility_refresh");
+        if (dbBtnResId == 0) dbBtnResId = getDrawableResId("glyph_board_cogwheel");
+        
+        View dbBtn;
+        if (dbBtnResId != 0) {
+            android.widget.ImageView imgBtn = new android.widget.ImageView(this);
+            imgBtn.setImageResource(dbBtnResId);
+            imgBtn.setColorFilter(Color.WHITE);
+            dbBtn = imgBtn;
+        } else {
+            TextView txtBtn = new TextView(this);
+            txtBtn.setText("📥");
+            txtBtn.setTextColor(Color.WHITE);
+            txtBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+            txtBtn.setGravity(Gravity.CENTER);
+            dbBtn = txtBtn;
+        }
+
+        RelativeLayout.LayoutParams dbBtnParams = new RelativeLayout.LayoutParams(
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 48, getResources().getDisplayMetrics()),
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 48, getResources().getDisplayMetrics())
+        );
+        dbBtnParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+        dbBtnParams.addRule(RelativeLayout.CENTER_VERTICAL);
+        dbBtnParams.rightMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics());
+        dbBtn.setLayoutParams(dbBtnParams);
+        dbBtn.setPadding(12, 12, 12, 12);
+        dbBtn.setClickable(true);
+        dbBtn.setFocusable(true);
+        
+        TypedValue outVal = new TypedValue();
+        getTheme().resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, outVal, true);
+        dbBtn.setBackgroundResource(outVal.resourceId);
+        
+        dbBtn.setOnClickListener(v -> {
+            String[] options = {
+                "Lightweight Mode (20,000 puzzles)",
+                "Standard Mode (50,000 puzzles)",
+                "Full Database (100,000 puzzles)",
+                "Mega Database (500,000 puzzles)",
+                "All Puzzles (6M+ puzzles)"
+            };
+            int[] limits = {20000, 50000, 100000, 500000, 10000000};
+            
+            new android.app.AlertDialog.Builder(LichessPuzzleJourneyActivity.this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle("Select Database Size")
+                .setItems(options, (dialog, which) -> {
+                    int limit = limits[which];
+                    Intent intent = new Intent(LichessPuzzleJourneyActivity.this, StandaloneLichessActivity.class);
+                    intent.putExtra("force_download", true);
+                    intent.putExtra("download_limit", limit);
+                    startActivity(intent);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+        });
+        
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            dbBtn.setTooltipText("Change/Download Database");
+        }
+        dbBtn.setOnLongClickListener(v -> {
+            android.widget.Toast.makeText(LichessPuzzleJourneyActivity.this, "Change/Download Database", android.widget.Toast.LENGTH_SHORT).show();
+            return true;
+        });
+
+        header.addView(dbBtn);
         root.addView(header);
 
         // --- Coach Avatar & Speech Bubble ---
@@ -501,34 +572,16 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         );
         sheetScrollView.setLayoutParams(scrollLp);
         
-        LinearLayout scrollContent = new LinearLayout(this);
-        scrollContent.setOrientation(LinearLayout.VERTICAL);
-        scrollContent.setLayoutParams(new ScrollView.LayoutParams(
+        themeScrollContent = new LinearLayout(this);
+        themeScrollContent.setOrientation(LinearLayout.VERTICAL);
+        themeScrollContent.setLayoutParams(new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         ));
 
-        // Category: Recommended
-        addThemeCategoryHeader(scrollContent, "Recommended");
-        addThemeRow(scrollContent, "Daily Puzzle", "📅", "Complete today's official daily puzzle.", "", "daily", null);
-        addThemeRow(scrollContent, "Healthy mix", "🎯", "A mix of everything. You don't know what to expect, so be ready for anything! Just like in real games.", "6,360,928", "theme", "healthyMix");
+        populateThemeList();
 
-        // Category: Phases
-        addThemeCategoryHeader(scrollContent, "Phases");
-        addThemeRow(scrollContent, "Opening", "♟️", "A tactic during the first phase of the game.", "319,834", "theme", "opening");
-        addThemeRow(scrollContent, "Middlegame", "⚔️", "A tactic during the second phase of the game.", "2,898,480", "theme", "middlegame");
-        addThemeRow(scrollContent, "Endgame", "👑", "A tactic during the last phase of the game.", "3,142,614", "theme", "endgame");
-
-        // Category: Endgame Types
-        addThemeCategoryHeader(scrollContent, "Endgame Types");
-        addThemeRow(scrollContent, "Rook endgame", "♜", "An endgame with only rooks and pawns.", "334,797", "theme", "rookEndgame");
-        addThemeRow(scrollContent, "Bishop endgame", "♝", "An endgame with only bishops and pawns.", "84,922", "theme", "bishopEndgame");
-        addThemeRow(scrollContent, "Pawn endgame", "♙", "An endgame with only pawns.", "227,186", "theme", "pawnEndgame");
-        addThemeRow(scrollContent, "Knight endgame", "♞", "An endgame with only knights and pawns.", "51,531", "theme", "knightEndgame");
-        addThemeRow(scrollContent, "Queen endgame", "♛", "An endgame with only queens and pawns.", "72,656", "theme", "queenEndgame");
-        addThemeRow(scrollContent, "Queen and Rook", "🏰", "An endgame with only queens, rooks, and pawns.", "47,016", "theme", "queenRookEndgame");
-
-        sheetScrollView.addView(scrollContent);
+        sheetScrollView.addView(themeScrollContent);
         bottomSheet.addView(sheetScrollView);
 
         View spacer = new View(this);
@@ -596,6 +649,8 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
 
     private void showBottomSheet() {
         if (bottomSheet.getVisibility() == View.VISIBLE) return;
+        
+        populateThemeList();
         
         if (solveAndListRow != null) {
             solveAndListRow.setVisibility(View.GONE);
@@ -1337,6 +1392,31 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         parent.addView(header);
     }
 
+    private void populateThemeList() {
+        if (themeScrollContent == null) return;
+        themeScrollContent.removeAllViews();
+
+        // Category: Recommended
+        addThemeCategoryHeader(themeScrollContent, "Recommended");
+        addThemeRow(themeScrollContent, "Daily Puzzle", "📅", "Complete today's official daily puzzle.", "", "daily", null);
+        addThemeRow(themeScrollContent, "Healthy mix", "🎯", "A mix of everything. You don't know what to expect, so be ready for anything! Just like in real games.", "", "theme", "healthyMix");
+
+        // Category: Phases
+        addThemeCategoryHeader(themeScrollContent, "Phases");
+        addThemeRow(themeScrollContent, "Opening", "♟️", "A tactic during the first phase of the game.", "", "theme", "opening");
+        addThemeRow(themeScrollContent, "Middlegame", "⚔️", "A tactic during the second phase of the game.", "", "theme", "middlegame");
+        addThemeRow(themeScrollContent, "Endgame", "👑", "A tactic during the last phase of the game.", "", "theme", "endgame");
+
+        // Category: Endgame Types
+        addThemeCategoryHeader(themeScrollContent, "Endgame Types");
+        addThemeRow(themeScrollContent, "Rook endgame", "♜", "An endgame with only rooks and pawns.", "", "theme", "rookEndgame");
+        addThemeRow(themeScrollContent, "Bishop endgame", "♝", "An endgame with only bishops and pawns.", "", "theme", "bishopEndgame");
+        addThemeRow(themeScrollContent, "Pawn endgame", "♙", "An endgame with only pawns.", "", "theme", "pawnEndgame");
+        addThemeRow(themeScrollContent, "Knight endgame", "♞", "An endgame with only knights and pawns.", "", "theme", "knightEndgame");
+        addThemeRow(themeScrollContent, "Queen endgame", "♛", "An endgame with only queens and pawns.", "", "theme", "queenEndgame");
+        addThemeRow(themeScrollContent, "Queen and Rook", "🏰", "An endgame with only queens, rooks, and pawns.", "", "theme", "queenRookEndgame");
+    }
+
     private void addThemeRow(LinearLayout parent, String name, String emoji, String description, String count, String mode, String themeKey) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
@@ -1403,9 +1483,17 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         row.addView(textContainer);
 
         // Count Badge
-        if (count != null && !count.isEmpty()) {
+        String displayCount = count;
+        if (themeKey != null && dbHelper != null && isDatabaseReady) {
+            int localCount = dbHelper.getThemeCount(themeKey);
+            displayCount = java.text.NumberFormat.getInstance().format(localCount);
+        } else if (themeKey != null) {
+            displayCount = "0";
+        }
+
+        if (displayCount != null && !displayCount.isEmpty()) {
             TextView countView = new TextView(this);
-            countView.setText(count);
+            countView.setText(displayCount);
             countView.setTextColor(Color.parseColor("#B1B0AE"));
             countView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
             if (fontRegular != null) countView.setTypeface(fontRegular);
@@ -1438,7 +1526,6 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
             }
             startActivity(intent);
         });
-
         parent.addView(row);
     }
 
