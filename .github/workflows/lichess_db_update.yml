@@ -1,0 +1,57 @@
+name: Update Lichess Offline Database
+
+on:
+  schedule:
+    - cron: '0 0 1 * *' # Run on the first day of every month at midnight
+  workflow_dispatch: # Enable manual triggers
+
+jobs:
+  update-db:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zstd
+
+      - name: Run extraction script
+        run: |
+          python3 .github/scripts/extract_puzzles.py
+
+      - name: Commit and Push raw git files to main
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add lichess_offline_puzzles_20k.csv.gz lichess_offline_puzzles_50k.csv.gz lichess_offline_puzzles_100k.csv.gz lichess_offline_puzzles_500k.csv.gz
+          if git diff --staged --quiet; then
+            echo "No changes in raw git database files."
+          else
+            git commit -m "chore(database): update offline puzzle files (20k, 50k, 100k, 500k) [skip ci]"
+            git push origin HEAD:main
+          fi
+
+      - name: Upload Mega and All files to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create release if it doesn't exist
+          gh release view database || gh release create database --title "Lichess Offline Database" --notes "Pre-built Lichess offline puzzle database files."
+          # Upload all files to release for release downloads
+          gh release upload database lichess_offline_puzzles_all.csv.gz --clobber
+          gh release upload database lichess_offline_puzzles_500k.csv.gz --clobber
+          gh release upload database lichess_offline_puzzles_100k.csv.gz --clobber
+          gh release upload database lichess_offline_puzzles_50k.csv.gz --clobber
+          gh release upload database lichess_offline_puzzles_20k.csv.gz --clobber

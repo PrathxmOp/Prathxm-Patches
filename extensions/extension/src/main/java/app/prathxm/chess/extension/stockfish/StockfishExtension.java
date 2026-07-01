@@ -1198,8 +1198,10 @@ public class StockfishExtension {
 
         addDialogSpacer(creditsCard, 2, density);
 
+        String versionText = "v" + app.prathxm.chess.extension.BuildConfig.PATCH_VERSION;
+
         android.widget.TextView patchTv = new android.widget.TextView(activity);
-        patchTv.setText("Patch Version: v1.3.1 (Lichess Ready) 🧩");
+        patchTv.setText("Patch Version: " + versionText + " 🧩");
         patchTv.setTextColor(0xFF8B8985);
         patchTv.setTextSize(11);
         patchTv.setGravity(android.view.Gravity.CENTER);
