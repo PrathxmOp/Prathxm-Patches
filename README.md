@@ -36,6 +36,9 @@ Prathxm Patches integrates the Stockfish chess engine directly into Chess.com on
 - **Interactive Game Sounds** — Full SoundPool integration for move, capture, correct, incorrect, and puzzle-solved sound effects.
 - **Premium Themes & Fonts** — Custom wood assets, custom chess typography, and glassmorphic UI overlay styling.
 
+> [!NOTE]
+> **A Note on UI & Design**:
+> The custom Lichess Puzzle Journey interface is built from scratch using custom canvas drawings and traditional layouts to match Chess.com's native premium puzzle map. While the custom map styling might look a bit rustic/rough compared to the official server-side graphics, I did my absolute best to build it cleanly. Every part of it (level node progression, custom pathing, sound effects, stats tracking, and puzzle categories) works flawlessly and robustly!
 
 ### 💎 Global Features
 - **Ads Removal** — Removes all banner, interstitial, and video advertisements locally for a clean experience.
