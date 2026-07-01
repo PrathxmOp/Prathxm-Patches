@@ -1,71 +1,73 @@
 # ♟️ Prathxm Patches
 
-Custom Morphe patches for **Chess.com**, providing an ad-free experience, post-game review, and local Stockfish analysis tools.
+> *"You expect me to be perfect but i am full of flaws"*
+
+Custom Morphe patches for **Chess.com**, providing a clean, ad-free experience, locally processed post-game reviews, and offline Lichess puzzle journeys.
+
+---
 
 ## ❓ About
 
-Prathxm Patches integrates the Stockfish chess engine directly into Chess.com on Android for offline play, bot matches, and post-game analysis. It is strictly compliant with fairplay rules—all overlays (arrows, evaluation bars, etc.) are automatically disabled during live online matches to prevent cheating.
+Prathxm Patches embeds a native **Stockfish 16.1 NNUE** chess engine directly into the app on Android. This allows you to perform post-game reviews and run analysis completely offline, without depending on external servers. 
+
+Strictly designed in compliance with fair-play rules, all analysis assistance and visual overlays are automatically disabled during live online matches to ensure a completely fair environment.
 
 > [!NOTE]
-> **Why is the patch size so large?**
-> The patched APK will be significantly larger than the original app (by ~110MB). This is because we bundle the native **Stockfish 16.1 NNUE** engine binaries directly into the app so that game reviews and engine analysis can run entirely offline on your device, without relying on Chess.com servers.
+> **Why is the package size larger?**
+> The patched app will be about 110MB larger than the default installation. This is because it includes the high-performance **Stockfish 16.1 NNUE** engine binaries locally, so you can analyze matches offline anytime.
 
-### 📙 App Requests
+---
 
-> [!TIP]
-> **App Requests:** If you want to request support or patches for any other app, please open a request in the [GitHub Discussions](https://github.com/PrathxmOp/Prathxm-Patches/discussions) section rather than opening a GitHub Issue.
+## 💬 Support & Feedback
+
+If you have questions, feedback, or want to suggest new features/patches, **please do not open GitHub Issues**. Instead, use the GitHub Discussions section:
+
+👉 **[Join the Community & Ask Questions / Request Features](https://github.com/PrathxmOp/Prathxm-Patches/discussions)**
+
+Using discussions helps keep the project organized and lets other community members contribute.
+
+---
+
+## 💖 Support the Project
+
+Donations keep me motivated to maintain this project, fix bugs, and create new patches! If this project made your chess experience better, please consider supporting my work.
+
+### Donate via UPI: `prathammishraop@ybl`
+
+You can scan the QR code below or click the payment link:
+
+<p align="center">
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=prathammishraop@ybl%26pn=Prathxm%26cu=INR" alt="UPI QR Code" width="180" height="180" /><br>
+  <a href="upi://pay?pa=prathammishraop@ybl&pn=Prathxm&cu=INR"><b>⚡ Click Here to Pay / Donate via UPI</b></a>
+</p>
+
+---
 
 ## ✨ Features
 
-### 🔧 Engine & Analysis
-- **Stockfish 16.1** — Native engine running locally on device for offline analysis and bot games.
-- **Post-Game Analysis & Reviews** — Offline local game reviews with move classification.
-- **Configurable Settings** — Adjust analysis depth and ELO strength limit (1350-3190 ELO).
+### 🔧 Engine & Analysis (Offline & Bot Games Only)
+* **Local Stockfish 16.1** — A full-powered engine running directly on your mobile device.
+* **Offline Game Reviews** — Intercepts and processes game review requests locally, offering:
+  * 🏷️ **Move Classifications** — Brilliant 💡, Great ✅, Best 🎯, Excellent ✨, Good 👍, Inaccuracy ⚠️, Mistake ❌, and Blunder 💀.
+  * 📊 **Accuracy Scores** — Precise percentage metrics for both sides.
+  * 📈 **Estimated Ratings** — Calculated ELO ratings for your gameplay with opening/tactical breakdowns.
+* **Configurable ELO Limits** — Adjust search depth and limit the engine strength (1350 to 3190 ELO) to tailor bot games.
 
-### 📊 Visual Overlays (Offline & Bots Only)
-- **Evaluation & WDL Bars** — Visual advantage bar showing pawn/mate advantage and win/draw/loss probability.
-- **Best Move & Threat Arrows** — Local arrow indicators showing engine recommendations.
+### 📊 Visual Overlays
+* **Evaluation & WDL Bars** — Real-time advantage tracking showing centipawn/mate status and Win/Draw/Loss probabilities.
+* **Engine Recommendations** — Arrow indicators displaying the best moves and threats.
 
 ### 🧩 Lichess Puzzle Journey
-- **Offline Puzzle Database** — Play fully offline with a local database of puzzles.
-- **Thematic Practice & Challenges** — Practice specific chess themes (Opening, Middlegame, Endgame, specific endgames) or test your skills in Rush and Battle modes.
-- **Choose Your Download Size** — Select your preferred puzzle dataset size (10k, 50k, 100k, or all puzzles) directly on first launch to fit your device's storage.
-- **Streak & Milestone Progression** — Track your daily puzzle solving, active theme streaks, and milestones with custom status badges.
-- **Scenic Puzzle Journey Map** — Progress through levels on a visual custom-styled board map.
-- **Interactive Sounds & Custom UI** — Features chess game sounds (moves, captures, solving) and premium wood-styled themes.
-
-> [!NOTE]
-> **A Note on UI & Design**:
-> The custom Lichess Puzzle Journey interface is built from scratch using custom canvas drawings and traditional layouts to match Chess.com's native premium puzzle map. While the custom map styling might look a bit rustic/rough compared to the official server-side graphics, I did my absolute best to build it cleanly. Every part of it (level node progression, custom pathing, sound effects, stats tracking, and puzzle categories) works flawlessly and robustly!
+* **Fully Offline Puzzles** — A dedicated local database containing millions of puzzles from the Lichess library.
+* **Scenic Journey Map** — Walk through level paths on a custom-styled, premium wood board layout.
+* **Thematic Practice** — Filter by themes (Opening, Middlegame, Endgame, specific endgames) or play fast-paced Rush and Battle modes.
+* **Choose Your Size** — Download what fits your storage best (20k, 50k, 100k, 500k, or all 6M+ puzzles).
+* **Streaks & Milestones** — Progress tracker featuring daily puzzle streaks, active category stats, and custom milestones.
 
 ### 💎 Global Features
-- **Ads Removal** — Removes all banner, interstitial, and video advertisements locally for a clean experience.
+* **Ad-Free UI** — Block and remove banner ads, full-screen interstitials, and video promotions for a cleaner experience.
 
-### 💎 What is Included in the Ad-Free & Local Analysis Patch?
-This patch removes advertisements and embeds a local Stockfish engine to run client-side game reviews.
-
-> **Tip:** You can long-press on the Chess.com logo at the top of the screen during a game to open the settings menu and configure the engine.
-
-Here is exactly what this patch provides and how it works:
-
-#### ✅ Local Features (How to use it):
-* **Local Game Analysis:** Brings powerful offline analysis capabilities directly to your device.
-  * **How it works:** When you tap "Game Review", the patch **intercepts and redirects** the request to our **built-in, high-performance Stockfish 16.1 engine running locally on your device**.
-  * **Result:** It runs the analysis offline on your device and injects the results back into the native review UI. This gives you **offline game reviews** with:
-    * 🏷️ **Move Classifications** — Brilliant 💡 / Best 🎯 / Great ✅ / Excellent ✨ / Good 👍 / Inaccuracy ⚠️ / Mistake ❌ / Blunder 💀
-    * 📊 **Accuracy Scores** — Per-player accuracy percentage (0–100%)
-    * 📈 **Dynamic Game Ratings** — Estimated per-game rating (200–2800) derived from accuracy, with Opening/Tactics/Endgame breakdowns
-    * ♟️ **Eval Scores** — Centipawn and mate-in evaluations for every position
-    * 📋 **Move Tallies** — Full count of each move category per player
-* **Complete Ads Removal:** Blocks and removes all banner advertisements, full-screen interstitial ads, and video promotions locally for a clean, premium, ad-free experience.
-
-#### 🛡️ Fair Play Protection (Anti-Cheating):
-* **Live Match Disablement:** To ensure strict compliance with fair play guidelines, all real-time engine analysis, visual overlays (best move arrows, evaluation bars, etc.), and settings menus are completely and automatically disabled during live online matches against other players. The engine overlays only work for post-game offline analysis and bot games.
-
-#### ❌ What is Server-Authoritative (Cannot be patched):
-* **Official Server-Side Cloud Reviews:** Tapping the official cloud-based coach review queries their server databases. You must use the local Stockfish analysis board/review screen (which is what the patch redirects) for unlimited analysis.
-* **Server-Side Video Lessons & Puzzles:** Interactive video lessons and daily puzzle limits are served directly from Chess.com's databases.
-
+---
 
 ## 🩹 Patches List
 
@@ -90,58 +92,46 @@ Here is exactly what this patch provides and how it works:
 
 <!-- PATCHES_END -->
 
-### 🛠️ Patching
+---
 
-#### Option 1: Morphe Manager (Recommended — Easy)
+## 🛠️ Installation & Patching
 
-The easiest way to patch Chess.com is using **Morphe Manager** on your Android device.
-
-1. Download and install [Morphe Manager](https://morphe.software).
-2. Open Morphe Manager and go to **Patch Sources**.
-3. Add this repository as a source:
+### Option 1: Morphe Manager (Recommended)
+1. Download and install [Morphe Manager](https://morphe.software) on your Android device.
+2. Go to **Patch Sources** and add this repository:
    ```
    https://github.com/PrathxmOp/Prathxm-Patches
    ```
-4. Select **Chess.com** from the app list.
-5. Enable the **Stockfish Engine** patch and tap **Patch**.
-6. Install the output APK.
+3. Select **Chess.com** from the app list, choose your patches, and tap **Patch**.
+4. Install the output APK.
 
-&nbsp;
+### Option 2: Morphe CLI (Advanced)
+Prerequisites: Android SDK, JDK 17+, and [Morphe CLI](https://morphe.software).
 
-#### Option 2: Morphe CLI (Advanced)
-
-Prerequisites:
-- Android SDK
-- JDK 17+
-- [Morphe CLI](https://morphe.software)
-
-##### 🤖 Native Stockfish Binaries
-Since the pre-compiled Stockfish binaries exceed GitHub's file size limit (100MB+), they are excluded from the repository. You must download and place them manually before building:
-1. Download the Android binaries from the official Stockfish releases:
-   - **arm64-v8a**: (e.g. from `stockfish-android-armv8-dotprod.tar`)
-   - **armeabi-v7a**: (e.g. from `stockfish-android-armv7-neon.tar`)
-2. Place them in the repository under:
+1. Download the Android Stockfish binaries from the official releases:
+   - **arm64-v8a** (e.g. `stockfish-android-armv8-dotprod.tar`)
+   - **armeabi-v7a** (e.g. `stockfish-android-armv7-neon.tar`)
+2. Place them under:
    - `extensions/extension/src/main/assets/stockfish/arm64-v8a/stockfish`
    - `extensions/extension/src/main/assets/stockfish/armeabi-v7a/stockfish`
+3. Build and apply:
+   ```bash
+   # Assemble the bundle
+   ./gradlew patches:assemble
+   
+   # Apply patch
+   java -jar morphe-cli.jar patch \
+     -p patches/build/libs/patches-1.0.0.mpp \
+     -o patched-chess.apk \
+     "com.chess_X.X.X.apk"
+   ```
 
-```bash
-# 1. Assemble the patch bundle
-./gradlew patches:assemble
-
-# 2. Apply the patch to a Chess.com APK
-java -jar morphe-cli.jar patch \
-  -p patches/build/libs/patches-1.0.0.mpp \
-  -o patched-chess.apk \
-  "com.chess_X.X.X.apk"
-
-# 3. Install on device
-adb install patched-chess.apk
-```
+---
 
 ## ⚠️ Disclaimer
 
-These patches are intended for **educational and personal use only**. Usage may violate Chess.com's Terms of Service. The author takes no responsibility for any consequences arising from use of these patches.
+These patches are intended for **educational and personal use only**. Usage may violate the host app's Terms of Service. The author takes no responsibility for account suspensions or other consequences.
 
 ## 📜 License
 
-Prathxm Patches are licensed under the [GNU General Public License v3.0](LICENSE)
+Licensed under the [GNU General Public License v3.0](LICENSE).
