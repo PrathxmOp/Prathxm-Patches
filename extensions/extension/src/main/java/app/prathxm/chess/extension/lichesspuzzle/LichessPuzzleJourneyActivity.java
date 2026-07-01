@@ -838,6 +838,11 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
                             dbHelper.insertPuzzles(batchList);
                             batchList.clear();
                         }
+                        
+                        getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                                .edit()
+                                .putInt("download_offset", offset + limitPerBatch)
+                                .apply();
                     } else if (code == 429) {
                         Log.w(TAG, "Rate limited! Sleeping for 5 seconds...");
                         Thread.sleep(5000);
