@@ -1557,21 +1557,16 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                 String urlStr;
                 if (selectedDownloadLimit == 20000) {
                     fileSuffix = "_20k.csv.gz";
-                    urlStr = "https://raw.githubusercontent.com/PrathxmOp/Prathxm-Patches/main/lichess_offline_puzzles" + fileSuffix;
                 } else if (selectedDownloadLimit == 50000) {
                     fileSuffix = "_50k.csv.gz";
-                    urlStr = "https://raw.githubusercontent.com/PrathxmOp/Prathxm-Patches/main/lichess_offline_puzzles" + fileSuffix;
                 } else if (selectedDownloadLimit == 100000) {
                     fileSuffix = "_100k.csv.gz";
-                    urlStr = "https://raw.githubusercontent.com/PrathxmOp/Prathxm-Patches/main/lichess_offline_puzzles" + fileSuffix;
                 } else if (selectedDownloadLimit == 500000) {
                     fileSuffix = "_500k.csv.gz";
-                    urlStr = "https://raw.githubusercontent.com/PrathxmOp/Prathxm-Patches/main/lichess_offline_puzzles" + fileSuffix;
                 } else {
                     fileSuffix = "_all.csv.gz";
-                    // For the full dataset (all 6M+ puzzles), use the GitHub Release URL since it exceeds the 100MB git push limit
-                    urlStr = "https://github.com/PrathxmOp/Prathxm-Patches/releases/download/database/lichess_offline_puzzles" + fileSuffix;
                 }
+                urlStr = "https://github.com/PrathxmOp/Prathxm-Patches/releases/download/database/lichess_offline_puzzles" + fileSuffix;
                 URL url = new URL(urlStr);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");

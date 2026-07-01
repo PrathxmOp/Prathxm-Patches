@@ -60,3 +60,23 @@ jobs:
         with:
           subject-name: 'Morphe Patches ${{ steps.release.outputs.new_release_git_tag }}'
           subject-path: patches/build/libs/patches-*.mpp
+
+      - name: Install database dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zstd
+
+      - name: Run database extraction script
+        run: |
+          python3 .github/scripts/extract_puzzles.py
+
+      - name: Upload databases to Database Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view database || gh release create database --title "Lichess Offline Database" --notes "Pre-built Lichess offline puzzle database files."
+          gh release upload database lichess_offline_puzzles_all.csv.gz --clobber
+          gh release upload database lichess_offline_puzzles_500k.csv.gz --clobber
+          gh release upload database lichess_offline_puzzles_100k.csv.gz --clobber
+          gh release upload database lichess_offline_puzzles_50k.csv.gz --clobber
+          gh release upload database lichess_offline_puzzles_20k.csv.gz --clobber
