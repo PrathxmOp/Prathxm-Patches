@@ -1,6 +1,5 @@
 package app.prathxm.chess.extension.lichesspuzzle;
 
-import android.annotation.SuppressLint;
 import android.util.Log;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -11,10 +10,10 @@ import java.lang.reflect.Constructor;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 
-@SuppressLint("NewApi")
 public final class LichessPuzzleExtension {
     private static final String TAG = "LichessPuzzle";
     private static final String DAILY_URL = "https://lichess.org/api/puzzle/daily";
@@ -56,8 +55,8 @@ public final class LichessPuzzleExtension {
                 lastPuzzle = puzzle;
                 return response(puzzle);
             } catch (Throwable fallbackError) {
-                Log.e(TAG, "Fallback also failed: " + fallbackError.getMessage(), fallbackError);
-                throw new RuntimeException(fallbackError);
+                // If even the fallback formatting instance fails, return safe stub
+                return null;
             }
         }
     }
@@ -65,7 +64,7 @@ public final class LichessPuzzleExtension {
     public static Object submitDailyPuzzleAction(int dailyPuzzleId, Object action, Object hintState, Object continuation) {
         Log.d(TAG, "submitDailyPuzzleAction() called with id: " + dailyPuzzleId);
         try {
-            Puzzle puzzle = lastPuzzle != null ? lastPuzzle : fallbackPuzzle(LocalDate.now().toString());
+            Puzzle puzzle = lastPuzzle != null ? lastPuzzle : fallbackPuzzle(today());
             Object res = newInstance(
                 "chesscom.puzzles.v2alpha.SubmitDailyPuzzleActionResponse",
                 new Class<?>[]{
@@ -87,11 +86,10 @@ public final class LichessPuzzleExtension {
 
     private static Puzzle fetchDailyPuzzle(String date) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(DAILY_URL).openConnection();
-        connection.setConnectTimeout(2000);
-        connection.setReadTimeout(3000);
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(10000);
         connection.setRequestProperty("Accept", "application/json");
-        connection.setRequestProperty("User-Agent", "Prathxm-Patches");
-
+        
         int code = connection.getResponseCode();
         if (code < 200 || code >= 300) {
             throw new IllegalStateException("HTTP " + code);
@@ -101,26 +99,49 @@ public final class LichessPuzzleExtension {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                body.append(line);
+                body.append(line).append("\n");
             }
-        } finally {
-            connection.disconnect();
         }
 
         JSONObject root = new JSONObject(body.toString());
-        JSONObject puzzle = root.getJSONObject("puzzle");
-        JSONObject game = root.getJSONObject("game");
-        JSONArray themes = puzzle.optJSONArray("themes");
+        JSONObject puzzleJson = root.getJSONObject("puzzle");
+        JSONObject gameJson = root.getJSONObject("game");
+        JSONArray themes = puzzleJson.optJSONArray("themes");
 
-        String id = puzzle.optString("id", "lichess");
-        int rating = puzzle.optInt("rating", 0);
+        String id = puzzleJson.optString("id", "lichess");
+        int rating = puzzleJson.optInt("rating", 0);
         String theme = themes != null && themes.length() > 0 ? themes.optString(0, "tactics") : "tactics";
         String title = "Lichess " + theme + (rating > 0 ? " " + rating : "");
-        String pgn = game.optString("pgn", "");
-        if (pgn.trim().isEmpty()) {
-            throw new IllegalStateException("empty PGN");
-        }
+        
+        String fen = puzzleJson.optString("fen", "");
+        JSONArray solutionArray = puzzleJson.optJSONArray("solution");
 
+        // Construct a proper puzzle PGN using the FEN and the solution array
+        StringBuilder pgnBuilder = new StringBuilder();
+        pgnBuilder.append("[Event \"Lichess Daily Puzzle\"]\n");
+        pgnBuilder.append("[Site \"https://lichess.org/training/").append(id).append("\"]\n");
+        pgnBuilder.append("[Date \"").append(normalizeDate(date).replace("-", ".")).append("\"]\n");
+        
+        if (!fen.isEmpty()) {
+            pgnBuilder.append("[FEN \"").append(fen).append("\"]\n");
+            pgnBuilder.append("[SetUp \"1\"]\n");
+        }
+        pgnBuilder.append("\n");
+
+        // Append the correct solution moves to the PGN body
+        if (solutionArray != null) {
+            for (int i = 0; i < solutionArray.length(); i++) {
+                pgnBuilder.append(solutionArray.optString(i)).append(" ");
+            }
+        }
+        pgnBuilder.append("*");
+        
+        String pgn = pgnBuilder.toString().trim();
+        
+        if (solutionArray == null || solutionArray.length() == 0) {
+            throw new IllegalStateException("Puzzle contains no solution");
+        }
+        
         Log.d(TAG, "fetchDailyPuzzle() downloaded successfully: title=" + title + ", rating=" + rating + ", pgn=" + pgn);
         return new Puzzle(idToInt(id), title, normalizeDate(date), pgn);
     }
@@ -132,13 +153,13 @@ public final class LichessPuzzleExtension {
                 cls("chesscom.puzzles.v2alpha.DailyPuzzle"),
                 cls("chesscom.puzzles.v2alpha.DailyPuzzleAttemptState"),
                 cls("chesscom.puzzles.v2alpha.DailyPuzzleUserStats"),
-                Integer.class,
+                int.class,
                 cls("okio.ByteString")
             },
             dailyPuzzle(puzzle),
             attempt(puzzle),
             stats(),
-            Integer.valueOf(HEARTS),
+            HEARTS,
             emptyByteString()
         );
     }
@@ -180,7 +201,7 @@ public final class LichessPuzzleExtension {
                 int.class,
                 String.class,
                 int.class,
-                java.time.Instant.class,
+                cls("java.time.Instant"),
                 int.class,
                 String.class,
                 cls("chesscom.puzzles.v2alpha.DailyPuzzleHintState"),
@@ -222,25 +243,27 @@ public final class LichessPuzzleExtension {
     }
 
     private static Puzzle fallbackPuzzle(String date) {
-        // ponytail: one bundled puzzle keeps the feature usable offline; add cache history if rotation matters.
         String pgn = "[Event \"Lichess Puzzle\"]\n" +
             "[Site \"https://lichess.org\"]\n" +
-            "[Date \"2026.06.30\"]\n" +
+            "[Date \"" + normalizeDate(date).replace("-", ".") + "\"]\n" +
             "[White \"White\"]\n" +
             "[Black \"Black\"]\n" +
             "[Result \"*\"]\n" +
             "[FEN \"6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1\"]\n" +
             "[SetUp \"1\"]\n\n" +
             "1. Kf2 Kf8 2. Kf3 Ke7 *";
-        return new Puzzle(764_424, "Lichess fallback", normalizeDate(date), pgn);
+        return new Puzzle(764424, "Lichess fallback", normalizeDate(date), pgn);
     }
 
     private static String normalizeDate(String date) {
-        try {
-            return LocalDate.parse(date).toString();
-        } catch (Throwable ignored) {
-            return LocalDate.now().toString();
+        if (date == null || date.trim().isEmpty()) {
+            return today();
         }
+        return date;
+    }
+
+    private static String today() {
+        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
     }
 
     private static int idToInt(String id) {

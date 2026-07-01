@@ -53,15 +53,6 @@ object PuzzlePaywallGateCheckFingerprint : Fingerprint(
     }
 )
 
-object PuzzleOfflineLimitGetFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/internal/puzzles/PuzzleOfflineLimit;" &&
-            method.name == "d" &&
-            method.parameterTypes == listOf("Lcom/google/android/o02;") &&
-            method.returnType == "Ljava/lang/Object;"
-    }
-)
-
 object PuzzleOfflineLimitSetFingerprint : Fingerprint(
     custom = { method, classDef ->
         classDef.type == "Lcom/chess/internal/puzzles/PuzzleOfflineLimit;" &&
@@ -71,3 +62,18 @@ object PuzzleOfflineLimitSetFingerprint : Fingerprint(
     }
 )
 
+object SessionStorePremiumFingerprint1 : Fingerprint(
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/net/v1/users/SessionStore;" &&
+            method.name == "i" &&
+            method.returnType == "Z"
+    }
+)
+
+object SessionStorePremiumFingerprint2 : Fingerprint(
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/net/v1/users/SessionStore;" &&
+            method.name == "t" &&
+            method.returnType == "Z"
+    }
+)

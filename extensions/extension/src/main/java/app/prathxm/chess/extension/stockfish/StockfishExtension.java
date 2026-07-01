@@ -899,7 +899,22 @@ public class StockfishExtension {
     private static void registerLifecycleCallbacks(Application app) {
         app.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
             @Override
-            public void onActivityCreated(Activity activity, android.os.Bundle savedInstanceState) {}
+            public void onActivityCreated(Activity activity, android.os.Bundle savedInstanceState) {
+                String name = activity.getClass().getName();
+                if (name.startsWith("com.chess.features.puzzles.")) {
+                    
+                    activity.finish();
+                    activity.overridePendingTransition(0, 0);
+                    
+                    try {
+                        android.content.Intent intent = new android.content.Intent(activity, Class.forName("app.prathxm.chess.extension.lichesspuzzle.LichessPuzzleJourneyActivity"));
+                        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                        activity.startActivity(intent);
+                    } catch (Throwable t) {
+                        Log.e(TAG, "Failed to redirect puzzle activity: " + t.getMessage(), t);
+                    }
+                }
+            }
 
             @Override
             public void onActivityStarted(Activity activity) {}

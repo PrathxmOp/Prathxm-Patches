@@ -26,6 +26,13 @@ Prathxm Patches integrates the Stockfish chess engine directly into Chess.com on
 - **Evaluation & WDL Bars** — Visual advantage bar showing pawn/mate advantage and win/draw/loss probability.
 - **Best Move & Threat Arrows** — Local arrow indicators showing engine recommendations.
 
+### 🧩 Lichess Puzzle Journey
+- **Minimalist Puzzle Journey Map** — Progress through puzzle levels with a scenic map view, custom rustic bridge pathing, tree trunk level gem nodes, and active pawn position indicators.
+- **Daily Puzzle Integration** — Online fetching from Lichess API with local daily completion tracking in `SharedPreferences` to secure streak data.
+- **State-Hardened Board View** — Custom canvas-based board drawing (`LichessBoardView`) with strict paint state resetting to prevent visual artifacts and auto-reset logic on incorrect moves.
+- **Interactive Game Sounds** — Full SoundPool integration for move, capture, correct, incorrect, and puzzle-solved sound effects.
+- **Premium Themes & Fonts** — Custom wood assets, custom chess typography, and glassmorphic UI overlay styling.
+
 ### 💎 Global Features
 - **Ads Removal** — Removes all banner, interstitial, and video advertisements locally for a clean experience.
 
@@ -71,6 +78,7 @@ Here is exactly what this patch provides and how it works:
 | 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
 |----------|----------------|-----------|
 | [Ad-Free & Local Analysis](#ad-free-local-analysis) | Removes advertisements, unlocks ad-free features, and enables local Stockfish engine for post-game review & analysis. |  |
+| [Lichess Puzzle Journey](#lichess-puzzle-journey) | Embeds a standalone, premium, and fully-featured Lichess Daily Puzzle & level-based Puzzle Journey within the app. |  |
 | [Clone Chess.com](#clone-chess-com) | Changes the package name to com.chess.prathxm, allowing the patched app to be installed side-by-side with the original Chess.com app. |  |
 
 </details>

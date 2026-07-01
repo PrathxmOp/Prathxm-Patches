@@ -130,7 +130,16 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
 
         mainContainer = new FrameLayout(this);
         mainContainer.setFitsSystemWindows(true);
-        mainContainer.setBackgroundColor(COLOR_BG);
+        try {
+            android.graphics.Bitmap bgBitmap = android.graphics.BitmapFactory.decodeStream(getAssets().open("images/puzzle_bg.png"));
+            if (bgBitmap != null) {
+                mainContainer.setBackground(new android.graphics.drawable.BitmapDrawable(getResources(), bgBitmap));
+            } else {
+                mainContainer.setBackgroundColor(COLOR_BG);
+            }
+        } catch (Exception e) {
+            mainContainer.setBackgroundColor(COLOR_BG);
+        }
         mainContainer.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
@@ -138,7 +147,7 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(COLOR_BG);
+        root.setBackgroundColor(Color.TRANSPARENT);
         root.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
@@ -147,7 +156,7 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         // Header Panel (Centered)
         LinearLayout header = new LinearLayout(this);
         header.setOrientation(LinearLayout.HORIZONTAL);
-        header.setBackgroundColor(COLOR_CARD);
+        header.setBackgroundColor(Color.parseColor("#E6272522"));
         header.setGravity(Gravity.CENTER);
         header.setPadding(32, 24, 32, 24);
         header.setLayoutParams(new LinearLayout.LayoutParams(
@@ -416,80 +425,10 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         row.addView(mainSolveButton);
         root.addView(row);
 
-        // Bottom Navigation Bar
-        LinearLayout bottomNav = new LinearLayout(this);
-        bottomNav.setOrientation(LinearLayout.HORIZONTAL);
-        bottomNav.setBackgroundColor(Color.parseColor("#121214")); // Pure AMOLED dark
-        int navHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 56, getResources().getDisplayMetrics());
-        bottomNav.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                navHeight
-        ));
-        
-        String[] tabNames = {"Home", "Puzzles", "Learn", "Watch", "More"};
-        String[] tabIcons = {"♟️", "🧩", "🎓", "👀", "☰"};
-        String[] tabGlyphs = {"glyph_local_home", "glyph_game_type_puzzle", "glyph_board_classroom", "glyph_board_simple_watch", "glyph_mark_menu"};
-        
-        for (int i = 0; i < 5; i++) {
-            LinearLayout tabLayout = new LinearLayout(this);
-            tabLayout.setOrientation(LinearLayout.VERTICAL);
-            tabLayout.setGravity(Gravity.CENTER);
-            LinearLayout.LayoutParams tabParams = new LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.MATCH_PARENT, 1.0f
-            );
-            tabLayout.setLayoutParams(tabParams);
-            tabLayout.setClickable(true);
-            tabLayout.setFocusable(true);
-            TypedValue outVal = new TypedValue();
-            getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outVal, true);
-            tabLayout.setBackgroundResource(outVal.resourceId);
-            
-            final int index = i;
-            int glyphRes = getDrawableResId(tabGlyphs[i]);
-            if (glyphRes != 0) {
-                ImageView icon = new ImageView(this);
-                icon.setImageResource(glyphRes);
-                int iconSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 22, getResources().getDisplayMetrics());
-                LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(iconSize, iconSize);
-                icon.setLayoutParams(iconLp);
-                if (i == 1) {
-                    icon.setColorFilter(COLOR_GREEN);
-                } else {
-                    icon.setColorFilter(COLOR_TEXT_SECONDARY);
-                }
-                tabLayout.addView(icon);
-            } else {
-                TextView icon = new TextView(this);
-                icon.setText(tabIcons[i]);
-                icon.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-                if (i == 1) {
-                    icon.setTextColor(COLOR_GREEN);
-                } else {
-                    icon.setTextColor(COLOR_TEXT_SECONDARY);
-                }
-                tabLayout.addView(icon);
-            }
-            
-            TextView label = new TextView(this);
-            label.setText(tabNames[i]);
-            label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9);
-            if (fontBold != null) label.setTypeface(fontBold);
-            if (i == 1) {
-                label.setTextColor(COLOR_GREEN);
-            } else {
-                label.setTextColor(COLOR_TEXT_SECONDARY);
-            }
-            label.setPadding(0, (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2, getResources().getDisplayMetrics()), 0, 0);
-            tabLayout.addView(label);
-            
-            tabLayout.setOnClickListener(v -> {
-                if (index != 1) {
-                    finish();
-                }
-            });
-            bottomNav.addView(tabLayout);
-        }
-        root.addView(bottomNav);
+
+
+        // Bottom Navigation Bar is removed
+        int navHeight = 0;
 
         mainContainer.addView(root);
 
@@ -524,12 +463,12 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         sheetParams.bottomMargin = navHeight;
         bottomSheet.setLayoutParams(sheetParams);
         
-        String[] optionNames = {"Daily Puzzle", "Puzzle Rush", "Puzzle Battle", "Custom Puzzles"};
-        String[] optionEmojis = {"📅", "🔥", "⚔️", "📖"};
-        String[] optionGlyphs = {"color_calendar_dailypuzzle", "glyph_game_type_puzzle_rush", "glyph_game_type_puzzle_battle", "color_book_open_knight"};
-        String[] optionModes = {"daily", "rush", "battle", "custom"};
+        String[] optionNames = {"Daily Puzzle"};
+        String[] optionEmojis = {"📅"};
+        String[] optionGlyphs = {"color_calendar_dailypuzzle"};
+        String[] optionModes = {"daily"};
         
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < optionNames.length; i++) {
             final String modeName = optionModes[i];
             
             LinearLayout optionRow = new LinearLayout(this);
@@ -714,35 +653,65 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
     }
 
     private void updateStreakProgress() {
-        int currentStreak = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
-                .getInt("puzzle_streak", 0);
+        // 1. Fetch current puzzle tracking indices (unlocked level index)
         int unlockedLevel = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
                 .getInt("unlocked_level", 1);
         
+        // Total solved puzzles is equivalent to the unlockedLevel index minus 1
+        int totalPuzzlesSolved = Math.max(0, unlockedLevel - 1);
+        
+        // 2. Compute dynamic milestone target based on tens ceiling bounds
+        int targetMilestone = totalPuzzlesSolved <= 0 ? 10 : ((totalPuzzlesSolved / 10) + 1) * 10;
+
         runOnUiThread(() -> {
+            // Update large count display on left
             if (streakTextView != null) {
-                streakTextView.setText(String.valueOf(currentStreak));
+                streakTextView.setText(String.valueOf(totalPuzzlesSolved));
             }
+            
+            // Update small count profile badge icon
             if (topBadge != null) {
-                topBadge.setText(String.valueOf(Math.max(0, unlockedLevel - 1)));
+                topBadge.setText(String.valueOf(totalPuzzlesSolved));
                 int woodBadgeResId = getDrawableResId("puzzle_tier_wood_pawn");
                 if (woodBadgeResId != 0) {
                     topBadge.setBackgroundResource(woodBadgeResId);
                 }
             }
+            
+            // Synchronize the Progress Bar and Milestone Text badge
             if (streakProgressBar != null && streakMilestoneBadge != null) {
                 streakProgressBar.setMax(10);
-                streakProgressBar.setProgress((unlockedLevel - 1) % 10);
-                streakMilestoneBadge.setText(String.valueOf(unlockedLevel));
                 
+                // Percentage indicator runs from 0 to 9 in current tens tier loop
+                streakProgressBar.setProgress(totalPuzzlesSolved % 10);
+                streakMilestoneBadge.setText(String.valueOf(targetMilestone));
+                
+                // Style badge background based on level metrics
                 int woodBadgeResId = getDrawableResId("puzzle_tier_wood_pawn");
-                if (woodBadgeResId != 0) {
+                if (targetMilestone <= 10 && woodBadgeResId != 0) {
                     streakMilestoneBadge.setBackgroundResource(woodBadgeResId);
                 } else {
                     GradientDrawable badgeBg = new GradientDrawable();
                     badgeBg.setShape(GradientDrawable.OVAL);
-                    badgeBg.setColor(Color.parseColor("#8B5A2B"));
-                    badgeBg.setStroke((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, getResources().getDisplayMetrics()), Color.parseColor("#A0522D"));
+                    
+                    int badgeColor;
+                    int strokeColor;
+                    if (targetMilestone <= 10) {
+                        badgeColor = Color.parseColor("#8B5A2B"); // Bronze
+                        strokeColor = Color.parseColor("#A0522D");
+                    } else if (targetMilestone <= 20) {
+                        badgeColor = Color.parseColor("#C0C0C0"); // Silver
+                        strokeColor = Color.parseColor("#A9A9A9");
+                    } else if (targetMilestone <= 30) {
+                        badgeColor = Color.parseColor("#FFD700"); // Gold
+                        strokeColor = Color.parseColor("#DAA520");
+                    } else {
+                        badgeColor = Color.parseColor("#2C3E50"); // Obsidian / Platinum
+                        strokeColor = Color.parseColor("#34495E");
+                    }
+                    
+                    badgeBg.setColor(badgeColor);
+                    badgeBg.setStroke((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, getResources().getDisplayMetrics()), strokeColor);
                     streakMilestoneBadge.setBackground(badgeBg);
                 }
             }
