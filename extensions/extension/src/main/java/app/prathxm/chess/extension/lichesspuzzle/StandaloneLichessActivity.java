@@ -93,6 +93,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     private boolean playerIsWhite = true;
     private boolean isOnlinePuzzle = false;
     private String selectedTheme = null;
+    private int selectedDownloadLimit = 50000;
     private LinearLayout actionsLayout;
     private View speechBubbleTail;
 
@@ -183,7 +184,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             migrateJsonToDbAsync(localFile);
         } else {
             if (isNetworkAvailable()) {
-                startDownloadPuzzles();
+                showDownloadSelectionOverlay();
             } else {
                 showOfflineWarningOverlay();
             }
@@ -1223,27 +1224,27 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                 String themeLabel = "Theme Puzzles";
                 if (selectedTheme != null) {
                     if (selectedTheme.equals("healthyMix")) {
-                        themeLabel = "Healthy Mix";
+                        themeLabel = "Theme: Healthy Mix";
                     } else if (selectedTheme.equals("opening")) {
-                        themeLabel = "Opening Tactics";
+                        themeLabel = "Theme: Opening Tactics";
                     } else if (selectedTheme.equals("middlegame")) {
-                        themeLabel = "Middlegame Tactics";
+                        themeLabel = "Theme: Middlegame Tactics";
                     } else if (selectedTheme.equals("endgame")) {
-                        themeLabel = "Endgame Tactics";
+                        themeLabel = "Theme: Endgame Tactics";
                     } else if (selectedTheme.equals("rookEndgame")) {
-                        themeLabel = "Rook Endgames";
+                        themeLabel = "Theme: Rook Endgames";
                     } else if (selectedTheme.equals("bishopEndgame")) {
-                        themeLabel = "Bishop Endgames";
+                        themeLabel = "Theme: Bishop Endgames";
                     } else if (selectedTheme.equals("pawnEndgame")) {
-                        themeLabel = "Pawn Endgames";
+                        themeLabel = "Theme: Pawn Endgames";
                     } else if (selectedTheme.equals("knightEndgame")) {
-                        themeLabel = "Knight Endgames";
+                        themeLabel = "Theme: Knight Endgames";
                     } else if (selectedTheme.equals("queenEndgame")) {
-                        themeLabel = "Queen Endgames";
+                        themeLabel = "Theme: Queen Endgames";
                     } else if (selectedTheme.equals("queenRookEndgame")) {
-                        themeLabel = "Queen & Rook";
+                        themeLabel = "Theme: Queen & Rook";
                     } else {
-                        themeLabel = selectedTheme.substring(0, 1).toUpperCase() + selectedTheme.substring(1);
+                        themeLabel = "Theme: " + selectedTheme.substring(0, 1).toUpperCase() + selectedTheme.substring(1);
                     }
                 }
                 if (headerTitle != null) headerTitle.setText(themeLabel);
@@ -1552,86 +1553,117 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         showDownloadProgress("Downloading offline puzzles (0%)...\nPlease wait.", 0);
         new Thread(() -> {
             try {
-                int startOffset = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
-                        .getInt("download_offset", 0);
+                String urlStr = "https://raw.githubusercontent.com/PrathxmOp/Prathxm-Patches/main/lichess_offline_puzzles.csv.gz";
+                URL url = new URL(urlStr);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(30000);
+
+                int code = connection.getResponseCode();
+                if (code != HttpURLConnection.HTTP_OK) {
+                    throw new Exception("HTTP server error: " + code);
+                }
+
+                int fileLength = connection.getContentLength();
+                java.io.InputStream input = connection.getInputStream();
                 
-                int totalBatches = 200; // 20,000 puzzles
-                int limitPerBatch = 100;
+                final int totalBytes = fileLength;
+                final long[] lastUpdate = {0};
+                java.io.InputStream countingInput = new java.io.InputStream() {
+                    private int bytesRead = 0;
+                    @Override
+                    public int read() throws java.io.IOException {
+                        int b = input.read();
+                        if (b != -1) {
+                            bytesRead++;
+                            updateProgress(bytesRead);
+                        }
+                        return b;
+                    }
+                    @Override
+                    public int read(byte[] b, int off, int len) throws java.io.IOException {
+                        int n = input.read(b, off, len);
+                        if (n != -1) {
+                            bytesRead += n;
+                            updateProgress(bytesRead);
+                        }
+                        return n;
+                    }
+                    private void updateProgress(int read) {
+                        if (totalBytes > 0) {
+                            long now = System.currentTimeMillis();
+                            if (now - lastUpdate[0] > 100) {
+                                lastUpdate[0] = now;
+                                int progressPercent = (int) (((long) read * 100) / totalBytes);
+                                showDownloadProgress(
+                                        String.format(Locale.US, "Downloading offline database...\n(%d%%)", progressPercent),
+                                        progressPercent
+                                );
+                            }
+                        }
+                    }
+                };
+
+                java.util.zip.GZIPInputStream gzipStream = new java.util.zip.GZIPInputStream(countingInput);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(gzipStream, "UTF-8"));
+
+                String header = reader.readLine(); // skip header
                 List<JSONObject> batchList = new ArrayList<>();
+                String line;
+                int count = 0;
+                int totalPuzzles = selectedDownloadLimit;
 
-                for (int i = 0; i < totalBatches; i++) {
-                    int offset = startOffset + (i * limitPerBatch);
-                    final int progressPercent = (i * 100) / totalBatches;
-                    final int batchNum = i + 1;
-                    
-                    if (i % 10 == 0 || i == totalBatches - 1) {
-                        showDownloadProgress(
-                                String.format(Locale.US, "Downloading 20,000 offline puzzles...\nBatch %d/%d (%d%%)", batchNum, totalBatches, progressPercent),
-                                progressPercent
-                        );
+                while ((line = reader.readLine()) != null) {
+                    line = line.trim();
+                    if (line.isEmpty()) continue;
+
+                    String[] parts = line.split(",");
+                    if (parts.length >= 5) {
+                        JSONObject puzzleItem = new JSONObject();
+                        puzzleItem.put("id", parts[0]);
+                        puzzleItem.put("fen", parts[1]);
+                        puzzleItem.put("moves", parts[2]);
+                        puzzleItem.put("rating", Integer.parseInt(parts[3]));
+                        puzzleItem.put("theme", parts[4]);
+                        batchList.add(puzzleItem);
                     }
 
-                    String urlStr = String.format(Locale.US, "https://datasets-server.huggingface.co/rows?dataset=Lichess%%2Fchess-puzzles&config=default&split=train&offset=%d&limit=%d", offset, limitPerBatch);
-                    URL url = new URL(urlStr);
-                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                    connection.setRequestMethod("GET");
-                    connection.setRequestProperty("Accept", "application/json");
-                    connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-                    connection.setConnectTimeout(10000);
-                    connection.setReadTimeout(15000);
-
-                    int code = connection.getResponseCode();
-                    if (code == HttpURLConnection.HTTP_OK) {
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                        StringBuilder response = new StringBuilder();
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            response.append(line);
+                    if (count + batchList.size() >= totalPuzzles) {
+                        int remaining = totalPuzzles - count;
+                        if (remaining > 0 && remaining <= batchList.size()) {
+                            dbHelper.insertPuzzles(batchList.subList(0, remaining));
+                            count += remaining;
                         }
-                        reader.close();
+                        batchList.clear();
+                        break;
+                    }
 
-                        JSONObject responseJson = new JSONObject(response.toString());
-                        JSONArray rows = responseJson.getJSONArray("rows");
-                        for (int j = 0; j < rows.length(); j++) {
-                            JSONObject rowObj = rows.getJSONObject(j).getJSONObject("row");
-                            JSONObject puzzleItem = new JSONObject();
-                            puzzleItem.put("id", rowObj.getString("PuzzleId"));
-                            puzzleItem.put("fen", rowObj.getString("FEN"));
-                            puzzleItem.put("moves", rowObj.getString("Moves"));
-                            puzzleItem.put("rating", rowObj.getInt("Rating"));
-
-                            JSONArray themesArr = rowObj.optJSONArray("Themes");
-                            String theme = (themesArr != null && themesArr.length() > 0) ? themesArr.getString(0) : "tactics";
-                            puzzleItem.put("theme", theme);
-
-                            batchList.add(puzzleItem);
-                        }
+                    if (batchList.size() >= 1000) {
+                        dbHelper.insertPuzzles(batchList);
+                        count += batchList.size();
+                        batchList.clear();
                         
-                        if (batchList.size() >= 500) {
-                            dbHelper.insertPuzzles(batchList);
-                            batchList.clear();
-                        }
-                    } else if (code == 429) {
-                        Log.w(TAG, "Rate limited! Sleeping for 5 seconds...");
-                        Thread.sleep(5000);
-                        i--;
-                        continue;
-                    } else {
-                        throw new Exception("HTTP server error: " + code);
+                        final int currentCount = count;
+                        runOnUiThread(() -> {
+                            int importProgress = (currentCount * 100) / totalPuzzles;
+                            showDownloadProgress(
+                                    String.format(Locale.US, "Importing puzzles into database...\n%d / %d (%d%%)", currentCount, totalPuzzles, importProgress),
+                                    importProgress
+                            );
+                        });
                     }
-                    connection.disconnect();
-                    Thread.sleep(50);
                 }
 
                 if (!batchList.isEmpty()) {
                     dbHelper.insertPuzzles(batchList);
+                    count += batchList.size();
                     batchList.clear();
                 }
 
-                getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
-                        .edit()
-                        .putInt("download_offset", startOffset + (totalBatches * limitPerBatch))
-                        .apply();
+                reader.close();
+                connection.disconnect();
 
                 showDownloadProgress("Saving puzzles database to storage...", 100);
 
@@ -1651,102 +1683,106 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     }
 
     private void checkAndRefillPuzzlesAsync() {
-        new Thread(() -> {
-            try {
-                if (dbHelper.getUnsolvedCount() < 2000) {
-                    Log.i(TAG, "Unsolved puzzles count is low. Starting background refill...");
-                    refillPuzzlesInBackground();
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error in checkAndRefillPuzzlesAsync", e);
-            }
-        }).start();
+        // No refill needed since database contains puzzles from git
     }
 
     private void refillPuzzlesInBackground() {
-        synchronized (this) {
-            if (isRefilling) return;
-            isRefilling = true;
-        }
-        try {
-            int startOffset = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
-                    .getInt("download_offset", 0);
-            int totalBatches = 100; // 10,000 puzzles
-            int limitPerBatch = 100;
-            List<JSONObject> batchList = new ArrayList<>();
+        // No-op
+    }
 
-            for (int i = 0; i < totalBatches; i++) {
-                if (!isNetworkAvailable()) break;
-                int offset = startOffset + (i * limitPerBatch);
-                String urlStr = String.format(Locale.US, "https://datasets-server.huggingface.co/rows?dataset=Lichess%%2Fchess-puzzles&config=default&split=train&offset=%d&limit=%d", offset, limitPerBatch);
-                URL url = new URL(urlStr);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                connection.setRequestProperty("Accept", "application/json");
-                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-                connection.setConnectTimeout(10000);
-                connection.setReadTimeout(15000);
+    private void showDownloadSelectionOverlay() {
+        runOnUiThread(() -> {
+            gameLayout.setVisibility(View.GONE);
+            if (downloadOverlay != null) {
+                mainContainer.removeView(downloadOverlay);
+            }
+            
+            downloadOverlay = new LinearLayout(this);
+            downloadOverlay.setOrientation(LinearLayout.VERTICAL);
+            downloadOverlay.setGravity(Gravity.CENTER);
+            downloadOverlay.setBackgroundColor(COLOR_BG);
+            downloadOverlay.setPadding(48, 48, 48, 48);
 
-                int code = connection.getResponseCode();
-                if (code == HttpURLConnection.HTTP_OK) {
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                    StringBuilder response = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        response.append(line);
-                    }
-                    reader.close();
+            TextView titleText = new TextView(this);
+            titleText.setText("Setup Offline Puzzles");
+            titleText.setTextColor(COLOR_TEXT_PRIMARY);
+            titleText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
+            titleText.setTypeface(null, android.graphics.Typeface.BOLD);
+            titleText.setGravity(Gravity.CENTER);
+            titleText.setPadding(0, 0, 0, 8);
+            downloadOverlay.addView(titleText);
 
-                    JSONObject responseJson = new JSONObject(response.toString());
-                    JSONArray rows = responseJson.getJSONArray("rows");
-                    for (int j = 0; j < rows.length(); j++) {
-                        JSONObject rowObj = rows.getJSONObject(j).getJSONObject("row");
-                        JSONObject puzzleItem = new JSONObject();
-                        puzzleItem.put("id", rowObj.getString("PuzzleId"));
-                        puzzleItem.put("fen", rowObj.getString("FEN"));
-                        puzzleItem.put("moves", rowObj.getString("Moves"));
-                        puzzleItem.put("rating", rowObj.getInt("Rating"));
+            TextView descText = new TextView(this);
+            descText.setText("Choose a database size to download from the Lichess puzzle library. Puzzles will be stored offline.");
+            descText.setTextColor(COLOR_TEXT_SECONDARY);
+            descText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            descText.setGravity(Gravity.CENTER);
+            descText.setPadding(0, 0, 0, 32);
+            downloadOverlay.addView(descText);
 
-                        JSONArray themesArr = rowObj.optJSONArray("Themes");
-                        String theme = (themesArr != null && themesArr.length() > 0) ? themesArr.getString(0) : "tactics";
-                        puzzleItem.put("theme", theme);
+            int[] limits = {20000, 50000, 100000};
+            String[] titles = {"Lightweight Mode", "Standard Mode", "Full Database"};
+            String[] descs = {"20,000 puzzles (~1.0 MB download)", "50,000 puzzles (~2.3 MB download)", "100,000 puzzles (~4.5 MB download)"};
 
-                        batchList.add(puzzleItem);
-                    }
-                    if (batchList.size() >= 500) {
-                        dbHelper.insertPuzzles(batchList);
-                        batchList.clear();
-                    }
-                    getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
-                            .edit()
-                            .putInt("download_offset", offset + limitPerBatch)
-                            .apply();
-                } else if (code == 429) {
-                    Thread.sleep(5000);
-                    i--;
-                    continue;
+            float density = getResources().getDisplayMetrics().density;
+
+            for (int i = 0; i < 3; i++) {
+                final int limit = limits[i];
+                LinearLayout optBtn = new LinearLayout(this);
+                optBtn.setOrientation(LinearLayout.VERTICAL);
+                optBtn.setGravity(Gravity.CENTER_VERTICAL);
+                optBtn.setPadding((int)(16 * density), (int)(12 * density), (int)(16 * density), (int)(12 * density));
+                
+                GradientDrawable bg = new GradientDrawable();
+                if (limit == 50000) {
+                    bg.setColor(COLOR_GREEN);
                 } else {
-                    break;
+                    bg.setColor(COLOR_CARD);
                 }
-                connection.disconnect();
-                Thread.sleep(100);
+                bg.setCornerRadius(8 * density);
+                if (limit != 50000) {
+                    bg.setStroke((int)(1 * density), Color.parseColor("#403e3b"));
+                }
+                optBtn.setBackground(bg);
+
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+                params.setMargins(0, 0, 0, (int)(16 * density));
+                optBtn.setLayoutParams(params);
+
+                TextView optTitle = new TextView(this);
+                optTitle.setText(titles[i]);
+                optTitle.setTextColor(COLOR_TEXT_PRIMARY);
+                optTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+                optTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+                optBtn.addView(optTitle);
+
+                TextView optDesc = new TextView(this);
+                optDesc.setText(descs[i]);
+                if (limit == 50000) {
+                    optDesc.setTextColor(Color.parseColor("#E0F2F1"));
+                } else {
+                    optDesc.setTextColor(COLOR_TEXT_SECONDARY);
+                }
+                optDesc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+                optDesc.setPadding(0, (int)(4 * density), 0, 0);
+                optBtn.addView(optDesc);
+
+                optBtn.setOnClickListener(v -> {
+                    selectedDownloadLimit = limit;
+                    startDownloadPuzzles();
+                });
+
+                downloadOverlay.addView(optBtn);
             }
 
-            if (!batchList.isEmpty()) {
-                dbHelper.insertPuzzles(batchList);
-            }
-
-            getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
-                    .edit()
-                    .putInt("download_offset", startOffset + (totalBatches * limitPerBatch))
-                    .apply();
-
-            Log.i(TAG, "Background refill completed successfully.");
-        } catch (Exception e) {
-            Log.e(TAG, "Background refill failed", e);
-        } finally {
-            isRefilling = false;
-        }
+            mainContainer.addView(downloadOverlay, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+            ));
+        });
     }
 
     private void showDownloadProgress(String message, int progressVal) {
@@ -1834,7 +1870,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             downloadOverlay.addView(titleText);
 
             TextView descText = new TextView(this);
-            descText.setText("To play fully offline, the Lichess puzzle database of 10,000 puzzles must be downloaded on first launch.\n\nPlease connect to the internet and click Retry.");
+            descText.setText("To play fully offline, the Lichess puzzle database must be downloaded on first launch.\n\nPlease connect to the internet and click Retry.");
             descText.setTextColor(COLOR_TEXT_SECONDARY);
             descText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
             descText.setGravity(Gravity.CENTER);
@@ -1860,9 +1896,9 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             retryButton.setLayoutParams(btnParams);
             retryButton.setOnClickListener(v -> {
                 if (isNetworkAvailable()) {
-                    startDownloadPuzzles();
+                    showDownloadSelectionOverlay();
                 } else {
-                    descText.setText("Still offline. Please check your internet connection.\n\nTo play fully offline, the Lichess puzzle database of 10,000 puzzles must be downloaded on first launch.");
+                    descText.setText("Still offline. Please check your internet connection.\n\nTo play fully offline, the Lichess puzzle database must be downloaded on first launch.");
                     descText.setTextColor(COLOR_RED);
                 }
             });
@@ -1931,7 +1967,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             retryButton.setLayoutParams(btnParams);
             retryButton.setOnClickListener(v -> {
                 if (isNetworkAvailable()) {
-                    startDownloadPuzzles();
+                    showDownloadSelectionOverlay();
                 } else {
                     descText.setText("Still offline. Please check your internet connection and try again.");
                     descText.setTextColor(COLOR_RED);
@@ -2657,11 +2693,12 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             }
 
             // Calculate target puzzle context metric (use level index or global tracker fallback)
-            int referenceCount = levelIdx;
-            if (referenceCount == -1) {
-                if (activeMode.equals("theme")) {
-                    referenceCount = currentStreak;
-                } else {
+            int referenceCount;
+            if (activeMode.equals("theme")) {
+                referenceCount = currentStreak;
+            } else {
+                referenceCount = levelIdx;
+                if (referenceCount == -1) {
                     int unlockedLevel = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
                             .getInt("unlocked_level", 1);
                     referenceCount = Math.max(0, unlockedLevel - 1);
@@ -2669,39 +2706,39 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             }
 
             if (headerTitle != null) {
-                if (levelIdx != -1) {
+                if (activeMode.equals("theme")) {
+                    String themeLabel = "Theme Puzzles";
+                    if (selectedTheme != null) {
+                        if (selectedTheme.equals("healthyMix")) {
+                            themeLabel = "Theme: Healthy Mix";
+                        } else if (selectedTheme.equals("opening")) {
+                            themeLabel = "Theme: Opening Tactics";
+                        } else if (selectedTheme.equals("middlegame")) {
+                            themeLabel = "Theme: Middlegame Tactics";
+                        } else if (selectedTheme.equals("endgame")) {
+                            themeLabel = "Theme: Endgame Tactics";
+                        } else if (selectedTheme.equals("rookEndgame")) {
+                            themeLabel = "Theme: Rook Endgames";
+                        } else if (selectedTheme.equals("bishopEndgame")) {
+                            themeLabel = "Theme: Bishop Endgames";
+                        } else if (selectedTheme.equals("pawnEndgame")) {
+                            themeLabel = "Theme: Pawn Endgames";
+                        } else if (selectedTheme.equals("knightEndgame")) {
+                            themeLabel = "Theme: Knight Endgames";
+                        } else if (selectedTheme.equals("queenEndgame")) {
+                            themeLabel = "Theme: Queen Endgames";
+                        } else if (selectedTheme.equals("queenRookEndgame")) {
+                            themeLabel = "Theme: Queen & Rook";
+                        } else {
+                            themeLabel = "Theme: " + selectedTheme.substring(0, 1).toUpperCase() + selectedTheme.substring(1);
+                        }
+                    }
+                    headerTitle.setText(themeLabel);
+                } else if (levelIdx != -1) {
                     headerTitle.setText(levelIdx + " Puzzles");
                 } else {
                     if (activeMode.equals("custom")) {
                         headerTitle.setText("Custom Puzzles");
-                    } else if (activeMode.equals("theme")) {
-                        String themeLabel = "Theme Puzzles";
-                        if (selectedTheme != null) {
-                            if (selectedTheme.equals("healthyMix")) {
-                                themeLabel = "Healthy Mix";
-                            } else if (selectedTheme.equals("opening")) {
-                                themeLabel = "Opening Tactics";
-                            } else if (selectedTheme.equals("middlegame")) {
-                                themeLabel = "Middlegame Tactics";
-                            } else if (selectedTheme.equals("endgame")) {
-                                themeLabel = "Endgame Tactics";
-                            } else if (selectedTheme.equals("rookEndgame")) {
-                                themeLabel = "Rook Endgames";
-                            } else if (selectedTheme.equals("bishopEndgame")) {
-                                themeLabel = "Bishop Endgames";
-                            } else if (selectedTheme.equals("pawnEndgame")) {
-                                themeLabel = "Pawn Endgames";
-                            } else if (selectedTheme.equals("knightEndgame")) {
-                                themeLabel = "Knight Endgames";
-                            } else if (selectedTheme.equals("queenEndgame")) {
-                                themeLabel = "Queen Endgames";
-                            } else if (selectedTheme.equals("queenRookEndgame")) {
-                                themeLabel = "Queen & Rook";
-                            } else {
-                                themeLabel = selectedTheme.substring(0, 1).toUpperCase() + selectedTheme.substring(1);
-                            }
-                        }
-                        headerTitle.setText(themeLabel);
                     } else {
                         headerTitle.setText("Lichess Puzzles");
                     }

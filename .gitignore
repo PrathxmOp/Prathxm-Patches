@@ -137,3 +137,5 @@ patches/src/main/resources/stockfish/arm64-v8a/stockfish
 patches/src/main/resources/stockfish/armeabi-v7a/stockfish
 
 scratch/
+
+morphe-data/
