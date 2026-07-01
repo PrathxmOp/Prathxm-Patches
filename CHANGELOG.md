@@ -1,3 +1,9 @@
+## [1.5.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.5.0...v1.5.1) (2026-07-01)
+
+### 🔧 Improvements
+
+* Optimize theme puzzle counts loading to be asynchronous ([c9fddd9](https://github.com/PrathxmOp/Prathxm-Patches/commit/c9fddd9342c8a9cbb48eb0801010fe533f2131bc))
+
 ## [1.5.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.4.1...v1.5.0) (2026-07-01)
 
 ### ✨ New Features

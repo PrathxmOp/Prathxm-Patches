@@ -72,7 +72,7 @@ You can scan the QR code below or click the payment link:
 ## 🩹 Patches List
 
 <!-- PATCHES_START EXPANDED -->
-> **[v1.5.0](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.5.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;3 patches total
+> **[v1.5.1](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.5.1)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;3 patches total
 <details open>
 <summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;3 patches</summary>
 <br>
