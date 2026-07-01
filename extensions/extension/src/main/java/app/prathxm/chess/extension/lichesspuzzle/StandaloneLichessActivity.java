@@ -1809,7 +1809,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         runOnUiThread(() -> {
             gameLayout.setVisibility(View.GONE);
             
-            if (downloadOverlay == null || downloadOverlay.getParent() == null) {
+            if (downloadOverlay == null || downloadOverlay.getParent() == null || downloadStatusText == null || downloadProgressBar == null) {
                 if (downloadOverlay != null) {
                     mainContainer.removeView(downloadOverlay);
                 }
