@@ -91,6 +91,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     private boolean isAnalysisMode = false;
     private boolean playerIsWhite = true;
     private boolean isOnlinePuzzle = false;
+    private String selectedTheme = null;
     private LinearLayout actionsLayout;
     private View speechBubbleTail;
 
@@ -138,7 +139,29 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        currentStreak = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE).getInt("puzzle_streak", 0);
+        
+        // Resolve mode and theme first
+        int levelIndex = getIntent().getIntExtra("level_index", -1);
+        if (levelIndex != -1) {
+            activeMode = "journey";
+        } else {
+            activeMode = getIntent().getStringExtra("puzzle_mode");
+            if (activeMode == null) {
+                activeMode = "daily";
+            }
+        }
+        if ("theme".equals(activeMode)) {
+            selectedTheme = getIntent().getStringExtra("puzzle_theme");
+        }
+
+        String prefKey = "puzzle_streak";
+        if ("theme".equals(activeMode) && selectedTheme != null) {
+            prefKey = "theme_streak_" + selectedTheme;
+        } else if ("journey".equals(activeMode)) {
+            prefKey = "journey_streak";
+        }
+        currentStreak = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE).getInt(prefKey, 0);
+
         setupPremiumUI();
         initSoundPool();
 
@@ -1189,6 +1212,37 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                     streakProgressBar.setMax(180);
                     streakProgressBar.setProgress(180);
                 }
+            } else if (activeMode.equals("theme")) {
+                String themeLabel = "Theme Puzzles";
+                if (selectedTheme != null) {
+                    if (selectedTheme.equals("healthyMix")) {
+                        themeLabel = "Healthy Mix";
+                    } else if (selectedTheme.equals("opening")) {
+                        themeLabel = "Opening Tactics";
+                    } else if (selectedTheme.equals("middlegame")) {
+                        themeLabel = "Middlegame Tactics";
+                    } else if (selectedTheme.equals("endgame")) {
+                        themeLabel = "Endgame Tactics";
+                    } else if (selectedTheme.equals("rookEndgame")) {
+                        themeLabel = "Rook Endgames";
+                    } else if (selectedTheme.equals("bishopEndgame")) {
+                        themeLabel = "Bishop Endgames";
+                    } else if (selectedTheme.equals("pawnEndgame")) {
+                        themeLabel = "Pawn Endgames";
+                    } else if (selectedTheme.equals("knightEndgame")) {
+                        themeLabel = "Knight Endgames";
+                    } else if (selectedTheme.equals("queenEndgame")) {
+                        themeLabel = "Queen Endgames";
+                    } else if (selectedTheme.equals("queenRookEndgame")) {
+                        themeLabel = "Queen & Rook";
+                    } else {
+                        themeLabel = selectedTheme.substring(0, 1).toUpperCase() + selectedTheme.substring(1);
+                    }
+                }
+                if (headerTitle != null) headerTitle.setText(themeLabel);
+                if (streakMilestoneBadge != null) streakMilestoneBadge.setVisibility(View.VISIBLE);
+                if (flameIcon != null) flameIcon.setVisibility(View.VISIBLE);
+                if (streakProgressBar != null) streakProgressBar.setVisibility(View.VISIBLE);
             } else if (activeMode.equals("custom")) {
                 if (headerTitle != null) headerTitle.setText("Custom Puzzles");
                 if (streakMilestoneBadge != null) streakMilestoneBadge.setVisibility(View.VISIBLE);
@@ -1443,6 +1497,9 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                         resetRushOrBattleRun();
                     } else if (activeMode.equals("custom")) {
                         loadRandomOfflinePuzzle();
+                    } else if (activeMode.equals("theme")) {
+                        selectedTheme = getIntent().getStringExtra("puzzle_theme");
+                        loadRandomThemeOfflinePuzzle();
                     } else {
                         loadPuzzle(null);
                     }
@@ -1571,6 +1628,9 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                         resetRushOrBattleRun();
                     } else if (activeMode.equals("custom")) {
                         loadRandomOfflinePuzzle();
+                    } else if (activeMode.equals("theme")) {
+                        selectedTheme = getIntent().getStringExtra("puzzle_theme");
+                        loadRandomThemeOfflinePuzzle();
                     } else {
                         loadPuzzle(null);
                     }
@@ -1906,7 +1966,11 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                 }
             } else {
                 if (!offlinePuzzles.isEmpty()) {
-                    loadRandomOfflinePuzzle();
+                    if (activeMode.equals("theme")) {
+                        loadRandomThemeOfflinePuzzle();
+                    } else {
+                        loadRandomOfflinePuzzle();
+                    }
                 } else {
                     loadPuzzle(null);
                 }
@@ -1921,6 +1985,41 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         }
         int randIdx = (int) (Math.random() * offlinePuzzles.size());
         JSONObject puzzleObj = offlinePuzzles.get(randIdx);
+        initOfflinePuzzle(puzzleObj);
+    }
+
+    private void loadRandomThemeOfflinePuzzle() {
+        if (offlinePuzzles.isEmpty()) {
+            showError("No offline puzzles available.");
+            return;
+        }
+        if (selectedTheme == null || selectedTheme.equalsIgnoreCase("healthyMix")) {
+            loadRandomOfflinePuzzle();
+            return;
+        }
+        List<JSONObject> filtered = new ArrayList<>();
+        for (JSONObject p : offlinePuzzles) {
+            String pTheme = p.optString("theme", "");
+            if (pTheme.equalsIgnoreCase(selectedTheme)) {
+                filtered.add(p);
+            }
+        }
+        if (filtered.isEmpty()) {
+            // Fallback to substring matching (e.g. "endgame" matching "rookEndgame")
+            for (JSONObject p : offlinePuzzles) {
+                String pTheme = p.optString("theme", "").toLowerCase();
+                if (pTheme.contains(selectedTheme.toLowerCase())) {
+                    filtered.add(p);
+                }
+            }
+        }
+        if (filtered.isEmpty()) {
+            // absolute fallback
+            loadRandomOfflinePuzzle();
+            return;
+        }
+        int randIdx = (int) (Math.random() * filtered.size());
+        JSONObject puzzleObj = filtered.get(randIdx);
         initOfflinePuzzle(puzzleObj);
     }
 
@@ -2190,9 +2289,15 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
 
                     // Update streak
                     currentStreak++;
+                    String prefKey = "puzzle_streak";
+                    if ("theme".equals(activeMode) && selectedTheme != null) {
+                        prefKey = "theme_streak_" + selectedTheme;
+                    } else if ("journey".equals(activeMode)) {
+                        prefKey = "journey_streak";
+                    }
                     getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
                             .edit()
-                            .putInt("puzzle_streak", currentStreak)
+                            .putInt(prefKey, currentStreak)
                             .apply();
 
                     PuzzleHistoryItem currentItem = null;
@@ -2459,9 +2564,13 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             // Calculate target puzzle context metric (use level index or global tracker fallback)
             int referenceCount = levelIdx;
             if (referenceCount == -1) {
-                int unlockedLevel = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
-                        .getInt("unlocked_level", 1);
-                referenceCount = Math.max(0, unlockedLevel - 1);
+                if (activeMode.equals("theme")) {
+                    referenceCount = currentStreak;
+                } else {
+                    int unlockedLevel = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE)
+                            .getInt("unlocked_level", 1);
+                    referenceCount = Math.max(0, unlockedLevel - 1);
+                }
             }
 
             if (headerTitle != null) {
@@ -2470,6 +2579,34 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                 } else {
                     if (activeMode.equals("custom")) {
                         headerTitle.setText("Custom Puzzles");
+                    } else if (activeMode.equals("theme")) {
+                        String themeLabel = "Theme Puzzles";
+                        if (selectedTheme != null) {
+                            if (selectedTheme.equals("healthyMix")) {
+                                themeLabel = "Healthy Mix";
+                            } else if (selectedTheme.equals("opening")) {
+                                themeLabel = "Opening Tactics";
+                            } else if (selectedTheme.equals("middlegame")) {
+                                themeLabel = "Middlegame Tactics";
+                            } else if (selectedTheme.equals("endgame")) {
+                                themeLabel = "Endgame Tactics";
+                            } else if (selectedTheme.equals("rookEndgame")) {
+                                themeLabel = "Rook Endgames";
+                            } else if (selectedTheme.equals("bishopEndgame")) {
+                                themeLabel = "Bishop Endgames";
+                            } else if (selectedTheme.equals("pawnEndgame")) {
+                                themeLabel = "Pawn Endgames";
+                            } else if (selectedTheme.equals("knightEndgame")) {
+                                themeLabel = "Knight Endgames";
+                            } else if (selectedTheme.equals("queenEndgame")) {
+                                themeLabel = "Queen Endgames";
+                            } else if (selectedTheme.equals("queenRookEndgame")) {
+                                themeLabel = "Queen & Rook";
+                            } else {
+                                themeLabel = selectedTheme.substring(0, 1).toUpperCase() + selectedTheme.substring(1);
+                            }
+                        }
+                        headerTitle.setText(themeLabel);
                     } else {
                         headerTitle.setText("Lichess Puzzles");
                     }
