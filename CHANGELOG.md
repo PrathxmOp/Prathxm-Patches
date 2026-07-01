@@ -1,3 +1,9 @@
+## [1.5.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.4.1...v1.5.0) (2026-07-01)
+
+### ✨ New Features
+
+* Add database download options dialog to levelmap and update Morphe Manager link in README ([511697b](https://github.com/PrathxmOp/Prathxm-Patches/commit/511697beaabbbf7d7f9e22aa63b0b291b26f3b07))
+
 ## [1.4.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.4.0...v1.4.1) (2026-07-01)
 
 ### 🐛 Bug Fixes
