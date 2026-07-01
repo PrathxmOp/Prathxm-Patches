@@ -453,91 +453,77 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         sheetBg.setColor(Color.parseColor("#22211F"));
         sheetBg.setCornerRadii(new float[]{r, r, r, r, 0, 0, 0, 0});
         bottomSheet.setBackground(sheetBg);
-        bottomSheet.setPadding(margin16, margin16, margin16, margin16);
+        bottomSheet.setPadding(margin16, margin16, margin16, 0);
         
+        android.util.DisplayMetrics dm = new android.util.DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(dm);
+        int sheetHeight = (int) (dm.heightPixels * 0.75);
+
         FrameLayout.LayoutParams sheetParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
+                sheetHeight,
                 Gravity.BOTTOM
         );
         sheetParams.bottomMargin = navHeight;
         bottomSheet.setLayoutParams(sheetParams);
+
+        // Header Title for Bottom Sheet
+        TextView sheetTitle = new TextView(this);
+        sheetTitle.setText("Puzzle Themes & Practice");
+        sheetTitle.setTextColor(Color.WHITE);
+        sheetTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        if (fontBold != null) sheetTitle.setTypeface(fontBold);
+        LinearLayout.LayoutParams sheetTitleLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        sheetTitleLp.bottomMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics());
+        sheetTitle.setLayoutParams(sheetTitleLp);
+        bottomSheet.addView(sheetTitle);
+
+        // Scrollable area for list
+        ScrollView sheetScrollView = new ScrollView(this);
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1.0f
+        );
+        sheetScrollView.setLayoutParams(scrollLp);
         
-        String[] optionNames = {"Daily Puzzle"};
-        String[] optionEmojis = {"📅"};
-        String[] optionGlyphs = {"color_calendar_dailypuzzle"};
-        String[] optionModes = {"daily"};
-        
-        for (int i = 0; i < optionNames.length; i++) {
-            final String modeName = optionModes[i];
-            
-            LinearLayout optionRow = new LinearLayout(this);
-            optionRow.setOrientation(LinearLayout.HORIZONTAL);
-            optionRow.setGravity(Gravity.CENTER_VERTICAL);
-            int optHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 52, getResources().getDisplayMetrics());
-            LinearLayout.LayoutParams optLp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    optHeight
-            );
-            optLp.bottomMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
-            optionRow.setLayoutParams(optLp);
-            optionRow.setPadding(margin16, 0, margin16, 0);
-            
-            GradientDrawable optBg = new GradientDrawable();
-            optBg.setColor(Color.parseColor("#2D2B29"));
-            optBg.setCornerRadius(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics()));
-            optionRow.setBackground(optBg);
-            optionRow.setClickable(true);
-            optionRow.setFocusable(true);
-            TypedValue rowVal = new TypedValue();
-            getTheme().resolveAttribute(android.R.attr.selectableItemBackground, rowVal, true);
-            
-            int iconRes = getDrawableResId(optionGlyphs[i]);
-            if (iconRes != 0) {
-                ImageView icon = new ImageView(this);
-                icon.setImageResource(iconRes);
-                int iconSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 26, getResources().getDisplayMetrics());
-                LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(iconSize, iconSize);
-                iconLp.rightMargin = margin16;
-                icon.setLayoutParams(iconLp);
-                optionRow.addView(icon);
-            } else {
-                TextView icon = new TextView(this);
-                icon.setText(optionEmojis[i]);
-                icon.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
-                LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                );
-                iconLp.rightMargin = margin16;
-                icon.setLayoutParams(iconLp);
-                optionRow.addView(icon);
-            }
-            
-            TextView text = new TextView(this);
-            text.setText(optionNames[i]);
-            text.setTextColor(Color.WHITE);
-            text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-            if (fontBold != null) {
-                text.setTypeface(fontBold);
-            } else {
-                text.setTypeface(null, android.graphics.Typeface.BOLD);
-            }
-            optionRow.addView(text);
-            
-            optionRow.setOnClickListener(v -> {
-                hideBottomSheet();
-                Intent intent = new Intent(LichessPuzzleJourneyActivity.this, StandaloneLichessActivity.class);
-                intent.putExtra("puzzle_mode", modeName);
-                startActivity(intent);
-            });
-            bottomSheet.addView(optionRow);
-        }
-        
+        LinearLayout scrollContent = new LinearLayout(this);
+        scrollContent.setOrientation(LinearLayout.VERTICAL);
+        scrollContent.setLayoutParams(new ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+
+        // Category: Recommended
+        addThemeCategoryHeader(scrollContent, "Recommended");
+        addThemeRow(scrollContent, "Daily Puzzle", "📅", "Complete today's official daily puzzle.", "", "daily", null);
+        addThemeRow(scrollContent, "Healthy mix", "🎯", "A mix of everything. You don't know what to expect, so be ready for anything! Just like in real games.", "6,360,928", "theme", "healthyMix");
+
+        // Category: Phases
+        addThemeCategoryHeader(scrollContent, "Phases");
+        addThemeRow(scrollContent, "Opening", "♟️", "A tactic during the first phase of the game.", "319,834", "theme", "opening");
+        addThemeRow(scrollContent, "Middlegame", "⚔️", "A tactic during the second phase of the game.", "2,898,480", "theme", "middlegame");
+        addThemeRow(scrollContent, "Endgame", "👑", "A tactic during the last phase of the game.", "3,142,614", "theme", "endgame");
+
+        // Category: Endgame Types
+        addThemeCategoryHeader(scrollContent, "Endgame Types");
+        addThemeRow(scrollContent, "Rook endgame", "♜", "An endgame with only rooks and pawns.", "334,797", "theme", "rookEndgame");
+        addThemeRow(scrollContent, "Bishop endgame", "♝", "An endgame with only bishops and pawns.", "84,922", "theme", "bishopEndgame");
+        addThemeRow(scrollContent, "Pawn endgame", "♙", "An endgame with only pawns.", "227,186", "theme", "pawnEndgame");
+        addThemeRow(scrollContent, "Knight endgame", "♞", "An endgame with only knights and pawns.", "51,531", "theme", "knightEndgame");
+        addThemeRow(scrollContent, "Queen endgame", "♛", "An endgame with only queens and pawns.", "72,656", "theme", "queenEndgame");
+        addThemeRow(scrollContent, "Queen and Rook", "🏰", "An endgame with only queens, rooks, and pawns.", "47,016", "theme", "queenRookEndgame");
+
+        sheetScrollView.addView(scrollContent);
+        bottomSheet.addView(sheetScrollView);
+
         View spacer = new View(this);
         LinearLayout.LayoutParams spacerLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics())
+                (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics())
         );
         spacer.setLayoutParams(spacerLp);
         bottomSheet.addView(spacer);
@@ -545,10 +531,12 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         LinearLayout bottomRow = new LinearLayout(this);
         bottomRow.setOrientation(LinearLayout.HORIZONTAL);
         bottomRow.setGravity(Gravity.CENTER_VERTICAL);
-        bottomRow.setLayoutParams(new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams bottomRowLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
-        ));
+        );
+        bottomRowLp.bottomMargin = margin16;
+        bottomRow.setLayoutParams(bottomRowLp);
         
         Button closeBtn = new Button(this);
         closeBtn.setText("✕");
@@ -566,7 +554,7 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         bottomRow.addView(closeBtn);
         
         Button innerSolveBtn = new Button(this);
-        innerSolveBtn.setText("Solve Puzzles");
+        innerSolveBtn.setText("Solve Journey Puzzles");
         innerSolveBtn.setTextColor(Color.WHITE);
         innerSolveBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         if (fontBold != null) innerSolveBtn.setTypeface(fontBold);
@@ -577,7 +565,7 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         innerSolveBtn.setBackground(innerSolveBg);
         LinearLayout.LayoutParams innerSolveLp = new LinearLayout.LayoutParams(
                 0, closeSize, 1.0f
-        );
+                );
         innerSolveLp.leftMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics());
         innerSolveBtn.setLayoutParams(innerSolveLp);
         innerSolveBtn.setOnClickListener(v -> {
@@ -1106,6 +1094,127 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         if (avatarResId != 0) {
             coachAvatar.setImageResource(avatarResId);
         }
+    }
+
+    private void addThemeCategoryHeader(LinearLayout parent, String title) {
+        TextView header = new TextView(this);
+        header.setText(title);
+        header.setTextColor(Color.parseColor("#81B64C")); // Chess.com green accent
+        header.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        if (fontBold != null) header.setTypeface(fontBold);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        lp.topMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics());
+        lp.bottomMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
+        header.setLayoutParams(lp);
+        parent.addView(header);
+    }
+
+    private void addThemeRow(LinearLayout parent, String name, String emoji, String description, String count, String mode, String themeKey) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics()),
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics()),
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics()),
+            (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics())
+        );
+
+        LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        rowLp.bottomMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
+        row.setLayoutParams(rowLp);
+
+        GradientDrawable rowBg = new GradientDrawable();
+        rowBg.setColor(Color.parseColor("#2D2B29"));
+        rowBg.setCornerRadius(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics()));
+        row.setBackground(rowBg);
+        row.setClickable(true);
+        row.setFocusable(true);
+
+        // Emoji
+        TextView emojiView = new TextView(this);
+        emojiView.setText(emoji);
+        emojiView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+        LinearLayout.LayoutParams emojiLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        emojiLp.rightMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics());
+        emojiView.setLayoutParams(emojiLp);
+        row.addView(emojiView);
+
+        // Text container
+        LinearLayout textContainer = new LinearLayout(this);
+        textContainer.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams textLp = new LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1.0f
+        );
+        textContainer.setLayoutParams(textLp);
+
+        TextView titleView = new TextView(this);
+        titleView.setText(name);
+        titleView.setTextColor(Color.WHITE);
+        titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        if (fontBold != null) titleView.setTypeface(fontBold);
+        textContainer.addView(titleView);
+
+        if (description != null && !description.isEmpty()) {
+            TextView descView = new TextView(this);
+            descView.setText(description);
+            descView.setTextColor(Color.parseColor("#A0A0A5"));
+            descView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+            if (fontRegular != null) descView.setTypeface(fontRegular);
+            descView.setSingleLine(false);
+            textContainer.addView(descView);
+        }
+        row.addView(textContainer);
+
+        // Count Badge
+        if (count != null && !count.isEmpty()) {
+            TextView countView = new TextView(this);
+            countView.setText(count);
+            countView.setTextColor(Color.parseColor("#B1B0AE"));
+            countView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+            if (fontRegular != null) countView.setTypeface(fontRegular);
+            countView.setPadding(
+                (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics()),
+                (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 4, getResources().getDisplayMetrics()),
+                (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics()),
+                (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 4, getResources().getDisplayMetrics())
+            );
+            GradientDrawable badgeBg = new GradientDrawable();
+            badgeBg.setColor(Color.parseColor("#1C1A18"));
+            badgeBg.setCornerRadius(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 6, getResources().getDisplayMetrics()));
+            countView.setBackground(badgeBg);
+
+            LinearLayout.LayoutParams countLp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+            countLp.leftMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, getResources().getDisplayMetrics());
+            countView.setLayoutParams(countLp);
+            row.addView(countView);
+        }
+
+        row.setOnClickListener(v -> {
+            hideBottomSheet();
+            Intent intent = new Intent(LichessPuzzleJourneyActivity.this, StandaloneLichessActivity.class);
+            intent.putExtra("puzzle_mode", mode);
+            if (themeKey != null) {
+                intent.putExtra("puzzle_theme", themeKey);
+            }
+            startActivity(intent);
+        });
+
+        parent.addView(row);
     }
 
     private static class SpeechBubbleTail extends View {
