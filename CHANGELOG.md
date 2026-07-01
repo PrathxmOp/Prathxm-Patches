@@ -1,3 +1,9 @@
+## [1.4.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.4.0...v1.4.1) (2026-07-01)
+
+### 🐛 Bug Fixes
+
+* **lichess-puzzle:** resolve NullPointerException on progress overlay initialization ([b970893](https://github.com/PrathxmOp/Prathxm-Patches/commit/b9708930a0481f2c08deeeb6c567abe1ede0f27e))
+
 ## [1.4.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.3.1...v1.4.0) (2026-07-01)
 
 ### 🐛 Bug Fixes
