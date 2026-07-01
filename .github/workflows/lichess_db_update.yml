@@ -31,18 +31,6 @@ jobs:
         run: |
           python3 .github/scripts/extract_puzzles.py
 
-      - name: Commit and Push raw git files to main
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add lichess_offline_puzzles_20k.csv.gz lichess_offline_puzzles_50k.csv.gz lichess_offline_puzzles_100k.csv.gz lichess_offline_puzzles_500k.csv.gz
-          if git diff --staged --quiet; then
-            echo "No changes in raw git database files."
-          else
-            git commit -m "chore(database): update offline puzzle files (20k, 50k, 100k, 500k) [skip ci]"
-            git push origin HEAD:main
-          fi
-
       - name: Upload Mega and All files to Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
