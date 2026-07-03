@@ -64,16 +64,14 @@ val stockfishPatch = bytecodePatch(
         )
 
         // ─────────────────────────────────────────────────────────────────
-        // Hook 3 – Intercept Ad-Removal Getters
+        // Hook 3 – Intercept Ad-Removal Getters (Force Values to prevent UI crashes)
         // ─────────────────────────────────────────────────────────────────
 
         // LoginData.getShow_ads() → boolean (primitive)
         LoginDataGetShowAdsFingerprint.method.addInstructions(
             0,
             """
-                iget-boolean v0, p0, Lcom/chess/net/model/LoginData;->show_ads:Z
-                invoke-static {v0}, $EXTENSION_CLASS->shouldShowAds(Z)Z
-                move-result v0
+                const/4 v0, 0
                 return v0
             """
         )
@@ -82,9 +80,7 @@ val stockfishPatch = bytecodePatch(
         LoginDataGetShowInterstitialAdsFingerprint.method.addInstructions(
             0,
             """
-                iget-object v0, p0, Lcom/chess/net/model/LoginData;->show_interstitial_ads:Ljava/lang/Boolean;
-                invoke-static {v0}, $EXTENSION_CLASS->shouldShowAdsObject(Ljava/lang/Boolean;)Ljava/lang/Boolean;
-                move-result-object v0
+                sget-object v0, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;
                 return-object v0
             """
         )
@@ -93,9 +89,7 @@ val stockfishPatch = bytecodePatch(
         UserDataGetShowAdsFingerprint.method.addInstructions(
             0,
             """
-                iget-object v0, p0, Lcom/chess/net/model/UserData;->show_ads:Ljava/lang/Boolean;
-                invoke-static {v0}, $EXTENSION_CLASS->shouldShowAdsObject(Ljava/lang/Boolean;)Ljava/lang/Boolean;
-                move-result-object v0
+                sget-object v0, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;
                 return-object v0
             """
         )
@@ -104,20 +98,16 @@ val stockfishPatch = bytecodePatch(
         UserDataGetShowInterstitialAdsFingerprint.method.addInstructions(
             0,
             """
-                iget-object v0, p0, Lcom/chess/net/model/UserData;->show_interstitial_ads:Ljava/lang/Boolean;
-                invoke-static {v0}, $EXTENSION_CLASS->shouldShowAdsObject(Ljava/lang/Boolean;)Ljava/lang/Boolean;
-                move-result-object v0
+                sget-object v0, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;
                 return-object v0
             """
         )
 
-        // LoginData.getPremium_status() → int
+        // LoginData.getPremium_status() → int (DIAMOND = 3)
         LoginDataGetPremiumStatusFingerprint.method.addInstructions(
             0,
             """
-                iget v0, p0, Lcom/chess/net/model/LoginData;->premium_status:I
-                invoke-static {v0}, $EXTENSION_CLASS->getPremiumStatus(I)I
-                move-result v0
+                const/4 v0, 3
                 return v0
             """
         )
@@ -126,11 +116,12 @@ val stockfishPatch = bytecodePatch(
         UserDataGetPremiumStatusFingerprint.method.addInstructions(
             0,
             """
-                iget-object v0, p0, Lcom/chess/net/model/UserData;->premium_status:Lcom/chess/entities/PremiumStatus;
-                invoke-static {v0}, $EXTENSION_CLASS->getPremiumStatusObject(Ljava/lang/Object;)Ljava/lang/Object;
+                invoke-static {}, $EXTENSION_CLASS->getDiamondStatus()Ljava/lang/Object;
                 move-result-object v0
                 check-cast v0, Lcom/chess/entities/PremiumStatus;
+                if-nez v0, :original
                 return-object v0
+                :original
             """
         )
 
@@ -281,3 +272,4 @@ val stockfishPatch = bytecodePatch(
 
     }
 }
+
