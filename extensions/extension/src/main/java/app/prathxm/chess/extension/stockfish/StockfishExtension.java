@@ -1494,16 +1494,22 @@ public class StockfishExtension {
 
     public static Object getPremiumStatusObject(Object defaultValue) {
         Context context = getContext();
-        if (context == null) return defaultValue;
-        if (StockfishSettings.isPremiumEnabled(context)) {
+        // Force true if context is null during early init, or check settings
+        boolean enabled = (context == null) || StockfishSettings.isPremiumEnabled(context);
+        if (enabled) {
             try {
                 Class<?> premiumStatusClass = Class.forName("com.chess.entities.PremiumStatus");
                 return premiumStatusClass.getField("DIAMOND").get(null);
             } catch (Throwable t) {
-                Log.e(TAG, "Failed to get PremiumStatus.DIAMOND via reflection: " + t.getMessage(), t);
+                Log.e(TAG, "Failed to get PremiumStatus.DIAMOND: " + t.getMessage());
             }
         }
         return defaultValue;
+    }
+
+    /** Helper for static Smali hook without needing to pass a default value */
+    public static Object getDiamondStatus() {
+        return getPremiumStatusObject(null);
     }
 
     public static boolean getAnalysisPermission(boolean defaultValue, String permissionName) {
@@ -1513,6 +1519,26 @@ public class StockfishExtension {
             return true;
         }
         return defaultValue;
+    }
+
+    public static boolean isBotPlayable(boolean original) {
+        return true;
+    }
+
+    public static Boolean isBotPlayableObject(Boolean original) {
+        return Boolean.TRUE;
+    }
+
+    public static boolean isBotEnabled(boolean original) {
+        return true;
+    }
+
+    public static Boolean isBotPremium(Boolean original) {
+        return Boolean.FALSE;
+    }
+
+    public static boolean isBotLocked(Object bot) {
+        return false;
     }
 
 
