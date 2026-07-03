@@ -1,3 +1,10 @@
+## [1.6.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.5.1...v1.6.0-dev.1) (2026-07-03)
+
+### ✨ New Features
+
+* Cache theme counts in SharedPreferences to make UI loading instant ([e672ae1](https://github.com/PrathxmOp/Prathxm-Patches/commit/e672ae12ae091b502aa9886153c7c249049f5fd1))
+* implement universal bot unlocking patch and fix UI/matchmaking crashes ([80c6a85](https://github.com/PrathxmOp/Prathxm-Patches/commit/80c6a8543a4304f2b47e1e2e5fbf9e85c6b8aa0e))
+
 ## [1.5.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.5.0...v1.5.1) (2026-07-01)
 
 ### 🔧 Improvements
