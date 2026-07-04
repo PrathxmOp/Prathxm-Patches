@@ -32,6 +32,12 @@ Using discussions helps keep the project organized and lets other community memb
 
 Donations keep me motivated to maintain this project, fix bugs, and create new patches! If this project made your chess experience better, please consider supporting my work.
 
+### 👑 Get a Custom Title!
+Want a custom title (e.g. **GM**, **IM**, **FM**, **WCM**) next to your username? You can get one by supporting the project!
+1. Donate any amount via the UPI options below.
+2. Send a request on [GitHub Discussions](https://github.com/PrathxmOp/Prathxm-Patches/discussions) or DM me with your donation confirmation, your Chess.com username, and the title you want.
+3. Your custom title will show up globally for everyone using this patched app!
+
 ### Donate via UPI: `prathammishraop@ybl`
 
 You can scan the QR code below or click the payment link:
