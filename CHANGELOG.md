@@ -1,3 +1,9 @@
+## [1.9.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.8.1...v1.9.0) (2026-07-04)
+
+### ✨ New Features
+
+* **Chess.com:** Fix session store and telemetry blocker ([bb30ca7](https://github.com/PrathxmOp/Prathxm-Patches/commit/bb30ca705802e7d6a851a3788d29670ec4406b56))
+
 ## [1.8.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.8.0...v1.8.1) (2026-07-04)
 
 ### 🐛 Bug Fixes
