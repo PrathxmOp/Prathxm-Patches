@@ -72,6 +72,9 @@ You can scan the QR code below or click the payment link:
 
 ### 💎 Global Features
 * **Ad-Free UI** — Block and remove banner ads, full-screen interstitials, and video promotions for a cleaner experience.
+* **🤖 Unlock All Bots** — Play against all premium and restricted bots in the Versus Bots feature without restrictions.
+* **👑 Custom Titles** — Display custom titles (e.g. GM, IM, FM, WCM) next to your username inside the app.
+* **🛡️ Disable Analytics & Telemetry** — Blocks Google Analytics, Firebase Analytics, Crashlytics, Facebook events, and Bugsnag crash logging to preserve privacy and keep your account safe.
 
 ---
 
