@@ -52,7 +52,7 @@ private val lichessPuzzleResourcePatch = resourcePatch {
 
 val lichessPuzzlePatch = bytecodePatch(
     name = "Lichess Puzzles",
-    description = "Loads daily puzzles from Lichess and bypasses Chess.com puzzle premium limits.",
+    description = "Loads daily puzzles from Lichess and bypasses Chess.com puzzle daily limits.",
     default = true
 ) {
     compatibleWith(COMPATIBILITY_CHESS)

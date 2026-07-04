@@ -94,7 +94,7 @@ object UserProfileHeaderGetChessTitleFingerprint : Fingerprint(
 
 val customTitlesPatch = bytecodePatch(
     name = "Custom Titles",
-    description = "Fetches and applies custom titles for users from a remote database. DM PrathxmOp to get yours for fun lol!",
+    description = "Allows users to load and display custom titles (e.g. GM, IM, FM, etc.) next to their username inside the app.",
     default = true
 ) {
     compatibleWith(COMPATIBILITY_CHESS)

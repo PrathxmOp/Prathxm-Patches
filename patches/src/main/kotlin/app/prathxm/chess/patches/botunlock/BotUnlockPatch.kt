@@ -8,7 +8,7 @@ private const val EXTENSION_CLASS = "Lapp/prathxm/chess/extension/stockfish/Stoc
 
 val botUnlockPatch = bytecodePatch(
     name = "Unlock All Bots",
-    description = "Unlocks all premium and restricted bots in the Versus Bots feature.",
+    description = "Unlocks all locked and restricted bots in the Versus Bots feature.",
     default = true
 ) {
     compatibleWith(COMPATIBILITY_CHESS)
