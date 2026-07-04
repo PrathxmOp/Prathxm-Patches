@@ -1,3 +1,9 @@
+## [1.9.2-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.1...v1.9.2-dev.1) (2026-07-04)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** update bot unlock description in README ([cddaf5c](https://github.com/PrathxmOp/Prathxm-Patches/commit/cddaf5c34b4711212d333c87b466781cc61b6dae))
+
 ## [1.9.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.0...v1.9.1) (2026-07-04)
 
 ### 🐛 Bug Fixes
