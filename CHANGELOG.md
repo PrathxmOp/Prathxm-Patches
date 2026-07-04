@@ -1,3 +1,9 @@
+## [1.8.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.8.0...v1.8.1) (2026-07-04)
+
+### 🐛 Bug Fixes
+
+* resolve user session validation issues and optimize telemetry blocker ([ba5c964](https://github.com/PrathxmOp/Prathxm-Patches/commit/ba5c964064a7fb51a2f4510c5b867291721eded9))
+
 ## [1.8.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.7.0...v1.8.0) (2026-07-04)
 
 ### ✨ New Features
