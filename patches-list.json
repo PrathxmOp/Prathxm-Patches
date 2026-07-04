@@ -1,6 +1,6 @@
 {
   "NOTE": "Do NOT manually edit this file. This file is automatically updated when semantic release (release.yml) runs. Manually editing this file can break your releases and break third party tools that use this file.",
-  "version": "1.7.0",
+  "version": "1.6.0",
   "patches": [
     {
       "name": "Ad-Free & Local Analysis",
@@ -72,7 +72,40 @@
     },
     {
       "name": "Custom Titles",
-      "description": "Fetches and applies custom titles for users from a remote database. DM PrathxmOp to get yours for fun lol!",
+      "description": "Allows users to load and display custom titles (e.g. GM, IM, FM, etc.) next to their username inside the app.",
+      "default": true,
+      "dependencies": [],
+      "compatiblePackages": [
+        {
+          "packageName": "com.chess",
+          "name": "Chess.com",
+          "description": null,
+          "apkFileType": "APK",
+          "appIconColor": "#81B64C",
+          "signatures": null,
+          "targets": [
+            {
+              "version": "4.9.49",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            },
+            {
+              "version": "4.9.49-googleplay",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Disable Analytics & Telemetry",
+      "description": "Completely disables Firebase Analytics, Google Analytics, Firebase Crashlytics, Facebook Event logging, Bugsnag monitoring, and internal app telemetry to protect account privacy and prevent bans.",
       "default": true,
       "dependencies": [],
       "compatiblePackages": [
@@ -105,7 +138,7 @@
     },
     {
       "name": "Lichess Puzzles",
-      "description": "Loads daily puzzles from Lichess and bypasses Chess.com puzzle premium limits.",
+      "description": "Loads daily puzzles from Lichess and bypasses Chess.com puzzle daily limits.",
       "default": true,
       "dependencies": [
         "ResourcePatch"
@@ -140,7 +173,7 @@
     },
     {
       "name": "Unlock All Bots",
-      "description": "Unlocks all premium and restricted bots in the Versus Bots feature.",
+      "description": "Unlocks all locked and restricted bots in the Versus Bots feature.",
       "default": true,
       "dependencies": [],
       "compatiblePackages": [
