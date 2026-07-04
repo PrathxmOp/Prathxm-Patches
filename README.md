@@ -78,9 +78,9 @@ You can scan the QR code below or click the payment link:
 ## 🩹 Patches List
 
 <!-- PATCHES_START EXPANDED -->
-> **[v1.6.0](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.6.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;3 patches total
+> **[v1.7.0](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.7.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;5 patches total
 <details open>
-<summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;3 patches</summary>
+<summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;5 patches</summary>
 <br>
 
 **🎯 Supported versions:**
@@ -92,7 +92,9 @@ You can scan the QR code below or click the payment link:
 |----------|----------------|-----------|
 | [Ad-Free & Local Analysis](#ad-free-local-analysis) | Removes advertisements, unlocks ad-free features, and enables local Stockfish engine for post-game review & analysis. |  |
 | [Clone Chess.com](#clone-chess-com) | Changes the package name to com.chess.prathxm, allowing the patched app to be installed side-by-side with the original Chess.com app. |  |
+| [Custom Titles](#custom-titles) | Fetches and applies custom titles for users from a remote database. DM PrathxmOp to get yours for fun lol! |  |
 | [Lichess Puzzles](#lichess-puzzles) | Loads daily puzzles from Lichess and bypasses Chess.com puzzle premium limits. |  |
+| [Unlock All Bots](#unlock-all-bots) | Unlocks all premium and restricted bots in the Versus Bots feature. |  |
 
 </details>
 

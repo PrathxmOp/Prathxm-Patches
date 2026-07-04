@@ -1,3 +1,10 @@
+## [1.7.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.6.0...v1.7.0) (2026-07-04)
+
+### ✨ New Features
+
+* implement universal bot unlocking patch and fix UI/matchmaking crashes ([e130c25](https://github.com/PrathxmOp/Prathxm-Patches/commit/e130c25bc74ad88b8690d1ce437908e60522c449))
+* **patch:** add custom titles patch and Java extension ([cfc60e6](https://github.com/PrathxmOp/Prathxm-Patches/commit/cfc60e604af36459c9d620fe6b420b64c202908e))
+
 ## [1.6.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.5.1...v1.6.0) (2026-07-01)
 
 ### ✨ New Features
