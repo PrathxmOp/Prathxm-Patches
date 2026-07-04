@@ -1,8 +1,3 @@
-/*
- * Copyright 2026 PrathxmOp
- * https://github.com/PrathxmOp/Prathxm-Patches
- */
-
 package app.prathxm.chess.extension.stockfish;
 
 import android.app.Activity;
@@ -52,10 +47,12 @@ public class LocalAnalysisFlow {
     }
 
     private static void runCollect(String pgn, Object analysisDepthObj, Object collector, Object continuation) {
+        Activity activity = StockfishExtension.getCurrentActivity();
+        logToFile(activity, "runCollect entered. PGN length: " + (pgn != null ? pgn.length() : 0), false);
         try {
             // Fair Play Gating: Prevent any local analysis during active live match
-            Activity activity = StockfishExtension.getCurrentActivity();
             if (activity != null && StockfishExtension.isLiveMatch(activity) && !StockfishExtension.isReviewMode) {
+                logToFile(activity, "Analysis request blocked: Live gameplay detected.", true);
                 Log.w(TAG, "Analysis request blocked: Live gameplay detected.");
                 return;
             }
@@ -90,6 +87,20 @@ public class LocalAnalysisFlow {
                 depthEnum = Enum.valueOf((Class<Enum>) adClass, "STANDARD");
             }
 
+            logToFile(activity, "Reflections resolved successfully.", true);
+
+            try {
+                Class<?> enumCls = Class.forName("com.chess.compengine.AnalysisMoveClassification");
+                Object[] constants = enumCls.getEnumConstants();
+                if (constants != null) {
+                    for (Object c : constants) {
+                        logToFile(activity, "Enum constant: " + c.toString() + " (name=" + ((Enum<?>)c).name() + ")", true);
+                    }
+                }
+            } catch (Throwable t) {
+                logToFile(activity, "Failed to get enum constants: " + t.getMessage(), true);
+            }
+
             // Emit initial Progress
             // InProgress(float progress, AnalysisDepth depth, m source)
             Constructor<?> ipConstructor = inProgressClass.getConstructor(float.class, adClass, mClass);
@@ -113,6 +124,11 @@ public class LocalAnalysisFlow {
             }
             List<?> moves = (List<?>) getMovesMethod.invoke(gameObj);
             int totalMoves = moves.size();
+            logToFile(activity, "PGN parsed. Moves count: " + totalMoves, true);
+            Log.d(TAG, "Local stockfish review parsing PGN. Length: " + (pgn != null ? pgn.length() : 0) + ", Moves found: " + totalMoves);
+            if (pgn != null) {
+                Log.d(TAG, "PGN excerpt: " + pgn.substring(0, Math.min(pgn.length(), 300)));
+            }
 
             // Run Stockfish sequentially on all game positions (starting pos + after each move)
             StockfishProcess.AnalysisResult[] results = new StockfishProcess.AnalysisResult[totalMoves + 1];
@@ -127,7 +143,10 @@ public class LocalAnalysisFlow {
             Object startingPosition = getStartingPositionMethod.invoke(gameObj);
             String startingFen = StockfishExtension.extractFen(startingPosition);
 
+            logToFile(activity, "Analyzing starting FEN: " + startingFen, true);
             results[0] = StockfishBridge.analyze(startingFen, searchDepth, 3);
+            logToFile(activity, "Starting FEN result moves count: " + (results[0].moves != null ? results[0].moves.size() : "null"), true);
+            
             Object progObj1 = ipConstructor.newInstance(1.0f / (totalMoves + 1), depthEnum, sourceEnum);
             emitMethod.invoke(collector, progObj1, continuation);
 
@@ -143,7 +162,9 @@ public class LocalAnalysisFlow {
                 Object positionAfter = getPosAfterMethod.invoke(csrmm);
                 String fenAfter = StockfishExtension.extractFen(positionAfter);
 
+                logToFile(activity, "Analyzing move " + i + " FEN: " + fenAfter, true);
                 results[i + 1] = StockfishBridge.analyze(fenAfter, searchDepth, 3);
+                logToFile(activity, "Move " + i + " result moves count: " + (results[i + 1].moves != null ? results[i + 1].moves.size() : "null"), true);
 
                 float progress = (float)(i + 2) / (totalMoves + 1);
                 Object progObj = ipConstructor.newInstance(progress, depthEnum, sourceEnum);
@@ -485,6 +506,7 @@ public class LocalAnalysisFlow {
             emitMethod.invoke(collector, completedResult, continuation);
 
         } catch (Throwable t) {
+            logToFile(activity, "EXCEPTION: " + Log.getStackTraceString(t), true);
             Log.e(TAG, "Local stockfish analysis failed", t);
             try {
                 Class<?> failureClass = Class.forName("com.chess.gamereview.repository.h$a");
@@ -525,5 +547,19 @@ public class LocalAnalysisFlow {
             Log.e(TAG, "Failed to resolve kotlin.Unit instance", t);
         }
         return null;
+    }
+
+    private static void logToFile(android.content.Context context, String msg, boolean append) {
+        try {
+            if (context == null) return;
+            java.io.File dir = context.getExternalFilesDir(null);
+            if (dir == null) return;
+            java.io.File logFile = new java.io.File(dir, "game_review_debug.txt");
+            java.io.FileWriter fw = new java.io.FileWriter(logFile, append);
+            fw.write("[" + new java.util.Date() + "] " + msg + "\n");
+            fw.close();
+        } catch (Throwable t) {
+            Log.e("LocalAnalysisFlow", "Failed to write log to file", t);
+        }
     }
 }

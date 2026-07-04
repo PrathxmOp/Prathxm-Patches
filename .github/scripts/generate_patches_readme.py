@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-
-# Copyright 2026 PrathxmOp
-# https://github.com/PrathxmOp/Prathxm-Patches
-
 """
 Generates the patches section of README.md from patches-list.json
 and injects it between <!-- PATCHES_START --> / <!-- PATCHES_END --> markers.

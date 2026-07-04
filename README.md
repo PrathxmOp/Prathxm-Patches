@@ -2,67 +2,79 @@
 
 > *"You expect me to be perfect but i am full of flaws"*
 
-Custom Morphe patches for **Chess.com**, featuring offline Lichess puzzle journeys, ad-free UI, unlocked bots, and a fully offline **Stockfish 16.1 NNUE** engine for local post-game reviews and analysis.
+Custom Morphe patches for **Chess.com**, providing a clean, ad-free experience, locally processed post-game reviews, and offline Lichess puzzle journeys.
 
 ---
 
 ## ❓ About
 
-This project embeds a native **Stockfish 16.1 NNUE** chess engine directly on your device. It intercepts and processes game review requests locally, offering offline move evaluations, accuracy scores, and rating estimations—all without server dependencies.
+Prathxm Patches embeds a native **Stockfish 16.1 NNUE** chess engine directly into the app on Android. This allows you to perform post-game reviews and run analysis completely offline, without depending on external servers. 
 
-> [!IMPORTANT]
-> **Fair Play Compliance:**
-> To ensure fair play, all engine overlays, evaluation bars, and suggestions are automatically disabled during live online matches.
+Strictly designed in compliance with fair-play rules, all analysis assistance and visual overlays are automatically disabled during live online matches to ensure a completely fair environment.
 
 > [!NOTE]
-> Including the offline high-performance Stockfish engine binaries increases the final APK size by ~110MB.
+> **Why is the package size larger?**
+> The patched app will be about 110MB larger than the default installation. This is because it includes the high-performance **Stockfish 16.1 NNUE** engine binaries locally, so you can analyze matches offline anytime.
+
+---
+
+## 💬 Support & Feedback
+
+If you have questions, feedback, or want to suggest new features/patches, **please do not open GitHub Issues**. Instead, use the GitHub Discussions section:
+
+👉 **[Join the Community & Ask Questions / Request Features](https://github.com/PrathxmOp/Prathxm-Patches/discussions)**
+
+Using discussions helps keep the project organized and lets other community members contribute.
+
+---
+
+## 💖 Support the Project
+
+Donations keep me motivated to maintain this project, fix bugs, and create new patches! If this project made your chess experience better, please consider supporting my work.
+
+### Donate via UPI: `prathammishraop@ybl`
+
+You can scan the QR code below or click the payment link:
+
+<p align="center">
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=prathammishraop@ybl%26pn=Prathxm%26cu=INR" alt="UPI QR Code" width="180" height="180" /><br>
+  <a href="upi://pay?pa=prathammishraop@ybl&pn=Prathxm&cu=INR"><b>⚡ Click Here to Pay / Donate via UPI</b></a>
+</p>
 
 ---
 
 ## ✨ Features
 
-* **Offline Game Reviews:** Move classifications (Brilliant, Great, etc.), accuracy scores, and estimated ELO ratings processed entirely locally.
-* **Offline Lichess Puzzles:** Full level-based journey map, daily streaks, custom milestones, and thematic practice filters (Endgames, Openings, etc.).
-* **Evaluation & WDL Bars:** Centipawn tracking and win/draw/loss probabilities for analysis and bot games.
-* **Global Overlays:** Engine suggestions, threat paths, and arrow indicators.
-* **Ad-Free UI:** Removes banners, full-screen interstitials, and video promotions.
-* **Unlock Versus Bots:** Play all restricted and locked bots without restrictions.
-* **Custom Titles:** Display a custom title (e.g. GM, IM, FM) next to your name inside the app.
-* **Privacy Shield:** Disables analytics, telemetry, Crashlytics, and crash logging.
+### 🔧 Engine & Analysis (Offline & Bot Games Only)
+* **Local Stockfish 16.1** — A full-powered engine running directly on your mobile device.
+* **Offline Game Reviews** — Intercepts and processes game review requests locally, offering:
+  * 🏷️ **Move Classifications** — Brilliant 💡, Great ✅, Best 🎯, Excellent ✨, Good 👍, Inaccuracy ⚠️, Mistake ❌, and Blunder 💀.
+  * 📊 **Accuracy Scores** — Precise percentage metrics for both sides.
+  * 📈 **Estimated Ratings** — Calculated ELO ratings for your gameplay with opening/tactical breakdowns.
+* **Configurable ELO Limits** — Adjust search depth and limit the engine strength (1350 to 3190 ELO) to tailor bot games.
 
----
+### 📊 Visual Overlays
+* **Evaluation & WDL Bars** — Real-time advantage tracking showing centipawn/mate status and Win/Draw/Loss probabilities.
+* **Engine Recommendations** — Arrow indicators displaying the best moves and threats.
 
-## 💬 Discussions & Requests
+### 🧩 Lichess Puzzle Journey
+* **Fully Offline Puzzles** — A dedicated local database containing millions of puzzles from the Lichess library.
+* **Scenic Journey Map** — Walk through level paths on a custom-styled, premium wood board layout.
+* **Thematic Practice** — Filter by themes (Opening, Middlegame, Endgame, specific endgames) or play fast-paced Rush and Battle modes.
+* **Choose Your Size** — Download what fits your storage best (20k, 50k, 100k, 500k, or all 6M+ puzzles).
+* **Streaks & Milestones** — Progress tracker featuring daily puzzle streaks, active category stats, and custom milestones.
 
-For questions, feedback, or feature requests, join the discussion board:
-
-👉 **[GitHub Discussions Board](https://github.com/PrathxmOp/Prathxm-Patches/discussions)**
-
----
-
-## 💖 Support & Custom Titles
-
-Donations keep this project alive! Supporter names are eligible for custom chess titles (e.g. **GM**, **IM**, **FM**) next to their username in-game.
-
-### Donate via UPI: `prathxm@ybl`
-
-Scan the QR code or click the payment link to donate:
-
-<p align="center">
-  <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=prathxm@ybl%26pn=Prathxm%26cu=INR" alt="UPI QR Code" width="180" height="180" /><br>
-  <a href="upi://pay?pa=prathxm@ybl&pn=Prathxm&cu=INR"><b>⚡ Click Here to Pay / Donate via UPI</b></a>
-</p>
-
-To claim your title, post your donation confirmation and desired title on the **[Discussions Board](https://github.com/PrathxmOp/Prathxm-Patches/discussions)**.
+### 💎 Global Features
+* **Ad-Free UI** — Block and remove banner ads, full-screen interstitials, and video promotions for a cleaner experience.
 
 ---
 
 ## 🩹 Patches List
 
 <!-- PATCHES_START EXPANDED -->
-> **[v1.9.0](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.9.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;6 patches total
+> **[v1.6.0-dev.3](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.6.0-dev.3)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;5 patches total
 <details open>
-<summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;6 patches</summary>
+<summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;5 patches</summary>
 <br>
 
 **🎯 Supported versions:**
@@ -74,10 +86,9 @@ To claim your title, post your donation confirmation and desired title on the **
 |----------|----------------|-----------|
 | [Ad-Free & Local Analysis](#ad-free-local-analysis) | Removes advertisements, unlocks ad-free features, and enables local Stockfish engine for post-game review & analysis. |  |
 | [Clone Chess.com](#clone-chess-com) | Changes the package name to com.chess.prathxm, allowing the patched app to be installed side-by-side with the original Chess.com app. |  |
-| [Custom Titles](#custom-titles) | Allows users to load and display custom titles (e.g. GM, IM, FM, etc.) next to their username inside the app. |  |
-| [Disable Analytics & Telemetry](#disable-analytics-telemetry) | Completely disables Firebase Crashlytics and telemetry reporting to protect account privacy and prevent bans. |  |
-| [Lichess Puzzles](#lichess-puzzles) | Loads daily puzzles from Lichess and bypasses Chess.com puzzle daily limits. |  |
-| [Unlock All Bots](#unlock-all-bots) | Unlocks all locked and restricted bots in the Versus Bots feature. |  |
+| [Custom Titles](#custom-titles) | Fetches and applies custom titles for users from a remote database. DM PrathxmOp to get yours for fun lol! |  |
+| [Lichess Puzzles](#lichess-puzzles) | Loads daily puzzles from Lichess and bypasses Chess.com puzzle premium limits. |  |
+| [Unlock All Bots](#unlock-all-bots) | Unlocks all premium and restricted bots in the Versus Bots feature. |  |
 
 </details>
 
@@ -88,23 +99,28 @@ To claim your title, post your donation confirmation and desired title on the **
 ## 🛠️ Installation & Patching
 
 ### Option 1: Morphe Manager (Recommended)
-
-1. Install [Morphe Manager](https://morphe.software) on your Android device.
-2. Add this repository source by clicking:
+1. Download and install [Morphe Manager](https://morphe.software) on your Android device.
+2. Add this repository source to Morphe Manager by clicking:
+   
    👉 **[Add Patches to Morphe Manager](https://morphe.software/add-source?github=PrathxmOp/Prathxm-Patches)**
-3. Choose **Chess.com**, select your patches, tap **Patch**, and install.
+   
+   *(Alternatively, copy `https://github.com/PrathxmOp/Prathxm-Patches` and add it manually in **Patch Sources**)*
+3. Select **Chess.com** from the app list, choose your patches, and tap **Patch**.
+4. Install the output APK.
 
 ### Option 2: Morphe CLI (Advanced)
-
 Prerequisites: Android SDK, JDK 17+, and [Morphe CLI](https://morphe.software).
 
-1. Download and place the Android Stockfish binaries under:
+1. Download the Android Stockfish binaries from the official releases:
+   - **arm64-v8a** (e.g. `stockfish-android-armv8-dotprod.tar`)
+   - **armeabi-v7a** (e.g. `stockfish-android-armv7-neon.tar`)
+2. Place them under:
    - `extensions/extension/src/main/assets/stockfish/arm64-v8a/stockfish`
    - `extensions/extension/src/main/assets/stockfish/armeabi-v7a/stockfish`
-2. Build and apply:
+3. Build and apply:
    ```bash
-   # Build the Android patches bundle
-   ./gradlew buildAndroid
+   # Assemble the bundle
+   ./gradlew patches:assemble
    
    # Apply patch
    java -jar morphe-cli.jar patch \
@@ -117,7 +133,7 @@ Prerequisites: Android SDK, JDK 17+, and [Morphe CLI](https://morphe.software).
 
 ## ⚠️ Disclaimer
 
-For educational and personal use only. Usage may violate the host app's Terms of Service. The author is not responsible for any account suspensions.
+These patches are intended for **educational and personal use only**. Usage may violate the host app's Terms of Service. The author takes no responsibility for account suspensions or other consequences.
 
 ## 📜 License
 

@@ -1,33 +1,21 @@
-## [1.9.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.8.1...v1.9.0) (2026-07-04)
-
-### ✨ New Features
-
-* **Chess.com:** Fix session store and telemetry blocker ([bb30ca7](https://github.com/PrathxmOp/Prathxm-Patches/commit/bb30ca705802e7d6a851a3788d29670ec4406b56))
-
-## [1.8.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.8.0...v1.8.1) (2026-07-04)
+## [1.6.0-dev.3](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.6.0-dev.2...v1.6.0-dev.3) (2026-07-04)
 
 ### 🐛 Bug Fixes
 
-* resolve user session validation issues and optimize telemetry blocker ([ba5c964](https://github.com/PrathxmOp/Prathxm-Patches/commit/ba5c964064a7fb51a2f4510c5b867291721eded9))
+* **lichesspuzzle & stockfish:** resolve concurrency, UI overlap, timer reset, and game review bugs ([2d4b9bd](https://github.com/PrathxmOp/Prathxm-Patches/commit/2d4b9bddd1b03731cbc3c4d7da2bf3253ba7acf6))
 
-## [1.8.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.7.0...v1.8.0) (2026-07-04)
-
-### ✨ New Features
-
-* **patch:** add telemetry and analytics blocker patch ([1ad5d05](https://github.com/PrathxmOp/Prathxm-Patches/commit/1ad5d05ea4ccc994dc594a5063ae7d355d412f06))
-
-## [1.7.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.6.0...v1.7.0) (2026-07-04)
+## [1.6.0-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.6.0-dev.1...v1.6.0-dev.2) (2026-07-04)
 
 ### ✨ New Features
 
-* implement universal bot unlocking patch and fix UI/matchmaking crashes ([e130c25](https://github.com/PrathxmOp/Prathxm-Patches/commit/e130c25bc74ad88b8690d1ce437908e60522c449))
-* **patch:** add custom titles patch and Java extension ([cfc60e6](https://github.com/PrathxmOp/Prathxm-Patches/commit/cfc60e604af36459c9d620fe6b420b64c202908e))
+* **patch:** add custom titles patch and Java extension ([413485d](https://github.com/PrathxmOp/Prathxm-Patches/commit/413485d3ad89be73cb7d11b0ca3ed371a56baa91))
 
-## [1.6.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.5.1...v1.6.0) (2026-07-01)
+## [1.6.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.5.1...v1.6.0-dev.1) (2026-07-03)
 
 ### ✨ New Features
 
 * Cache theme counts in SharedPreferences to make UI loading instant ([e672ae1](https://github.com/PrathxmOp/Prathxm-Patches/commit/e672ae12ae091b502aa9886153c7c249049f5fd1))
+* implement universal bot unlocking patch and fix UI/matchmaking crashes ([80c6a85](https://github.com/PrathxmOp/Prathxm-Patches/commit/80c6a8543a4304f2b47e1e2e5fbf9e85c6b8aa0e))
 
 ## [1.5.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.5.0...v1.5.1) (2026-07-01)
 

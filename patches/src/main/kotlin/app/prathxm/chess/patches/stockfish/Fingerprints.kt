@@ -1,13 +1,7 @@
-/*
- * Copyright 2026 PrathxmOp
- * https://github.com/PrathxmOp/Prathxm-Patches
- */
-
 package app.prathxm.chess.patches.stockfish
 
 import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.methodCall
-import app.morphe.patcher.string
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fingerprint 1 – CBViewModelStateImpl.m() (position setter)
@@ -34,19 +28,17 @@ object PositionSetterFingerprint : Fingerprint(
 // It is tiny (just delegates to yf9.b()) and unique within the class.
 // ─────────────────────────────────────────────────────────────────────────────
 object SetMoveArrowsFingerprint : Fingerprint(
+    definingClass = "Lcom/chess/chessboard/vm/movesinput/CBViewModelStateImpl;",
+    name = "a2",
     returnType = "V",
     parameters = listOf("Ljava/util/List;"),
     filters = listOf(
         // The field backing store tag used for moveArrows
         methodCall(
             definingClass = "L", // obfuscated yf9 class – just match "L"
-            name = "b",          // the delegate setter method
+            name = "b"           // the delegate setter method
         )
-    ),
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/chessboard/vm/movesinput/CBViewModelStateImpl;" &&
-            method.name == "a2"
-    }
+    )
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -55,17 +47,15 @@ object SetMoveArrowsFingerprint : Fingerprint(
 // Used so our extension can read the current board position / state.
 // ─────────────────────────────────────────────────────────────────────────────
 object GetPositionFingerprint : Fingerprint(
+    definingClass = "Lcom/chess/chessboard/vm/movesinput/CBViewModelStateImpl;",
+    name = "getPosition",
     returnType = "L",  // returns com.chess.chessboard.variants.Position (obfuscated)
     parameters = emptyList(),
     filters = listOf(
         methodCall(
-            name = "a", // delegate getter on yf9
+            name = "a" // delegate getter on yf9
         )
-    ),
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/chessboard/vm/movesinput/CBViewModelStateImpl;" &&
-            method.name == "getPosition"
-    }
+    )
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,67 +63,45 @@ object GetPositionFingerprint : Fingerprint(
 // ─────────────────────────────────────────────────────────────────────────────
 
 object LoginDataGetShowAdsFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/net/model/LoginData;" &&
-            method.name == "getShow_ads" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Z"
-    }
+    definingClass = "Lcom/chess/net/model/LoginData;",
+    name = "getShow_ads",
+    parameters = listOf(),
+    returnType = "Z"
 )
 
 object LoginDataGetShowInterstitialAdsFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/net/model/LoginData;" &&
-            method.name == "getShow_interstitial_ads" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Ljava/lang/Boolean;"
-    }
+    definingClass = "Lcom/chess/net/model/LoginData;",
+    name = "getShow_interstitial_ads",
+    parameters = listOf(),
+    returnType = "Ljava/lang/Boolean;"
 )
 
 object UserDataGetShowAdsFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/net/model/UserData;" &&
-            method.name == "getShow_ads" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Ljava/lang/Boolean;"
-    }
+    definingClass = "Lcom/chess/net/model/UserData;",
+    name = "getShow_ads",
+    parameters = listOf(),
+    returnType = "Ljava/lang/Boolean;"
 )
 
 object UserDataGetShowInterstitialAdsFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/net/model/UserData;" &&
-            method.name == "getShow_interstitial_ads" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Ljava/lang/Boolean;"
-    }
+    definingClass = "Lcom/chess/net/model/UserData;",
+    name = "getShow_interstitial_ads",
+    parameters = listOf(),
+    returnType = "Ljava/lang/Boolean;"
 )
 
 object LoginDataGetPremiumStatusFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/net/model/LoginData;" &&
-            method.name == "getPremium_status" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "I"
-    }
+    definingClass = "Lcom/chess/net/model/LoginData;",
+    name = "getPremium_status",
+    parameters = listOf(),
+    returnType = "I"
 )
-
-object SessionStoreIsGuestFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/apputils/SharedPreferencesSessionStore;" &&
-            method.name == "i" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Z"
-    }
-)
-
 
 object UserDataGetPremiumStatusFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/net/model/UserData;" &&
-            method.name == "getPremium_status" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Lcom/chess/entities/PremiumStatus;"
-    }
+    definingClass = "Lcom/chess/net/model/UserData;",
+    name = "getPremium_status",
+    parameters = listOf(),
+    returnType = "Lcom/chess/entities/PremiumStatus;"
 )
 
 object OptionalPaintersCompanionBFingerprint : Fingerprint(
@@ -146,57 +114,45 @@ object OptionalPaintersCompanionBFingerprint : Fingerprint(
 )
 
 object MainApplicationOnCreateFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/MainApplication;" &&
-            method.name == "onCreate" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "V"
-    }
+    definingClass = "Lcom/chess/MainApplication;",
+    name = "onCreate",
+    parameters = listOf(),
+    returnType = "V"
 )
 
 object GameAnalysisPermissionsGetCanCreateFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/entities/GameAnalysisPermissions;" &&
-            method.name == "getCanCreate" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Z"
-    }
+    definingClass = "Lcom/chess/entities/GameAnalysisPermissions;",
+    name = "getCanCreate",
+    parameters = listOf(),
+    returnType = "Z"
 )
 
 object GameAnalysisPermissionsGetCanMoveFeedbackFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/entities/GameAnalysisPermissions;" &&
-            method.name == "getCanMoveFeedback" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Z"
-    }
+    definingClass = "Lcom/chess/entities/GameAnalysisPermissions;",
+    name = "getCanMoveFeedback",
+    parameters = listOf(),
+    returnType = "Z"
 )
 
 object GameAnalysisPermissionsGetCanMoveStrengthFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/entities/GameAnalysisPermissions;" &&
-            method.name == "getCanMoveStrength" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Z"
-    }
+    definingClass = "Lcom/chess/entities/GameAnalysisPermissions;",
+    name = "getCanMoveStrength",
+    parameters = listOf(),
+    returnType = "Z"
 )
 
 object GameAnalysisPermissionsGetCanViewAccuracyAndMovesFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/entities/GameAnalysisPermissions;" &&
-            method.name == "getCanViewAccuracyAndMoves" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Z"
-    }
+    definingClass = "Lcom/chess/entities/GameAnalysisPermissions;",
+    name = "getCanViewAccuracyAndMoves",
+    parameters = listOf(),
+    returnType = "Z"
 )
 
 object GameAnalysisPermissionsGetCanViewCoachCommentaryFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/entities/GameAnalysisPermissions;" &&
-            method.name == "getCanViewCoachCommentary" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Z"
-    }
+    definingClass = "Lcom/chess/entities/GameAnalysisPermissions;",
+    name = "getCanViewCoachCommentary",
+    parameters = listOf(),
+    returnType = "Z"
 )
 
 object GameAnalysisRepositoryGetGameAnalysisFingerprint : Fingerprint(
@@ -210,28 +166,15 @@ object GameAnalysisRepositoryGetGameAnalysisFingerprint : Fingerprint(
 )
 
 object GameReviewV2V0DFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/gamereview/v2/v0;" &&
-            method.name == "D" &&
-            method.parameterTypes.size == 2 &&
-            method.parameterTypes[0] == "Lcom/chess/chessboard/variants/d;" &&
-            method.parameterTypes[1] == "Lcom/chess/gamereview/repository/AnalyzedGameData\$AnalyzedPosition\$Eval;" &&
-            method.returnType == "Lcom/chess/gamereview/api/n;"
-    }
+    definingClass = "Lcom/chess/gamereview/v2/v0;",
+    name = "D",
+    parameters = listOf("Lcom/chess/chessboard/variants/d;", "Lcom/chess/gamereview/repository/AnalyzedGameData\$AnalyzedPosition\$Eval;"),
+    returnType = "Lcom/chess/gamereview/api/n;"
 )
 
 object GameReviewV2V0JFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/gamereview/v2/v0;" &&
-            method.name == "J" &&
-            method.parameterTypes.size == 4 &&
-            method.parameterTypes[0] == "Lcom/chess/gamereview/repository/AnalyzedGameData\$AnalyzedPosition;" &&
-            method.parameterTypes[1] == "Lcom/chess/chessboard/history/i;" &&
-            method.parameterTypes[2] == "Lcom/chess/entities/GameAnalysisPermissions;" &&
-            method.parameterTypes[3] == "Z" &&
-            method.returnType == "Lcom/chess/gamereview/api/d;"
-    }
+    definingClass = "Lcom/chess/gamereview/v2/v0;",
+    name = "J",
+    parameters = listOf("Lcom/chess/gamereview/repository/AnalyzedGameData\$AnalyzedPosition;", "Lcom/chess/chessboard/history/i;", "Lcom/chess/entities/GameAnalysisPermissions;", "Z"),
+    returnType = "Lcom/chess/gamereview/api/d;"
 )
-
-
-

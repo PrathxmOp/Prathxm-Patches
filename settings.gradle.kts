@@ -1,8 +1,3 @@
-/*
- * Copyright 2026 PrathxmOp
- * https://github.com/PrathxmOp/Prathxm-Patches
- */
-
 rootProject.name = "morphe-patches-template"
 
 pluginManagement {

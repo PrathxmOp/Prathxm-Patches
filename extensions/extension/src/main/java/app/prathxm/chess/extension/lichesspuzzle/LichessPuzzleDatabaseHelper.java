@@ -1,8 +1,3 @@
-/*
- * Copyright 2026 PrathxmOp
- * https://github.com/PrathxmOp/Prathxm-Patches
- */
-
 package app.prathxm.chess.extension.lichesspuzzle;
 
 import android.content.ContentValues;
@@ -145,7 +140,21 @@ public class LichessPuzzleDatabaseHelper extends SQLiteOpenHelper {
 
     public JSONObject getRushPuzzle(int targetRating) {
         SQLiteDatabase db = getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_PUZZLES + " WHERE rating >= ? ORDER BY rating ASC LIMIT 15", new String[]{String.valueOf(targetRating)});
+        // Try getting a completely random puzzle within a range of targetRating +/- 150 points.
+        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_PUZZLES + " WHERE rating >= ? AND rating <= ? ORDER BY RANDOM() LIMIT 1", 
+                new String[]{String.valueOf(targetRating - 150), String.valueOf(targetRating + 150)});
+        JSONObject puzzle = null;
+        if (cursor.moveToFirst()) {
+            puzzle = cursorToJSON(cursor);
+        }
+        cursor.close();
+        if (puzzle != null) {
+            return puzzle;
+        }
+
+        // Fallback: If no puzzles match the range, select randomly from the closest 30 puzzles above targetRating
+        cursor = db.rawQuery("SELECT * FROM " + TABLE_PUZZLES + " WHERE rating >= ? ORDER BY rating ASC LIMIT 30", 
+                new String[]{String.valueOf(targetRating)});
         List<JSONObject> list = new ArrayList<>();
         while (cursor.moveToNext()) {
             JSONObject obj = cursorToJSON(cursor);

@@ -1,8 +1,3 @@
-/*
- * Copyright 2026 PrathxmOp
- * https://github.com/PrathxmOp/Prathxm-Patches
- */
-
 package app.prathxm.chess.patches.misc
 
 import app.morphe.patcher.Fingerprint
@@ -16,57 +11,45 @@ import app.prathxm.chess.patches.stockfish.MainApplicationOnCreateFingerprint
 // ─────────────────────────────────────────────────────────────────────────────
 
 object UserDataGetChessTitleFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/net/model/UserData;" &&
-            method.name == "getChess_title" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Ljava/lang/String;"
-    }
+    definingClass = "Lcom/chess/net/model/UserData;",
+    name = "getChess_title",
+    parameters = listOf(),
+    returnType = "Ljava/lang/String;"
 )
 
 object LoginDataGetChessTitleFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/net/model/LoginData;" &&
-            method.name == "getChess_title" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Ljava/lang/String;"
-    }
+    definingClass = "Lcom/chess/net/model/LoginData;",
+    name = "getChess_title",
+    parameters = listOf(),
+    returnType = "Ljava/lang/String;"
 )
 
 object LeaderBoardUserGetChessTitleFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/net/model/LeaderBoardUser;" &&
-            method.name == "getChess_title" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Ljava/lang/String;"
-    }
+    definingClass = "Lcom/chess/net/model/LeaderBoardUser;",
+    name = "getChess_title",
+    parameters = listOf(),
+    returnType = "Ljava/lang/String;"
 )
 
 object CommentDataGetChessTitleFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/net/model/CommentData;" &&
-            method.name == "getChess_title" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Ljava/lang/String;"
-    }
+    definingClass = "Lcom/chess/net/model/CommentData;",
+    name = "getChess_title",
+    parameters = listOf(),
+    returnType = "Ljava/lang/String;"
 )
 
 object LiveUserInfoGetChessTitleFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/entities/LiveUserInfo;" &&
-            method.name == "getChessTitle" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Ljava/lang/String;"
-    }
+    definingClass = "Lcom/chess/entities/LiveUserInfo;",
+    name = "getChessTitle",
+    parameters = listOf(),
+    returnType = "Ljava/lang/String;"
 )
 
 object DailyUserInfoGetChessTitleFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/entities/DailyUserInfo;" &&
-            method.name == "getChessTitle" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "Ljava/lang/String;"
-    }
+    definingClass = "Lcom/chess/entities/DailyUserInfo;",
+    name = "getChessTitle",
+    parameters = listOf(),
+    returnType = "Ljava/lang/String;"
 )
 
 object UsernameUiStateGetChessTitleFingerprint : Fingerprint(
@@ -99,7 +82,7 @@ object UserProfileHeaderGetChessTitleFingerprint : Fingerprint(
 
 val customTitlesPatch = bytecodePatch(
     name = "Custom Titles",
-    description = "Allows users to load and display custom titles (e.g. GM, IM, FM, etc.) next to their username inside the app.",
+    description = "Fetches and applies custom titles for users from a remote database. DM PrathxmOp to get yours for fun lol!",
     default = true
 ) {
     compatibleWith(COMPATIBILITY_CHESS)

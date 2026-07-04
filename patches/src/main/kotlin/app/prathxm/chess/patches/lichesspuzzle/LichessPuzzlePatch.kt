@@ -1,8 +1,3 @@
-/*
- * Copyright 2026 PrathxmOp
- * https://github.com/PrathxmOp/Prathxm-Patches
- */
-
 package app.prathxm.chess.patches.lichesspuzzle
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
@@ -57,7 +52,7 @@ private val lichessPuzzleResourcePatch = resourcePatch {
 
 val lichessPuzzlePatch = bytecodePatch(
     name = "Lichess Puzzles",
-    description = "Loads daily puzzles from Lichess and bypasses Chess.com puzzle daily limits.",
+    description = "Loads daily puzzles from Lichess and bypasses Chess.com puzzle premium limits.",
     default = true
 ) {
     compatibleWith(COMPATIBILITY_CHESS)

@@ -1,8 +1,3 @@
-/*
- * Copyright 2026 PrathxmOp
- * https://github.com/PrathxmOp/Prathxm-Patches
- */
-
 package app.prathxm.chess.patches.stockfish
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
@@ -108,41 +103,11 @@ val stockfishPatch = bytecodePatch(
             """
         )
 
-        // LoginData.getPremium_status() → int (DIAMOND = 3 if logged in, else 0)
+        // LoginData.getPremium_status() → int (DIAMOND = 3)
         LoginDataGetPremiumStatusFingerprint.method.addInstructions(
             0,
             """
-                invoke-virtual {p0}, Lcom/chess/net/model/LoginData;->getUsername()Ljava/lang/String;
-                move-result-object v0
-                if-eqz v0, :guest
-                invoke-virtual {v0}, Ljava/lang/String;->length()I
-                move-result v0
-                if-eqz v0, :guest
                 const/4 v0, 3
-                return v0
-                :guest
-                const/4 v0, 0
-                return v0
-            """
-        )
-
-        // SharedPreferencesSessionStore.i() → boolean (isGuest = false when user has a session)
-        // Fixes: Sign Up button showing in settings and missing chat button in games
-        SessionStoreIsGuestFingerprint.method.addInstructions(
-            0,
-            """
-                invoke-virtual {p0}, Lcom/chess/apputils/SharedPreferencesSessionStore;->getSession()Lcom/chess/net/model/LoginData;
-                move-result-object v0
-                invoke-virtual {v0}, Lcom/chess/net/model/LoginData;->getUsername()Ljava/lang/String;
-                move-result-object v0
-                if-eqz v0, :no_session
-                invoke-virtual {v0}, Ljava/lang/String;->length()I
-                move-result v0
-                if-eqz v0, :no_session
-                const/4 v0, 0
-                return v0
-                :no_session
-                const/4 v0, 1
                 return v0
             """
         )
@@ -266,6 +231,7 @@ val stockfishPatch = bytecodePatch(
             """
         )
 
+        /*
         GameReviewV2V0JFingerprint.method.addInstructions(
             0,
             """
@@ -304,6 +270,7 @@ val stockfishPatch = bytecodePatch(
                 :proceed
             """
         )
+        */
 
     }
 }

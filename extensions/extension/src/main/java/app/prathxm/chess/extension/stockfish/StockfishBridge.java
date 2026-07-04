@@ -1,8 +1,3 @@
-/*
- * Copyright 2026 PrathxmOp
- * https://github.com/PrathxmOp/Prathxm-Patches
- */
-
 package app.prathxm.chess.extension.stockfish;
 
 import android.content.Context;
@@ -62,7 +57,7 @@ public class StockfishBridge {
     }
 
     /** Analyse the position and return both best moves and evaluation. */
-    public static StockfishProcess.AnalysisResult analyze(String fen, int depth, int multiPV) {
+    public static synchronized StockfishProcess.AnalysisResult analyze(String fen, int depth, int multiPV) {
         Context ctx = getApplicationContext();
         if (ctx == null) {
             Log.e(TAG, "Cannot run analyze without context");
