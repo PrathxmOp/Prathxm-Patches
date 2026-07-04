@@ -66,6 +66,7 @@ All analysis overlays are **automatically disabled during live online matches** 
 ### 💎 Quality of Life
 - **Ad-Free UI** — Banners, interstitials, and video promotions removed
 - **Side-by-Side Install** — Clone patch lets you keep the original app
+- **Unlock All Bots** — Play against any restricted or locked bot for free
 
 </td>
 </tr>
