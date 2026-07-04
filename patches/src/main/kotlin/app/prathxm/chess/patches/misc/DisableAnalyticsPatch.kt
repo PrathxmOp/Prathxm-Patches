@@ -1,7 +1,6 @@
 package app.prathxm.chess.patches.misc
 
 import app.morphe.patcher.Fingerprint
-import app.morphe.patcher.methodCall
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.bytecodePatch
 import app.prathxm.chess.patches.shared.Constants.COMPATIBILITY_CHESS
@@ -48,48 +47,12 @@ object FirebaseCrashlyticsSetUserIdFingerprint : Fingerprint(
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MainApplication Analytics & Telemetry Initializer Hooks
-// ─────────────────────────────────────────────────────────────────────────────
-
-object MainApplicationInstallAnalyticsFingerprint : Fingerprint(
-    returnType = "V",
-    parameters = emptyList(),
-    filters = listOf(
-        methodCall(
-            definingClass = "Lcom/chess/MainApplication\$installAnalytics\$1;",
-            name = "<init>"
-        )
-    ),
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/MainApplication;" &&
-            method.name != "<init>" &&
-            method.name != "onCreate"
-    }
-)
-
-object MainApplicationInstallMonitoringFingerprint : Fingerprint(
-    returnType = "V",
-    parameters = emptyList(),
-    filters = listOf(
-        methodCall(
-            definingClass = "Lcom/chess/logging/CrashlyticsAndBugsnagMonitoring;",
-            name = "<init>"
-        )
-    ),
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/MainApplication;" &&
-            method.name != "<init>" &&
-            method.name != "onCreate"
-    }
-)
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Disable Telemetry & Analytics Patch
 // ─────────────────────────────────────────────────────────────────────────────
 
 val disableAnalyticsPatch = bytecodePatch(
     name = "Disable Analytics & Telemetry",
-    description = "Completely disables Firebase Analytics, Google Analytics, Firebase Crashlytics, Facebook Event logging, Bugsnag monitoring, and internal app telemetry to protect account privacy and prevent bans.",
+    description = "Completely disables Firebase Crashlytics and telemetry reporting to protect account privacy and prevent bans.",
     default = true
 ) {
     compatibleWith(COMPATIBILITY_CHESS)
@@ -100,9 +63,5 @@ val disableAnalyticsPatch = bytecodePatch(
         FirebaseCrashlyticsLogFingerprint.method.addInstructions(0, "return-void")
         FirebaseCrashlyticsSetCustomKeyFingerprint.method.addInstructions(0, "return-void")
         FirebaseCrashlyticsSetUserIdFingerprint.method.addInstructions(0, "return-void")
-
-        // MainApplication Analytics & Monitoring Inits stubbing
-        MainApplicationInstallAnalyticsFingerprint.method.addInstructions(0, "return-void")
-        MainApplicationInstallMonitoringFingerprint.method.addInstructions(0, "return-void")
     }
 }

@@ -103,14 +103,6 @@ object UserDataGetShowInterstitialAdsFingerprint : Fingerprint(
     }
 )
 
-object LoginDataGetPremiumStatusFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.type == "Lcom/chess/net/model/LoginData;" &&
-            method.name == "getPremium_status" &&
-            method.parameterTypes.isEmpty() &&
-            method.returnType == "I"
-    }
-)
 
 object UserDataGetPremiumStatusFingerprint : Fingerprint(
     custom = { method, classDef ->

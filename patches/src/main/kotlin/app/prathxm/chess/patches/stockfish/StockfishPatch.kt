@@ -103,14 +103,6 @@ val stockfishPatch = bytecodePatch(
             """
         )
 
-        // LoginData.getPremium_status() → int (DIAMOND = 3)
-        LoginDataGetPremiumStatusFingerprint.method.addInstructions(
-            0,
-            """
-                const/4 v0, 3
-                return v0
-            """
-        )
 
         // UserData.getPremium_status() → PremiumStatus
         UserDataGetPremiumStatusFingerprint.method.addInstructions(

@@ -105,7 +105,7 @@
     },
     {
       "name": "Disable Analytics & Telemetry",
-      "description": "Completely disables Firebase Analytics, Google Analytics, Firebase Crashlytics, Facebook Event logging, Bugsnag monitoring, and internal app telemetry to protect account privacy and prevent bans.",
+      "description": "Completely disables Firebase Crashlytics and telemetry reporting to protect account privacy and prevent bans.",
       "default": true,
       "dependencies": [],
       "compatiblePackages": [
