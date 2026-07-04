@@ -1,3 +1,8 @@
+/*
+ * Copyright 2026 PrathxmOp
+ * https://github.com/PrathxmOp/Prathxm-Patches
+ */
+
 package app.prathxm.chess.patches.stockfish
 
 import app.morphe.patcher.Fingerprint
