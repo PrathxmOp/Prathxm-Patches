@@ -65,14 +65,14 @@ You can scan the QR code below or click the payment link:
 
 ### 🧩 Lichess Puzzle Journey
 * **Fully Offline Puzzles** — A dedicated local database containing millions of puzzles from the Lichess library.
-* **Scenic Journey Map** — Walk through level paths on a custom-styled, premium wood board layout.
+* **Scenic Journey Map** — Walk through level paths on a custom-styled, custom wood board layout.
 * **Thematic Practice** — Filter by themes (Opening, Middlegame, Endgame, specific endgames) or play fast-paced Rush and Battle modes.
 * **Choose Your Size** — Download what fits your storage best (20k, 50k, 100k, 500k, or all 6M+ puzzles).
 * **Streaks & Milestones** — Progress tracker featuring daily puzzle streaks, active category stats, and custom milestones.
 
 ### 💎 Global Features
 * **Ad-Free UI** — Block and remove banner ads, full-screen interstitials, and video promotions for a cleaner experience.
-* **🤖 Unlock All Bots** — Play against all premium and restricted bots in the Versus Bots feature without restrictions.
+* **🤖 Unlock All Bots** — Play against all locked and restricted bots in the Versus Bots feature without restrictions.
 * **👑 Custom Titles** — Display custom titles (e.g. GM, IM, FM, WCM) next to your username inside the app.
 * **🛡️ Disable Analytics & Telemetry** — Blocks Google Analytics, Firebase Analytics, Crashlytics, Facebook events, and Bugsnag crash logging to preserve privacy and keep your account safe.
 
@@ -95,9 +95,10 @@ You can scan the QR code below or click the payment link:
 |----------|----------------|-----------|
 | [Ad-Free & Local Analysis](#ad-free-local-analysis) | Removes advertisements, unlocks ad-free features, and enables local Stockfish engine for post-game review & analysis. |  |
 | [Clone Chess.com](#clone-chess-com) | Changes the package name to com.chess.prathxm, allowing the patched app to be installed side-by-side with the original Chess.com app. |  |
-| [Custom Titles](#custom-titles) | Fetches and applies custom titles for users from a remote database. DM PrathxmOp to get yours for fun lol! |  |
-| [Lichess Puzzles](#lichess-puzzles) | Loads daily puzzles from Lichess and bypasses Chess.com puzzle premium limits. |  |
-| [Unlock All Bots](#unlock-all-bots) | Unlocks all premium and restricted bots in the Versus Bots feature. |  |
+| [Custom Titles](#custom-titles) | Allows users to load and display custom titles (e.g. GM, IM, FM, etc.) next to their username inside the app. |  |
+| [Disable Analytics & Telemetry](#disable-analytics-telemetry) | Completely disables Firebase Analytics, Google Analytics, Firebase Crashlytics, Facebook Event logging, Bugsnag monitoring, and internal app telemetry. |  |
+| [Lichess Puzzles](#lichess-puzzles) | Loads daily puzzles from Lichess and bypasses Chess.com puzzle daily limits. |  |
+| [Unlock All Bots](#unlock-all-bots) | Unlocks all locked and restricted bots in the Versus Bots feature. |  |
 
 </details>
 
