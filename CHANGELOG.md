@@ -3,6 +3,15 @@
 ### 🐛 Bug Fixes
 
 * **Chess.com:** resolve concurrency, UI overlap, timer reset, and game review bugs ([eec6608](https://github.com/PrathxmOp/Prathxm-Patches/commit/eec6608e535dc7dba612de80f1e0f41b329654d6))
+* **Chess.com:** trigger release after tag and release cleanup ([b5d3514](https://github.com/PrathxmOp/Prathxm-Patches/commit/b5d35148399513509e273181f408ce69788bd523))
+* **Chess.com:** trigger release after tag cleanup ([90fbfbd](https://github.com/PrathxmOp/Prathxm-Patches/commit/90fbfbd0a519cba53a9f55f386022260cbf8a081))
+* **Chess.com:** trigger release after tag sync ([9f589f8](https://github.com/PrathxmOp/Prathxm-Patches/commit/9f589f87a91f4fc4fa8238fb0aa63651baad6d7a))
+
+## [1.9.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.0...v1.9.1) (2026-07-04)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve concurrency, UI overlap, timer reset, and game review bugs ([eec6608](https://github.com/PrathxmOp/Prathxm-Patches/commit/eec6608e535dc7dba612de80f1e0f41b329654d6))
 * **Chess.com:** trigger release after tag cleanup ([90fbfbd](https://github.com/PrathxmOp/Prathxm-Patches/commit/90fbfbd0a519cba53a9f55f386022260cbf8a081))
 * **Chess.com:** trigger release after tag sync ([9f589f8](https://github.com/PrathxmOp/Prathxm-Patches/commit/9f589f87a91f4fc4fa8238fb0aa63651baad6d7a))
 
