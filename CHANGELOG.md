@@ -1,3 +1,9 @@
+## [1.8.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.7.0...v1.8.0) (2026-07-04)
+
+### ✨ New Features
+
+* **patch:** add telemetry and analytics blocker patch ([1ad5d05](https://github.com/PrathxmOp/Prathxm-Patches/commit/1ad5d05ea4ccc994dc594a5063ae7d355d412f06))
+
 ## [1.7.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.6.0...v1.7.0) (2026-07-04)
 
 ### ✨ New Features
