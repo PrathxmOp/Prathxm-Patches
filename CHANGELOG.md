@@ -1,3 +1,9 @@
+## [1.9.4](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.3...v1.9.4) (2026-07-05)
+
+### 🐛 Bug Fixes
+
+* **Chess:** refine game rating estimation with piecewise curve ([c45d58f](https://github.com/PrathxmOp/Prathxm-Patches/commit/c45d58feef5ea77eb0aac253e787a85619ca9617))
+
 ## [1.9.3](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.2...v1.9.3) (2026-07-05)
 
 ### 🐛 Bug Fixes
