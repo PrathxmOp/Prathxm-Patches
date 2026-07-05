@@ -1,3 +1,10 @@
+## [1.9.3](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.2...v1.9.3) (2026-07-05)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** update bot unlock description in README ([cddaf5c](https://github.com/PrathxmOp/Prathxm-Patches/commit/cddaf5c34b4711212d333c87b466781cc61b6dae))
+* **Chess:** restore SessionStoreIsGuestFingerprint and correct guest premium check ([b9ffcb1](https://github.com/PrathxmOp/Prathxm-Patches/commit/b9ffcb185f88f0568a446ec86c22e4602e38cc9f))
+
 ## [1.9.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.1...v1.9.2) (2026-07-04)
 
 ### 🐛 Bug Fixes
