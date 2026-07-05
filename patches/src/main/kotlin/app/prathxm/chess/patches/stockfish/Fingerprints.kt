@@ -97,6 +97,13 @@ object LoginDataGetPremiumStatusFingerprint : Fingerprint(
     returnType = "I"
 )
 
+object SessionStoreIsGuestFingerprint : Fingerprint(
+    definingClass = "Lcom/chess/apputils/SharedPreferencesSessionStore;",
+    name = "i",
+    parameters = listOf(),
+    returnType = "Z"
+)
+
 object UserDataGetPremiumStatusFingerprint : Fingerprint(
     definingClass = "Lcom/chess/net/model/UserData;",
     name = "getPremium_status",
