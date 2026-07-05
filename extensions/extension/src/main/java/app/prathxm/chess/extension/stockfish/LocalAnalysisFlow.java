@@ -411,23 +411,23 @@ public class LocalAnalysisFlow {
             Object whiteGlyphs = glyphsConstructor.newInstance(null, null, null);
             Object blackGlyphs = glyphsConstructor.newInstance(null, null, null);
 
-            // Estimate game rating from accuracy (linear: 0%→200, 100%→2800)
-            int wRating = Math.max(200, Math.min(2800, (int)(200 + wAcc * 26)));
-            int bRating = Math.max(200, Math.min(2800, (int)(200 + bAcc * 26)));
+            // Estimate game rating from accuracy (piecewise curve approximating Chess.com)
+            int wRating = estimateRating(wAcc);
+            int bRating = estimateRating(bAcc);
 
             String wGrade = wAcc >= 90 ? "Excellent" : wAcc >= 75 ? "Great" : wAcc >= 60 ? "Good" : wAcc >= 40 ? "Fair" : "Poor";
             String bGrade = bAcc >= 90 ? "Excellent" : bAcc >= 75 ? "Great" : bAcc >= 60 ? "Good" : bAcc >= 40 ? "Fair" : "Poor";
 
             List<Object> wRatings = new ArrayList<>();
-            wRatings.add(catConstructor.newInstance("Opening", wRating, wGrade, 0));
-            wRatings.add(catConstructor.newInstance("Tactics", wRating, wGrade, 0));
-            wRatings.add(catConstructor.newInstance("Endgame", wRating, wGrade, 0));
+            wRatings.add(catConstructor.newInstance("Opening", Math.max(200, wRating - 30), wGrade, 0));
+            wRatings.add(catConstructor.newInstance("Tactics", Math.min(2900, wRating + 10), wGrade, 0));
+            wRatings.add(catConstructor.newInstance("Endgame", Math.max(200, wRating - 15), wGrade, 0));
             Object whiteReport = repConstructor.newInstance(wRating, whiteGlyphs, wRatings);
 
             List<Object> bRatings = new ArrayList<>();
-            bRatings.add(catConstructor.newInstance("Opening", bRating, bGrade, 0));
-            bRatings.add(catConstructor.newInstance("Tactics", bRating, bGrade, 0));
-            bRatings.add(catConstructor.newInstance("Endgame", bRating, bGrade, 0));
+            bRatings.add(catConstructor.newInstance("Opening", Math.max(200, bRating - 30), bGrade, 0));
+            bRatings.add(catConstructor.newInstance("Tactics", Math.min(2900, bRating + 10), bGrade, 0));
+            bRatings.add(catConstructor.newInstance("Endgame", Math.max(200, bRating - 15), bGrade, 0));
             Object blackReport = repConstructor.newInstance(bRating, blackGlyphs, bRatings);
 
             Object reportCard = rcConstructor.newInstance(whiteReport, blackReport, "Local analysis complete.");
@@ -525,15 +525,36 @@ public class LocalAnalysisFlow {
     private static float calculateAccuracy(
         int book, int brilliant, int great, int best, int excellent, int good, int inaccuracy, int mistake, int blunder, int forced, int miss
     ) {
-        int total = best + brilliant + excellent + good + inaccuracy + mistake + blunder + book;
+        int total = best + brilliant + great + excellent + good + inaccuracy + mistake + blunder + book;
         if (total == 0) return 100.0f;
 
         float weighted = (best + brilliant + book) * 100.0f
+                       + great * 92.0f
                        + excellent * 85.0f
                        + good * 70.0f
                        + inaccuracy * 40.0f
                        + mistake * 15.0f;
         return weighted / total;
+    }
+
+    /**
+     * Piecewise linear interpolation approximating Chess.com's accuracy-to-rating curve.
+     * Much more realistic than a simple linear mapping.
+     */
+    private static int estimateRating(float accuracy) {
+        float[] accPoints    = {  0,  30,  50,  60,  70,  75,  80,  85,  90,  93,  95,  97,  99, 100};
+        int[]   ratingPoints = {200, 400, 700, 1000, 1300, 1500, 1700, 1900, 2100, 2300, 2500, 2650, 2800, 2900};
+
+        if (accuracy <= accPoints[0]) return ratingPoints[0];
+        if (accuracy >= accPoints[accPoints.length - 1]) return ratingPoints[ratingPoints.length - 1];
+
+        for (int i = 1; i < accPoints.length; i++) {
+            if (accuracy <= accPoints[i]) {
+                float t = (accuracy - accPoints[i - 1]) / (accPoints[i] - accPoints[i - 1]);
+                return (int) (ratingPoints[i - 1] + t * (ratingPoints[i] - ratingPoints[i - 1]));
+            }
+        }
+        return ratingPoints[ratingPoints.length - 1];
     }
     private static Object getUnitInstance() {
         try {
