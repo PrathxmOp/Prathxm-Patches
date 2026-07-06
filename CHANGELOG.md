@@ -1,3 +1,9 @@
+## [1.10.0-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.10.0-dev.1...v1.10.0-dev.2) (2026-07-06)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve crash handler blank screen and fix github issue reporting ([101ab1e](https://github.com/PrathxmOp/Prathxm-Patches/commit/101ab1ed2b592f6dbf5f026f82fb7f1b3301b91d))
+
 ## [1.10.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.7-dev.1...v1.10.0-dev.1) (2026-07-06)
 
 ### 🐛 Bug Fixes
