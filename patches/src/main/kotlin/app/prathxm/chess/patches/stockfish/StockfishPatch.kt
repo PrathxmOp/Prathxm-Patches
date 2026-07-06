@@ -303,6 +303,25 @@ val stockfishPatch = bytecodePatch(
         )
         */
 
+        // ─────────────────────────────────────────────────────────────────
+        // Hook 7 – Force Connectivity Status to Online for local analysis in flight mode
+        // ─────────────────────────────────────────────────────────────────
+        ConnectivityUtilImplIsOfflineFingerprint.method.addInstructions(
+            0,
+            """
+                const/4 v0, 0
+                return v0
+            """
+        )
+
+        ConnectivityUtilImplIsOnlineFingerprint.method.addInstructions(
+            0,
+            """
+                const/4 v0, 1
+                return v0
+            """
+        )
+
     }
 }
 
