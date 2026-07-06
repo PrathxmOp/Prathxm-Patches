@@ -1571,7 +1571,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                     String from = move.substring(0, 2);
                     String to = move.substring(2, 4);
                     char target = chessboard.getPieceAt(to);
-                    chessboard.makeMove(from, to);
+                    chessboard.makeMove(from, to, false);
                     if (i == movesToApply.size() - 1) {
                         soundManager.playMoveSound(target != ' ');
                     }

@@ -1,6 +1,6 @@
 {
   "NOTE": "Do NOT manually edit this file. This file is automatically updated when semantic release (release.yml) runs. Manually editing this file can break your releases and break third party tools that use this file.",
-  "version": "1.9.6",
+  "version": "1.10.0-dev.2",
   "patches": [
     {
       "name": "Ad-Free & Local Analysis",
@@ -75,6 +75,41 @@
       "description": "Fetches and applies custom titles for users from a remote database. DM PrathxmOp to get yours for fun lol!",
       "default": true,
       "dependencies": [],
+      "compatiblePackages": [
+        {
+          "packageName": "com.chess",
+          "name": "Chess.com",
+          "description": null,
+          "apkFileType": "APK",
+          "appIconColor": "#81B64C",
+          "signatures": null,
+          "targets": [
+            {
+              "version": "4.9.49",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            },
+            {
+              "version": "4.9.49-googleplay",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Global Crash Handler",
+      "description": "Catches uncaught exceptions and displays a custom crash screen with details to report issues.",
+      "default": true,
+      "dependencies": [
+        "ResourcePatch"
+      ],
       "compatiblePackages": [
         {
           "packageName": "com.chess",

@@ -1,3 +1,34 @@
+## [1.10.0-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.10.0-dev.1...v1.10.0-dev.2) (2026-07-06)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve crash handler blank screen and fix github issue reporting ([101ab1e](https://github.com/PrathxmOp/Prathxm-Patches/commit/101ab1ed2b592f6dbf5f026f82fb7f1b3301b91d))
+
+## [1.10.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.7-dev.1...v1.10.0-dev.1) (2026-07-06)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve redundant state reset race and allow castling/en passant moves ([89c46af](https://github.com/PrathxmOp/Prathxm-Patches/commit/89c46afd58f992bb1f3d836ce7e5f6d5d241b7db))
+* **lichesspuzzle:** resolve connection error on theme puzzle completion ([309b290](https://github.com/PrathxmOp/Prathxm-Patches/commit/309b290aead0c53f3a0729f60b319ad68619d051))
+
+### ✨ New Features
+
+* **Chess.com:** add global crash handler and custom crash activity ([36ad69e](https://github.com/PrathxmOp/Prathxm-Patches/commit/36ad69e50be8ff9bebbf3d57752014a541b075fc))
+
+## [1.9.7-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.6...v1.9.7-dev.1) (2026-07-06)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** board animations back navigation, bottom sheet crash, and timer fixes ([fb2e85a](https://github.com/PrathxmOp/Prathxm-Patches/commit/fb2e85a15d08e60735bb5fa294d021b28fc08213))
+* **Chess.com:** bypass remote permissions check for offline game review ([027c6a6](https://github.com/PrathxmOp/Prathxm-Patches/commit/027c6a670f5a5450d2cf4aeb52605c3aef0ccec2))
+* **Chess:** restore SessionStoreIsGuestFingerprint and correct guest premium check ([b6f0651](https://github.com/PrathxmOp/Prathxm-Patches/commit/b6f0651e2ab8c867f101daaf9ed85a130ae6b730))
+
+## [1.9.2-dev.3](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.2-dev.2...v1.9.2-dev.3) (2026-07-06)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** bypass remote permissions check for offline game review ([027c6a6](https://github.com/PrathxmOp/Prathxm-Patches/commit/027c6a670f5a5450d2cf4aeb52605c3aef0ccec2))
+
 ## [1.9.6](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.5...v1.9.6) (2026-07-06)
 
 ### 🐛 Bug Fixes

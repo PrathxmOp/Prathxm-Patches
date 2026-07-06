@@ -322,6 +322,17 @@ val stockfishPatch = bytecodePatch(
             """
         )
 
+        // ─────────────────────────────────────────────────────────────────
+        // Hook 8 – Force GameAnalysisPermissions to unlock analysis/review locally
+        // ─────────────────────────────────────────────────────────────────
+        GameAnalysisServiceImplGetPermissionsFingerprint.method.addInstructions(
+            0,
+            """
+                invoke-static {}, $EXTENSION_CLASS->getFullGameAnalysisPermissions()Ljava/lang/Object;
+                move-result-object v0
+                return-object v0
+            """
+        )
     }
 }
 
