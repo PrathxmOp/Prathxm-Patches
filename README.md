@@ -91,9 +91,9 @@ Once patched, access all features through two simple gestures on the Chess.com l
 ## 🩹 Patches
 
 <!-- PATCHES_START EXPANDED -->
-> **[v1.9.7-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.9.7-dev.1)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;5 patches total
+> **[v1.10.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.10.0-dev.1)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;6 patches total
 <details open>
-<summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;5 patches</summary>
+<summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;6 patches</summary>
 <br>
 
 **🎯 Supported versions:**
@@ -106,6 +106,7 @@ Once patched, access all features through two simple gestures on the Chess.com l
 | [Ad-Free & Local Analysis](#ad-free-local-analysis) | Removes advertisements, unlocks ad-free features, and enables local Stockfish engine for post-game review & analysis. |  |
 | [Clone Chess.com](#clone-chess-com) | Changes the package name to com.chess.prathxm, allowing the patched app to be installed side-by-side with the original Chess.com app. |  |
 | [Custom Titles](#custom-titles) | Fetches and applies custom titles for users from a remote database. DM PrathxmOp to get yours for fun lol! |  |
+| [Global Crash Handler](#global-crash-handler) | Catches uncaught exceptions and displays a custom crash screen with details to report issues. |  |
 | [Lichess Puzzles](#lichess-puzzles) | Loads daily puzzles from Lichess and bypasses Chess.com puzzle premium limits. |  |
 | [Unlock All Bots](#unlock-all-bots) | Unlocks all premium and restricted bots in the Versus Bots feature. |  |
 

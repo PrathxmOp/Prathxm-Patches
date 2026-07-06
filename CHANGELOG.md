@@ -1,3 +1,14 @@
+## [1.10.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.7-dev.1...v1.10.0-dev.1) (2026-07-06)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve redundant state reset race and allow castling/en passant moves ([89c46af](https://github.com/PrathxmOp/Prathxm-Patches/commit/89c46afd58f992bb1f3d836ce7e5f6d5d241b7db))
+* **lichesspuzzle:** resolve connection error on theme puzzle completion ([309b290](https://github.com/PrathxmOp/Prathxm-Patches/commit/309b290aead0c53f3a0729f60b319ad68619d051))
+
+### ✨ New Features
+
+* **Chess.com:** add global crash handler and custom crash activity ([36ad69e](https://github.com/PrathxmOp/Prathxm-Patches/commit/36ad69e50be8ff9bebbf3d57752014a541b075fc))
+
 ## [1.9.7-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.6...v1.9.7-dev.1) (2026-07-06)
 
 ### 🐛 Bug Fixes
