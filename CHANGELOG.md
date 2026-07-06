@@ -1,3 +1,9 @@
+## [1.11.0-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.11.0-dev.1...v1.11.0-dev.2) (2026-07-06)
+
+### ✨ New Features
+
+* **Chess.com:** split Ad-Free and Local Stockfish Analysis patches ([4c0cd02](https://github.com/PrathxmOp/Prathxm-Patches/commit/4c0cd028400ccaf0ccbab81c06114f921da48e07))
+
 ## [1.11.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.10.0...v1.11.0-dev.1) (2026-07-06)
 
 ### ✨ New Features

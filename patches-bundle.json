@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-07-06T21:43:21",
-  "description": "## [1.11.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.10.0...v1.11.0-dev.1) (2026-07-06)\n\n### ✨ New Features\n\n* **Chess.com:** support v4.10.0 while preserving v4.9.49 compatibility ([7d0d4a9](https://github.com/PrathxmOp/Prathxm-Patches/commit/7d0d4a9bc7184af65b5fd6f48a4ac8ef47de6bda))",
-  "download_url": "https://github.com/PrathxmOp/Prathxm-Patches/releases/download/v1.11.0-dev.1/patches-1.11.0-dev.1.mpp",
+  "created_at": "2026-07-06T22:20:00",
+  "description": "## [1.11.0-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.11.0-dev.1...v1.11.0-dev.2) (2026-07-06)\n\n### ✨ New Features\n\n* **Chess.com:** split Ad-Free and Local Stockfish Analysis patches ([4c0cd02](https://github.com/PrathxmOp/Prathxm-Patches/commit/4c0cd028400ccaf0ccbab81c06114f921da48e07))",
+  "download_url": "https://github.com/PrathxmOp/Prathxm-Patches/releases/download/v1.11.0-dev.2/patches-1.11.0-dev.2.mpp",
   "signature_download_url": "",
-  "version": "1.11.0-dev.1"
+  "version": "1.11.0-dev.2"
 }
