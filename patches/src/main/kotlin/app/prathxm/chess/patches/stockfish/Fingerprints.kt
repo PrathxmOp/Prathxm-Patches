@@ -185,3 +185,17 @@ object GameReviewV2V0JFingerprint : Fingerprint(
     parameters = listOf("Lcom/chess/gamereview/repository/AnalyzedGameData\$AnalyzedPosition;", "Lcom/chess/chessboard/history/i;", "Lcom/chess/entities/GameAnalysisPermissions;", "Z"),
     returnType = "Lcom/chess/gamereview/api/d;"
 )
+
+object ConnectivityUtilImplIsOfflineFingerprint : Fingerprint(
+    definingClass = "Lcom/chess/utils/android/misc/ConnectivityUtilImpl;",
+    name = "b",
+    parameters = listOf(),
+    returnType = "Z"
+)
+
+object ConnectivityUtilImplIsOnlineFingerprint : Fingerprint(
+    definingClass = "Lcom/chess/utils/android/misc/ConnectivityUtilImpl;",
+    name = "c",
+    parameters = listOf(),
+    returnType = "Z"
+)

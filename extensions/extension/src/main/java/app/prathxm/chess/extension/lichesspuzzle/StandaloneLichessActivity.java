@@ -64,6 +64,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     private TextView timerView;
     private int elapsedSeconds = 0;
     private Timer normalTimer;
+    private boolean resetTimerOnNextStateReset = false;
 
     // Theme Colors (Premium Dark Theme - matching Chess.com style)
     private final int COLOR_BG = Color.parseColor("#302e2b");
@@ -776,6 +777,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                             updateSpeechBubble("🎉 Completed!", "Today's daily puzzle is complete!", COLOR_GREEN);
                             return;
                         }
+                        resetTimerOnNextStateReset = true;
                         gameEngine.resetPuzzleState(isDailyCompleted);
                     }));
 
@@ -784,6 +786,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                     // Restart
                     if (!isDailyCompleted) {
                         actionsLayout.addView(createActionItem("glyph_arrow_spin_redo", "Restart", v -> {
+                            resetTimerOnNextStateReset = true;
                             gameEngine.resetPuzzleState(isDailyCompleted);
                         }));
                     }
@@ -1109,9 +1112,19 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
     }
 
     private void startTimer() {
+        startTimer(false);
+    }
+
+    private void startTimer(boolean resume) {
         stopTimer();
-        elapsedSeconds = 0;
-        timerView.setText("00:00");
+        if (!resume) {
+            elapsedSeconds = 0;
+            timerView.setText("00:00");
+        } else {
+            int mins = elapsedSeconds / 60;
+            int secs = elapsedSeconds % 60;
+            timerView.setText(String.format(Locale.US, "%02d:%02d", mins, secs));
+        }
         normalTimer = new Timer();
         normalTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -1475,6 +1488,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         runOnUiThread(() -> {
             progressBar.setVisibility(View.GONE);
             updatePuzzleHeaderAndStats(levelIndex, rating, theme);
+            resetTimerOnNextStateReset = true;
             gameEngine.resetPuzzleState(isDailyCompleted());
         });
     }
@@ -1519,6 +1533,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                 } else {
                     chessboard.setInteractable(false);
                     chessboard.postDelayed(() -> {
+                        resetTimerOnNextStateReset = true;
                         gameEngine.resetPuzzleState(isDailyCompleted());
                     }, 1000);
                 }
@@ -1556,7 +1571,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                     String from = move.substring(0, 2);
                     String to = move.substring(2, 4);
                     char target = chessboard.getPieceAt(to);
-                    chessboard.makeMove(from, to);
+                    chessboard.makeMove(from, to, false);
                     if (i == movesToApply.size() - 1) {
                         soundManager.playMoveSound(target != ' ');
                     }
@@ -1564,7 +1579,14 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             }
             
             if (!activeMode.equals("rush") && !activeMode.equals("battle")) {
-                startTimer();
+                if (resetTimerOnNextStateReset) {
+                    startTimer(false);
+                    resetTimerOnNextStateReset = false;
+                } else {
+                    if (normalTimer == null) {
+                        startTimer(true);
+                    }
+                }
             }
 
             String sideToMoveText = playerIsWhite ? "⬜ White to Move" : "⬛ Black to Move";

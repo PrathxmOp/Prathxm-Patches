@@ -64,6 +64,17 @@ public class LichessBoardView extends View {
     
     private BoardListener listener;
 
+    // Piece movement animation variables
+    private boolean isAnimating = false;
+    private char animatingPiece = ' ';
+    private float animProgress = 0.0f; // 0.0f to 1.0f
+    private int animFromRank = -1;
+    private int animFromFile = -1;
+    private int animToRank = -1;
+    private int animToFile = -1;
+    private long animStartTime = 0;
+    private static final long ANIM_DURATION_MS = 250;
+
     public LichessBoardView(Context context) {
         super(context);
         paint.setFilterBitmap(true);
@@ -114,6 +125,9 @@ public class LichessBoardView extends View {
     }
 
     public void setFEN(String fen) {
+        isAnimating = false;
+        animatingPiece = ' ';
+
         // Clear board
         for (int r = 0; r < 8; r++) {
             for (int f = 0; f < 8; f++) {
@@ -159,6 +173,10 @@ public class LichessBoardView extends View {
 
     // Direct move application for local UI updates
     public void makeMove(String from, String to) {
+        makeMove(from, to, true);
+    }
+
+    public void makeMove(String from, String to, boolean animate) {
         try {
             int fromFile = from.charAt(0) - 'a';
             int fromRank = '8' - from.charAt(1);
@@ -166,6 +184,17 @@ public class LichessBoardView extends View {
             int toRank = '8' - to.charAt(1);
             
             char piece = board[fromRank][fromFile];
+            
+            if (piece != ' ' && animate) {
+                isAnimating = true;
+                animatingPiece = piece;
+                animFromFile = fromFile;
+                animFromRank = fromRank;
+                animToFile = toFile;
+                animToRank = toRank;
+                animStartTime = System.currentTimeMillis();
+                animProgress = 0.0f;
+            }
             
             // Check castling: King moves 2 squares horizontally
             if ((piece == 'K' || piece == 'k') && Math.abs(fromFile - toFile) == 2) {
@@ -331,49 +360,10 @@ public class LichessBoardView extends View {
                 // Draw piece drawable from host application assets
                 char piece = board[r][f];
                 if (piece != ' ') {
-                    String resName = getPieceDrawableName(piece);
-                    if (resName != null) {
-                        // Get host (Chess.com) package name
-                        String hostPackage = getContext().getPackageName();
-                        int resId = getContext().getResources().getIdentifier(
-                                resName, "drawable", hostPackage);
-                        if (resId != 0) {
-                            Drawable drawable = getContext().getResources().getDrawable(resId, null);
-                            if (drawable != null) {
-                                drawable = drawable.mutate();
-                                drawable.setAlpha(255);
-                                drawable.setColorFilter(null);
-
-                                int left = (int) (drawFile * squareSize);
-                                int top = (int) (drawRank * squareSize);
-                                int right = (int) ((drawFile + 1) * squareSize);
-                                int bottom = (int) ((drawRank + 1) * squareSize);
-                                
-                                // Padding around piece for perfect spacing
-                                int pad = (int) (squareSize * 0.05f);
-                                
-                                if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
-                                    android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
-                                    if (bitmap != null && !bitmap.isRecycled()) {
-                                        int bmpW = bitmap.getWidth();
-                                        int bmpH = bitmap.getHeight();
-                                        // Crop top 2/3 containing the high-res piece
-                                        int intrinsicHeight = (bmpH * 2) / 3;
-                                        android.graphics.Rect srcRect = new android.graphics.Rect(0, 0, bmpW, intrinsicHeight);
-                                        android.graphics.Rect dstRect = new android.graphics.Rect(left + pad, top + pad, right - pad, bottom - pad);
-                                        piecePaint.setAlpha(255);
-                                        piecePaint.setColorFilter(null);
-                                        canvas.drawBitmap(bitmap, srcRect, dstRect, piecePaint);
-                                    } else {
-                                        drawable.setBounds(left + pad, top + pad, right - pad, bottom - pad);
-                                        drawable.draw(canvas);
-                                    }
-                                } else {
-                                    drawable.setBounds(left + pad, top + pad, right - pad, bottom - pad);
-                                    drawable.draw(canvas);
-                                }
-                            }
-                        }
+                    if (isAnimating && r == animToRank && f == animToFile) {
+                        // Skip drawing the piece statically while animating
+                    } else {
+                        drawPieceAt(canvas, piece, drawFile * squareSize, drawRank * squareSize, squareSize);
                     }
                 }
             }
@@ -468,6 +458,33 @@ public class LichessBoardView extends View {
                 canvas.drawPath(path, paint);
             }
         }
+
+        // Draw animating piece if active
+        if (isAnimating && animatingPiece != ' ') {
+            long elapsed = System.currentTimeMillis() - animStartTime;
+            if (elapsed >= ANIM_DURATION_MS) {
+                isAnimating = false;
+                animatingPiece = ' ';
+                invalidate(); // Redraw final static layout
+            } else {
+                animProgress = (float) elapsed / ANIM_DURATION_MS;
+                float t = animProgress;
+                // Cubic ease-in-out easing
+                float easeProgress = t < 0.5f ? 4.0f * t * t * t : 1.0f - (float) Math.pow(-2.0f * t + 2.0f, 3.0f) / 2.0f;
+                
+                int drawFromRank = isFlipped ? 7 - animFromRank : animFromRank;
+                int drawFromFile = isFlipped ? 7 - animFromFile : animFromFile;
+                int drawToRank = isFlipped ? 7 - animToRank : animToRank;
+                int drawToFile = isFlipped ? 7 - animToFile : animToFile;
+                
+                float currentX = drawFromFile * squareSize + (drawToFile - drawFromFile) * squareSize * easeProgress;
+                float currentY = drawFromRank * squareSize + (drawToRank - drawFromRank) * squareSize * easeProgress;
+                
+                drawPieceAt(canvas, animatingPiece, currentX, currentY, squareSize);
+                
+                postInvalidateOnAnimation();
+            }
+        }
     }
 
     private String getPieceDrawableName(char piece) {
@@ -485,6 +502,49 @@ public class LichessBoardView extends View {
             case 'n': return "bn"; // Black Knight
             case 'p': return "bp"; // Black Pawn
             default: return null;
+        }
+    }
+
+    private void drawPieceAt(Canvas canvas, char piece, float x, float y, float squareSize) {
+        String resName = getPieceDrawableName(piece);
+        if (resName != null) {
+            String hostPackage = getContext().getPackageName();
+            int resId = getContext().getResources().getIdentifier(resName, "drawable", hostPackage);
+            if (resId != 0) {
+                Drawable drawable = getContext().getResources().getDrawable(resId, null);
+                if (drawable != null) {
+                    drawable = drawable.mutate();
+                    drawable.setAlpha(255);
+                    drawable.setColorFilter(null);
+
+                    int left = (int) x;
+                    int top = (int) y;
+                    int right = (int) (x + squareSize);
+                    int bottom = (int) (y + squareSize);
+                    
+                    int pad = (int) (squareSize * 0.05f);
+                    
+                    if (drawable instanceof android.graphics.drawable.BitmapDrawable) {
+                        android.graphics.Bitmap bitmap = ((android.graphics.drawable.BitmapDrawable) drawable).getBitmap();
+                        if (bitmap != null && !bitmap.isRecycled()) {
+                            int bmpW = bitmap.getWidth();
+                            int bmpH = bitmap.getHeight();
+                            int intrinsicHeight = (bmpH * 2) / 3;
+                            android.graphics.Rect srcRect = new android.graphics.Rect(0, 0, bmpW, intrinsicHeight);
+                            android.graphics.Rect dstRect = new android.graphics.Rect(left + pad, top + pad, right - pad, bottom - pad);
+                            piecePaint.setAlpha(255);
+                            piecePaint.setColorFilter(null);
+                            canvas.drawBitmap(bitmap, srcRect, dstRect, piecePaint);
+                        } else {
+                            drawable.setBounds(left + pad, top + pad, right - pad, bottom - pad);
+                            drawable.draw(canvas);
+                        }
+                    } else {
+                        drawable.setBounds(left + pad, top + pad, right - pad, bottom - pad);
+                        drawable.draw(canvas);
+                    }
+                }
+            }
         }
     }
 

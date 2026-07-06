@@ -294,10 +294,11 @@ public class JourneyBottomSheet {
 
     private void loadThemeCountsAsync() {
         if (dbHelper == null || themeCountViews.isEmpty()) return;
+        final java.util.List<String> themeKeysCopy = new java.util.ArrayList<>(themeCountViews.keySet());
         new Thread(() -> {
             final Map<String, String> results = new HashMap<>();
             android.content.SharedPreferences.Editor editor = activity.getSharedPreferences("lichess_puzzle_prefs", Context.MODE_PRIVATE).edit();
-            for (String themeKey : themeCountViews.keySet()) {
+            for (String themeKey : themeKeysCopy) {
                 int localCount = dbHelper.getThemeCount(themeKey);
                 String formatted = java.text.NumberFormat.getInstance().format(localCount);
                 results.put(themeKey, formatted);
