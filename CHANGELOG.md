@@ -1,3 +1,9 @@
+## [1.9.6](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.5...v1.9.6) (2026-07-06)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** puzzle board animations and timer reset fixes ([4c1aa22](https://github.com/PrathxmOp/Prathxm-Patches/commit/4c1aa228cdc11f76417875f57312c82e07876b59))
+
 ## [1.9.5](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.4...v1.9.5) (2026-07-06)
 
 ### 🐛 Bug Fixes
