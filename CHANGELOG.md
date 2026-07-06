@@ -1,3 +1,9 @@
+## [1.9.5](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.4...v1.9.5) (2026-07-06)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve puzzle menu force close crash ([4eb0c17](https://github.com/PrathxmOp/Prathxm-Patches/commit/4eb0c1771c2aed3d68bec54534b441186489f6b0))
+
 ## [1.9.4](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.3...v1.9.4) (2026-07-05)
 
 ### 🐛 Bug Fixes
