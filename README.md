@@ -91,15 +91,15 @@ Once patched, access all features through two simple gestures on the Chess.com l
 ## 🩹 Patches
 
 <!-- PATCHES_START EXPANDED -->
-> **[v1.10.0](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.10.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;6 patches total
+> **[v1.11.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.11.0-dev.1)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;6 patches total
 <details open>
 <summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;6 patches</summary>
 <br>
 
 **🎯 Supported versions:**
 
-| 4.9.49 | 4.9.49-googleplay |
-| :---: | :---: |
+| 4.9.49 | 4.9.49-googleplay | 4.10.0 | 4.10.0-googleplay |
+| :---: | :---: | :---: | :---: |
 
 | 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
 |----------|----------------|-----------|

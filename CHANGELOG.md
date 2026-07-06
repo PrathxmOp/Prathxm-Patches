@@ -1,3 +1,9 @@
+## [1.11.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.10.0...v1.11.0-dev.1) (2026-07-06)
+
+### ✨ New Features
+
+* **Chess.com:** support v4.10.0 while preserving v4.9.49 compatibility ([7d0d4a9](https://github.com/PrathxmOp/Prathxm-Patches/commit/7d0d4a9bc7184af65b5fd6f48a4ac8ef47de6bda))
+
 ## [1.10.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.6...v1.10.0) (2026-07-06)
 
 ### 🐛 Bug Fixes
