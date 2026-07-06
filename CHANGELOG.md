@@ -1,3 +1,11 @@
+## [1.9.7-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.6...v1.9.7-dev.1) (2026-07-06)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** board animations back navigation, bottom sheet crash, and timer fixes ([fb2e85a](https://github.com/PrathxmOp/Prathxm-Patches/commit/fb2e85a15d08e60735bb5fa294d021b28fc08213))
+* **Chess.com:** bypass remote permissions check for offline game review ([027c6a6](https://github.com/PrathxmOp/Prathxm-Patches/commit/027c6a670f5a5450d2cf4aeb52605c3aef0ccec2))
+* **Chess:** restore SessionStoreIsGuestFingerprint and correct guest premium check ([b6f0651](https://github.com/PrathxmOp/Prathxm-Patches/commit/b6f0651e2ab8c867f101daaf9ed85a130ae6b730))
+
 ## [1.9.2-dev.3](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.2-dev.2...v1.9.2-dev.3) (2026-07-06)
 
 ### 🐛 Bug Fixes
