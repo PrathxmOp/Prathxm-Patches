@@ -1,3 +1,9 @@
+## [1.9.2-dev.3](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.2-dev.2...v1.9.2-dev.3) (2026-07-06)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** bypass remote permissions check for offline game review ([027c6a6](https://github.com/PrathxmOp/Prathxm-Patches/commit/027c6a670f5a5450d2cf4aeb52605c3aef0ccec2))
+
 ## [1.9.2-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.2-dev.1...v1.9.2-dev.2) (2026-07-06)
 
 ### 🐛 Bug Fixes
