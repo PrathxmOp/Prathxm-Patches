@@ -199,3 +199,14 @@ object ConnectivityUtilImplIsOnlineFingerprint : Fingerprint(
     parameters = listOf(),
     returnType = "Z"
 )
+
+object GameAnalysisServiceImplGetPermissionsFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/net/v1/analysis/GameAnalysisServiceImpl;" &&
+            method.name == "a" &&
+            method.parameterTypes.size == 2 &&
+            method.parameterTypes[0] == "Lcom/chess/entities/CompatGameIdAndType;" &&
+            method.returnType == "Ljava/lang/Object;"
+    }
+)
+

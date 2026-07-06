@@ -693,4 +693,18 @@ public class StockfishExtension {
         Log.d(TAG, "getLocalAnalysisFlow called with pgn: " + (pgn != null ? (pgn.substring(0, Math.min(pgn.length(), 30)) + "...") : "null"));
         return LocalAnalysisFlow.createFlow(pgn, analysisDepth);
     }
+
+    public static Object getFullGameAnalysisPermissions() {
+        try {
+            Class<?> permClass = Class.forName("com.chess.entities.GameAnalysisPermissions");
+            Class<?> quotaTypeClass = Class.forName("com.chess.entities.GameAnalysisPermissions$QuotaType");
+            java.lang.reflect.Constructor<?> ctor = permClass.getConstructor(
+                boolean.class, boolean.class, boolean.class, boolean.class, quotaTypeClass
+            );
+            return ctor.newInstance(true, true, true, true, null);
+        } catch (Throwable t) {
+            Log.e(TAG, "getFullGameAnalysisPermissions failed: " + t.getMessage());
+            return null;
+        }
+    }
 }
