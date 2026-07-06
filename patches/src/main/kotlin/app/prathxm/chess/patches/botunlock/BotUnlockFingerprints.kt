@@ -7,17 +7,21 @@ import app.morphe.patcher.Fingerprint
 // ─────────────────────────────────────────────────────────────────────────────
 
 object BotPersonalityBotGetCanPlayFingerprint : Fingerprint(
-    definingClass = "Lcom/chess/features/versusbots/Bot\$PersonalityBot;",
-    name = "i",
-    parameters = listOf(),
-    returnType = "Z"
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/features/versusbots/Bot\$PersonalityBot;" &&
+            (method.name == "i" || method.name == "k") &&
+            method.parameterTypes.isEmpty() &&
+            method.returnType == "Z"
+    }
 )
 
 object BotPersonalityBotGetRequiresActivationFingerprint : Fingerprint(
-    definingClass = "Lcom/chess/features/versusbots/Bot\$PersonalityBot;",
-    name = "E",
-    parameters = listOf(),
-    returnType = "Z"
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/features/versusbots/Bot\$PersonalityBot;" &&
+            (method.name == "E" || method.name == "B") &&
+            method.parameterTypes.isEmpty() &&
+            method.returnType == "Z"
+    }
 )
 
 object ProtoBotPersonalityGetCanPlayFingerprint : Fingerprint(
@@ -42,8 +46,11 @@ object ProtoBotPersonalityGetPremiumFingerprint : Fingerprint(
 )
 
 object LockedBotsCheckFingerprint : Fingerprint(
-    definingClass = "Lcom/chess/features/versusbots/ui/h9;",
-    name = "a",
-    parameters = listOf("Lcom/chess/features/versusbots/Bot;"),
-    returnType = "Z"
+    custom = { method, classDef ->
+        (classDef.type == "Lcom/chess/features/versusbots/ui/h9;" || classDef.type == "Lcom/chess/features/versusbots/ui/l9;") &&
+            method.name == "a" &&
+            method.parameterTypes.size == 1 &&
+            method.parameterTypes[0] == "Lcom/chess/features/versusbots/Bot;" &&
+            method.returnType == "Z"
+    }
 )

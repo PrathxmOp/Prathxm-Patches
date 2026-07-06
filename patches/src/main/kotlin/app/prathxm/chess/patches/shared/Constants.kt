@@ -8,11 +8,13 @@ object Constants {
     val COMPATIBILITY_CHESS = Compatibility(
         name = "Chess.com",
         packageName = "com.chess",
-        apkFileType = ApkFileType.APK,
+        apkFileType = ApkFileType.APKM,
         appIconColor = 0x81B64C, // Chess.com green
         targets = listOf(
             AppTarget(version = "4.9.49"),
-            AppTarget(version = "4.9.49-googleplay")
+            AppTarget(version = "4.9.49-googleplay"),
+            AppTarget(version = "4.10.0"),
+            AppTarget(version = "4.10.0-googleplay")
         )
     )
 }

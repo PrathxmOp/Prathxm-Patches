@@ -236,6 +236,7 @@ val stockfishPatch = bytecodePatch(
             """
         )
 
+        val repoReturnType = GameAnalysisRepositoryGetGameAnalysisFingerprint.method.returnType
         GameAnalysisRepositoryGetGameAnalysisFingerprint.method.addInstructions(
             0,
             """
@@ -249,7 +250,7 @@ val stockfishPatch = bytecodePatch(
                 move-object/from16 v7, p7
                 invoke-static/range {v0 .. v7}, $EXTENSION_CLASS->getLocalAnalysisFlow(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;Ljava/util/Set;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
                 move-result-object v0
-                check-cast v0, Lcom/google/android/g74;
+                check-cast v0, $repoReturnType
                 return-object v0
             """
         )

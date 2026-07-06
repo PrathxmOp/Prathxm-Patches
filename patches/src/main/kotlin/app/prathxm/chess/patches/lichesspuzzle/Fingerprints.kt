@@ -3,17 +3,27 @@ package app.prathxm.chess.patches.lichesspuzzle
 import app.morphe.patcher.Fingerprint
 
 object NewDailyPuzzleGetFingerprint : Fingerprint(
-    definingClass = "Lcom/chess/features/puzzles/daily/net/NewDailyPuzzleServiceImpl;",
-    name = "a",
-    parameters = listOf("Ljava/lang/String;", "Lcom/google/android/o02;"),
-    returnType = "Ljava/lang/Object;"
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/features/puzzles/daily/net/NewDailyPuzzleServiceImpl;" &&
+            method.name == "a" &&
+            method.parameterTypes.size == 2 &&
+            method.parameterTypes[0] == "Ljava/lang/String;" &&
+            (method.parameterTypes[1] == "Lcom/google/android/o02;" || method.parameterTypes[1] == "Lcom/google/android/i02;") &&
+            method.returnType == "Ljava/lang/Object;"
+    }
 )
 
 object NewDailyPuzzleSubmitFingerprint : Fingerprint(
-    definingClass = "Lcom/chess/features/puzzles/daily/net/NewDailyPuzzleServiceImpl;",
-    name = "b",
-    parameters = listOf("I", "Lchesscom/puzzles/v2alpha/DailyPuzzleAction;", "Lchesscom/puzzles/v2alpha/DailyPuzzleHintState;", "Lcom/google/android/o02;"),
-    returnType = "Ljava/lang/Object;"
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/features/puzzles/daily/net/NewDailyPuzzleServiceImpl;" &&
+            method.name == "b" &&
+            method.parameterTypes.size == 4 &&
+            method.parameterTypes[0] == "I" &&
+            method.parameterTypes[1] == "Lchesscom/puzzles/v2alpha/DailyPuzzleAction;" &&
+            method.parameterTypes[2] == "Lchesscom/puzzles/v2alpha/DailyPuzzleHintState;" &&
+            (method.parameterTypes[3] == "Lcom/google/android/o02;" || method.parameterTypes[3] == "Lcom/google/android/i02;") &&
+            method.returnType == "Ljava/lang/Object;"
+    }
 )
 
 object PuzzlePaywallGateModeFingerprint : Fingerprint(
@@ -31,17 +41,25 @@ object PuzzlePaywallGateErrorFingerprint : Fingerprint(
 )
 
 object PuzzlePaywallGateCheckFingerprint : Fingerprint(
-    definingClass = "Lcom/chess/home/play/PuzzlePaywallGate;",
-    name = "d",
-    parameters = listOf("Lcom/chess/navigationinterface/PathPuzzlesMode;", "Lcom/google/android/o02;"),
-    returnType = "Ljava/lang/Object;"
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/home/play/PuzzlePaywallGate;" &&
+            method.name == "d" &&
+            method.parameterTypes.size == 2 &&
+            method.parameterTypes[0] == "Lcom/chess/navigationinterface/PathPuzzlesMode;" &&
+            (method.parameterTypes[1] == "Lcom/google/android/o02;" || method.parameterTypes[1] == "Lcom/google/android/i02;") &&
+            method.returnType == "Ljava/lang/Object;"
+    }
 )
 
 object PuzzleOfflineLimitSetFingerprint : Fingerprint(
-    definingClass = "Lcom/chess/internal/puzzles/PuzzleOfflineLimit;",
-    name = "f",
-    parameters = listOf("I", "Lcom/google/android/o02;"),
-    returnType = "Ljava/lang/Object;"
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/internal/puzzles/PuzzleOfflineLimit;" &&
+            method.name == "f" &&
+            method.parameterTypes.size == 2 &&
+            method.parameterTypes[0] == "I" &&
+            (method.parameterTypes[1] == "Lcom/google/android/o02;" || method.parameterTypes[1] == "Lcom/google/android/i02;") &&
+            method.returnType == "Ljava/lang/Object;"
+    }
 )
 
 object SessionStorePremiumFingerprint1 : Fingerprint(
@@ -51,7 +69,10 @@ object SessionStorePremiumFingerprint1 : Fingerprint(
 )
 
 object SessionStorePremiumFingerprint2 : Fingerprint(
-    definingClass = "Lcom/chess/net/v1/users/SessionStore;",
-    name = "t",
-    returnType = "Z"
+    custom = { method, classDef ->
+        classDef.type == "Lcom/chess/net/v1/users/SessionStore;" &&
+            (method.name == "t" || method.name == "u") &&
+            method.parameterTypes.isEmpty() &&
+            method.returnType == "Z"
+    }
 )
