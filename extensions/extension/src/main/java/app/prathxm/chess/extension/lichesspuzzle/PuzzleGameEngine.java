@@ -204,10 +204,14 @@ public class PuzzleGameEngine {
             notifyError("Invalid level select: " + levelIdx);
             return;
         }
-        initOfflinePuzzle(puzzleObj);
+        initOfflinePuzzle(puzzleObj, levelIdx);
     }
 
     public void initOfflinePuzzle(JSONObject puzzleObj) {
+        initOfflinePuzzle(puzzleObj, -1);
+    }
+
+    public void initOfflinePuzzle(JSONObject puzzleObj, int levelIdx) {
         try {
             currentPuzzleId = puzzleObj.optString("id", null);
             startFen = puzzleObj.getString("fen");
@@ -216,8 +220,7 @@ public class PuzzleGameEngine {
             rating = puzzleObj.getInt("rating");
             theme = puzzleObj.optString("theme", "tactics");
 
-            int idx = dbHelper.getOffsetOfPuzzleId(currentPuzzleId);
-            levelIndex = (idx != -1) ? (idx + 1) : -1;
+            levelIndex = levelIdx;
             isOnlinePuzzle = false;
 
             PuzzleHistoryItem item = new PuzzleHistoryItem(startFen, solutionMoves, rating, theme, levelIndex, false);
