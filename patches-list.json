@@ -3,12 +3,10 @@
   "version": "1.11.0-dev.1",
   "patches": [
     {
-      "name": "Ad-Free & Local Analysis",
-      "description": "Removes advertisements, unlocks ad-free features, and enables local Stockfish engine for post-game review & analysis.",
+      "name": "Ad-Free",
+      "description": "Removes advertisements",
       "default": true,
-      "dependencies": [
-        "ResourcePatch"
-      ],
+      "dependencies": [],
       "compatiblePackages": [
         {
           "packageName": "com.chess",
@@ -197,6 +195,55 @@
     {
       "name": "Lichess Puzzles",
       "description": "Loads daily puzzles from Lichess and bypasses Chess.com puzzle premium limits.",
+      "default": true,
+      "dependencies": [
+        "ResourcePatch"
+      ],
+      "compatiblePackages": [
+        {
+          "packageName": "com.chess",
+          "name": "Chess.com",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#81B64C",
+          "signatures": null,
+          "targets": [
+            {
+              "version": "4.9.49",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            },
+            {
+              "version": "4.9.49-googleplay",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            },
+            {
+              "version": "4.10.0",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            },
+            {
+              "version": "4.10.0-googleplay",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Local Stockfish Analysis",
+      "description": "Enables local Stockfish engine for post-game review & analysis.",
       "default": true,
       "dependencies": [
         "ResourcePatch"
