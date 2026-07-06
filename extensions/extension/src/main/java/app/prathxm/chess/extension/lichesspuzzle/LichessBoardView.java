@@ -583,6 +583,22 @@ public class LichessBoardView extends View {
                         if (target != ' ' && Character.isUpperCase(target) != isWhite) {
                             dests.add(new int[]{cf, nextR});
                         }
+                        // En Passant capture:
+                        // White pawns can capture en passant when on rank 3 (5th rank)
+                        // Black pawns can capture en passant when on rank 4 (4th rank)
+                        if (target == ' ') {
+                            if (isWhite && r == 3) {
+                                char adjPiece = board[3][cf];
+                                if (adjPiece == 'p') {
+                                    dests.add(new int[]{cf, nextR});
+                                }
+                            } else if (!isWhite && r == 4) {
+                                char adjPiece = board[4][cf];
+                                if (adjPiece == 'P') {
+                                    dests.add(new int[]{cf, nextR});
+                                }
+                            }
+                        }
                     }
                 }
                 break;
@@ -615,6 +631,23 @@ public class LichessBoardView extends View {
                             if (target == ' ' || Character.isUpperCase(target) != isWhite) {
                                 dests.add(new int[]{nf, nr});
                             }
+                        }
+                    }
+                }
+                // Castling: King on starting square (e1 or e8)
+                if (f == 4 && (r == 7 || r == 0)) {
+                    // Short castle: Rook on h-file
+                    char shortRook = board[r][7];
+                    if (shortRook == (isWhite ? 'R' : 'r')) {
+                        if (board[r][5] == ' ' && board[r][6] == ' ') {
+                            dests.add(new int[]{6, r});
+                        }
+                    }
+                    // Long castle: Rook on a-file
+                    char longRook = board[r][0];
+                    if (longRook == (isWhite ? 'R' : 'r')) {
+                        if (board[r][1] == ' ' && board[r][2] == ' ' && board[r][3] == ' ') {
+                            dests.add(new int[]{2, r});
                         }
                     }
                 }

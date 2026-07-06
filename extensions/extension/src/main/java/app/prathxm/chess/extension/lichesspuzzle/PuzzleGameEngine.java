@@ -396,21 +396,7 @@ public class PuzzleGameEngine {
                     listener.onMoveResult(false, false, expectedMove, isCapture);
                 }
             });
-
             isPlayerTurn = false;
-            mainHandler.postDelayed(() -> {
-                if (isFinished) return;
-                // reset state
-                isPlayerTurn = true;
-                hintClickCount = 0;
-                if (listener != null) {
-                    java.util.List<String> moves = new java.util.ArrayList<>();
-                    if (!isOnlinePuzzle) {
-                        moves.add(solutionMoves[0]);
-                    }
-                    listener.onStateReset(startFen, playerIsWhite, !playerIsWhite, true, playerIsWhite ? 'w' : 'b', moves);
-                }
-            }, 1000);
         }
     }
 
