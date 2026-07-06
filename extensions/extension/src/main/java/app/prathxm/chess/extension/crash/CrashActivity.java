@@ -31,8 +31,6 @@ import android.widget.Toast;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
-import app.prathxm.chess.extension.BuildConfig;
-
 public class CrashActivity extends Activity {
 
     @Override
@@ -51,7 +49,12 @@ public class CrashActivity extends Activity {
             appVersion = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
         } catch (Exception ignored) {}
 
-        String patchVersion = BuildConfig.PATCH_VERSION;
+        String patchVersion = "1.9.7"; // Fallback
+        try {
+            Class<?> buildConfigClass = Class.forName("app.prathxm.chess.extension.BuildConfig");
+            patchVersion = (String) buildConfigClass.getField("PATCH_VERSION").get(null);
+        } catch (Exception ignored) {}
+
         String deviceModel = Build.MODEL;
         String androidVersion = Build.VERSION.RELEASE;
         String sdkVersion = String.valueOf(Build.VERSION.SDK_INT);
@@ -70,6 +73,10 @@ public class CrashActivity extends Activity {
         root.setBackgroundColor(Color.parseColor("#121212")); // Sleek dark mode
         root.setPadding(dpToPx(24), dpToPx(32), dpToPx(24), dpToPx(24));
         root.setGravity(Gravity.CENTER_HORIZONTAL);
+        root.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
 
         // Header Title (Warning icon + text)
         TextView headerIcon = new TextView(this);
@@ -184,27 +191,33 @@ public class CrashActivity extends Activity {
 
         final String finalAppVersion = appVersion;
         btnReport.setOnClickListener(v -> {
-            // First copy logs to clipboard
+            // Copy full logs to clipboard FIRST — the GitHub form has an "Error logs"
+            // textarea where the user should paste this. We do NOT embed the log in the
+            // URL body because:
+            //   1. Long stack traces get silently truncated by GitHub's URL length limit.
+            //   2. The bug_report.yml YAML form template ignores raw ?body= params,
+            //      so embedding it there serves no purpose and causes duplication when
+            //      the user also pastes from clipboard.
             ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
             if (cm != null) {
                 cm.setPrimaryClip(ClipData.newPlainText("Chess App Crash Log", diagnosticInfo));
             }
-            
-            // Generate GitHub Issue URL with parameters
+
+            // Open the structured bug report template. Only pre-fill the title —
+            // the full log stays on the clipboard for the user to paste into
+            // the "Error logs" field in the form.
             String githubUrl = "https://github.com/PrathxmOp/Prathxm-Patches/issues/new";
             String titleParam = "[Crash Report] " + finalAppVersion + " Unexpected Crash";
-            String bodyParam = "### Describe the bug\nA crash occurred unexpectedly.\n\n" +
-                    "### Stack Trace\n" +
-                    "*(Logs copied to clipboard. Paste them here)*\n\n" +
-                    "```\n" +
-                    diagnosticInfo + "\n" +
-                    "```";
-            
+
             try {
-                githubUrl += "?title=" + URLEncoder.encode(titleParam, "UTF-8") +
-                        "&body=" + URLEncoder.encode(bodyParam, "UTF-8");
+                githubUrl += "?template=bug_report.yml"
+                        + "&title=" + URLEncoder.encode(titleParam, "UTF-8");
             } catch (UnsupportedEncodingException ignored) {}
-            
+
+            Toast.makeText(this,
+                    "Logs copied! Paste into the \"Error logs\" field on GitHub.",
+                    Toast.LENGTH_LONG).show();
+
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl));
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);

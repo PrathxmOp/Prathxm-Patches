@@ -34,9 +34,14 @@ private val crashHandlerResourcePatch = resourcePatch {
                 if (!crashActivityExists) {
                     val activity = document.createElement("activity")
                     activity.setAttribute("android:name", "app.prathxm.chess.extension.crash.CrashActivity")
-                    activity.setAttribute("android:process", ":crash")
                     activity.setAttribute("android:theme", "@android:style/Theme.NoTitleBar")
                     activity.setAttribute("android:exported", "false")
+                    // NOTE: No android:process=":crash" — that spawns a new process which
+                    // re-runs Application.onCreate() and fires Firebase init coroutines,
+                    // crashing before the UI can render. CrashActivity is always launched
+                    // with FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK after
+                    // killProcess() so the old process is already dead; the new process
+                    // that renders this activity starts clean without the crashed state.
                     application.appendChild(activity)
                 }
             }
