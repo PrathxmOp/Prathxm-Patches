@@ -153,7 +153,7 @@ public final class LichessPuzzleExtension {
                 cls("chesscom.puzzles.v2alpha.DailyPuzzle"),
                 cls("chesscom.puzzles.v2alpha.DailyPuzzleAttemptState"),
                 cls("chesscom.puzzles.v2alpha.DailyPuzzleUserStats"),
-                int.class,
+                Integer.class,
                 cls("okio.ByteString")
             },
             dailyPuzzle(puzzle),

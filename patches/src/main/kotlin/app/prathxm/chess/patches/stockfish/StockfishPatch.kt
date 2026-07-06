@@ -333,7 +333,6 @@ val stockfishPatch = bytecodePatch(
                 return-object v0
             """
         )
-
     }
 }
 

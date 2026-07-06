@@ -4,18 +4,36 @@
 
 * **Chess.com:** bypass remote permissions check for offline game review ([027c6a6](https://github.com/PrathxmOp/Prathxm-Patches/commit/027c6a670f5a5450d2cf4aeb52605c3aef0ccec2))
 
-## [1.9.2-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.2-dev.1...v1.9.2-dev.2) (2026-07-06)
+## [1.9.6](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.5...v1.9.6) (2026-07-06)
 
 ### 🐛 Bug Fixes
 
-* **Chess.com:** board animations back navigation, bottom sheet crash, and timer fixes ([fb2e85a](https://github.com/PrathxmOp/Prathxm-Patches/commit/fb2e85a15d08e60735bb5fa294d021b28fc08213))
-* **Chess:** restore SessionStoreIsGuestFingerprint and correct guest premium check ([b6f0651](https://github.com/PrathxmOp/Prathxm-Patches/commit/b6f0651e2ab8c867f101daaf9ed85a130ae6b730))
+* **Chess.com:** puzzle board animations and timer reset fixes ([4c1aa22](https://github.com/PrathxmOp/Prathxm-Patches/commit/4c1aa228cdc11f76417875f57312c82e07876b59))
 
-## [1.9.2-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.1...v1.9.2-dev.1) (2026-07-04)
+## [1.9.5](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.4...v1.9.5) (2026-07-06)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve puzzle menu force close crash ([4eb0c17](https://github.com/PrathxmOp/Prathxm-Patches/commit/4eb0c1771c2aed3d68bec54534b441186489f6b0))
+
+## [1.9.4](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.3...v1.9.4) (2026-07-05)
+
+### 🐛 Bug Fixes
+
+* **Chess:** refine game rating estimation with piecewise curve ([c45d58f](https://github.com/PrathxmOp/Prathxm-Patches/commit/c45d58feef5ea77eb0aac253e787a85619ca9617))
+
+## [1.9.3](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.2...v1.9.3) (2026-07-05)
 
 ### 🐛 Bug Fixes
 
 * **Chess.com:** update bot unlock description in README ([cddaf5c](https://github.com/PrathxmOp/Prathxm-Patches/commit/cddaf5c34b4711212d333c87b466781cc61b6dae))
+* **Chess:** restore SessionStoreIsGuestFingerprint and correct guest premium check ([b9ffcb1](https://github.com/PrathxmOp/Prathxm-Patches/commit/b9ffcb185f88f0568a446ec86c22e4602e38cc9f))
+
+## [1.9.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.1...v1.9.2) (2026-07-04)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** update bot unlock description in README ([fc192a1](https://github.com/PrathxmOp/Prathxm-Patches/commit/fc192a11290a401d86fa192fe78438dd5293e39e))
 
 ## [1.9.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.9.0...v1.9.1) (2026-07-04)
 
