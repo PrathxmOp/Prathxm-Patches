@@ -1,3 +1,16 @@
+## [1.12.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.11.0...v1.12.0) (2026-07-07)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** make coroutine flow resolution robust using app versionName ([e406441](https://github.com/PrathxmOp/Prathxm-Patches/commit/e4064413c3b41b1e6c2e5ed42f8f44959c3ce3d3))
+* **Chess.com:** resolve interface lookup collisions on v4.10.0 by matching abstract method counts ([8b5ae4c](https://github.com/PrathxmOp/Prathxm-Patches/commit/8b5ae4cc0f2be6a2eda526d2c397b39ed7644149))
+* **Chess.com:** resolve local analysis flow crash (NullPointerException in collect) ([8f20d0d](https://github.com/PrathxmOp/Prathxm-Patches/commit/8f20d0d79e6013fe64ba30f1a6bf43fed0469164))
+* **Chess.com:** resolve version group mismatches of coroutine flow classes ([2353fe6](https://github.com/PrathxmOp/Prathxm-Patches/commit/2353fe6e534d772f749b6ea325b7c97053cd0f96))
+
+### ✨ New Features
+
+* **Chess.com:** make fingerprints version-agnostic and dynamic to prevent obfuscation breakages ([7f34db0](https://github.com/PrathxmOp/Prathxm-Patches/commit/7f34db079fee6de465371a63db684280891d6279))
+
 ## [1.12.0-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.12.0-dev.1...v1.12.0-dev.2) (2026-07-07)
 
 ### 🐛 Bug Fixes
