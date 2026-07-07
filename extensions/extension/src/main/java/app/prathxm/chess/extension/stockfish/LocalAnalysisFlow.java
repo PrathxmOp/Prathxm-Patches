@@ -16,10 +16,32 @@ import java.util.Map;
 public class LocalAnalysisFlow {
     private static final String TAG = "LocalAnalysisFlow";
 
+    private static Class<?> loadClassSafe(String name) throws ClassNotFoundException {
+        try {
+            return Class.forName(name);
+        } catch (ClassNotFoundException e) {
+            try {
+                ClassLoader tccl = Thread.currentThread().getContextClassLoader();
+                if (tccl != null) {
+                    return tccl.loadClass(name);
+                }
+            } catch (ClassNotFoundException ignored) {}
+
+            try {
+                android.content.Context ctx = StockfishExtension.getContext();
+                if (ctx != null && ctx.getClassLoader() != null) {
+                    return ctx.getClassLoader().loadClass(name);
+                }
+            } catch (ClassNotFoundException ignored) {}
+
+            throw e;
+        }
+    }
+
     private static Class<?> findClass(String... names) throws ClassNotFoundException {
         for (String name : names) {
             try {
-                return Class.forName(name);
+                return loadClassSafe(name);
             } catch (ClassNotFoundException e) {
                 // Try next
             }
@@ -29,11 +51,15 @@ public class LocalAnalysisFlow {
 
     public static Object createFlow(final String pgn, final Object analysisDepthObj) {
         try {
-            ClassLoader classLoader = StockfishExtension.class.getClassLoader();
-            Class<?> g74Class = findClass("com.google.android.hb4", "com.google.android.g74");
+            Class<?> g74Class = findClass(
+                "android.view.inputmethod.hb4",
+                "com.google.android.g74",
+                "com.google.android.hb4",
+                "android.view.inputmethod.g74"
+            );
 
             return Proxy.newProxyInstance(
-                classLoader,
+                g74Class.getClassLoader(),
                 new Class<?>[]{g74Class},
                 new InvocationHandler() {
                     @Override
@@ -78,14 +104,24 @@ public class LocalAnalysisFlow {
             }
 
             // Get Reflection Classes
-            Class<?> inProgressClass = Class.forName("com.chess.gamereview.repository.h$b");
-            Class<?> completedClass = Class.forName("com.chess.gamereview.repository.h$d");
-            Class<?> failureClass = Class.forName("com.chess.gamereview.repository.h$a");
-            Class<?> adClass = Class.forName("com.chess.entities.AnalysisDepth");
-            Class<?> mClass = Class.forName("com.chess.gamereview.repository.m");
-            Class<?> maClass = Class.forName("com.chess.gamereview.repository.m$a");
-            Class<?> a84Class = findClass("com.google.android.bc4", "com.google.android.a84");
-            Class<?> o02Class = findClass("com.google.android.i02", "com.google.android.o02");
+            Class<?> inProgressClass = loadClassSafe("com.chess.gamereview.repository.h$b");
+            Class<?> completedClass = loadClassSafe("com.chess.gamereview.repository.h$d");
+            Class<?> failureClass = loadClassSafe("com.chess.gamereview.repository.h$a");
+            Class<?> adClass = loadClassSafe("com.chess.entities.AnalysisDepth");
+            Class<?> mClass = loadClassSafe("com.chess.gamereview.repository.m");
+            Class<?> maClass = loadClassSafe("com.chess.gamereview.repository.m$a");
+            Class<?> a84Class = findClass(
+                "android.view.inputmethod.bc4",
+                "com.google.android.a84",
+                "com.google.android.bc4",
+                "android.view.inputmethod.a84"
+            );
+            Class<?> o02Class = findClass(
+                "android.view.inputmethod.i02",
+                "com.google.android.o02",
+                "com.google.android.i02",
+                "android.view.inputmethod.o02"
+            );
 
             Method emitMethod = a84Class.getMethod("emit", Object.class, o02Class);
 
@@ -520,9 +556,19 @@ public class LocalAnalysisFlow {
             logToFile(activity, "EXCEPTION: " + Log.getStackTraceString(t), true);
             Log.e(TAG, "Local stockfish analysis failed", t);
             try {
-                Class<?> failureClass = Class.forName("com.chess.gamereview.repository.h$a");
-                Class<?> a84Class = findClass("com.google.android.bc4", "com.google.android.a84");
-                Class<?> o02Class = findClass("com.google.android.i02", "com.google.android.o02");
+                Class<?> failureClass = loadClassSafe("com.chess.gamereview.repository.h$a");
+                Class<?> a84Class = findClass(
+                    "android.view.inputmethod.bc4",
+                    "com.google.android.a84",
+                    "com.google.android.bc4",
+                    "android.view.inputmethod.a84"
+                );
+                Class<?> o02Class = findClass(
+                    "android.view.inputmethod.i02",
+                    "com.google.android.o02",
+                    "com.google.android.i02",
+                    "android.view.inputmethod.o02"
+                );
                 Method emitMethod = a84Class.getMethod("emit", Object.class, o02Class);
                 Constructor<?> failConstructor = failureClass.getConstructor(Throwable.class);
                 Object failureResult = failConstructor.newInstance(t);
