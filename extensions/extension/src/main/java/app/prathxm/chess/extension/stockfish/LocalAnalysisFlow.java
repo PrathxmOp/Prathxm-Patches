@@ -38,20 +38,24 @@ public class LocalAnalysisFlow {
         }
     }
 
-    private static Class<?> findClass(String... names) throws ClassNotFoundException {
+    private static Class<?> findInterfaceByMethods(int methodCount, String... names) throws ClassNotFoundException {
         for (String name : names) {
             try {
-                return loadClassSafe(name);
+                Class<?> clazz = loadClassSafe(name);
+                if (clazz.isInterface() && clazz.getDeclaredMethods().length == methodCount) {
+                    return clazz;
+                }
             } catch (ClassNotFoundException e) {
                 // Try next
             }
         }
-        throw new ClassNotFoundException("Could not find any of: " + java.util.Arrays.toString(names));
+        throw new ClassNotFoundException("Could not find interface with " + methodCount + " methods among candidates.");
     }
 
     public static Object createFlow(final String pgn, final Object analysisDepthObj) {
         try {
-            Class<?> g74Class = findClass(
+            Class<?> g74Class = findInterfaceByMethods(
+                1,
                 "android.view.inputmethod.hb4",
                 "com.google.android.g74",
                 "com.google.android.hb4",
@@ -110,13 +114,15 @@ public class LocalAnalysisFlow {
             Class<?> adClass = loadClassSafe("com.chess.entities.AnalysisDepth");
             Class<?> mClass = loadClassSafe("com.chess.gamereview.repository.m");
             Class<?> maClass = loadClassSafe("com.chess.gamereview.repository.m$a");
-            Class<?> a84Class = findClass(
+            Class<?> a84Class = findInterfaceByMethods(
+                1,
                 "android.view.inputmethod.bc4",
                 "com.google.android.a84",
                 "com.google.android.bc4",
                 "android.view.inputmethod.a84"
             );
-            Class<?> o02Class = findClass(
+            Class<?> o02Class = findInterfaceByMethods(
+                2,
                 "android.view.inputmethod.i02",
                 "com.google.android.o02",
                 "com.google.android.i02",
@@ -557,13 +563,15 @@ public class LocalAnalysisFlow {
             Log.e(TAG, "Local stockfish analysis failed", t);
             try {
                 Class<?> failureClass = loadClassSafe("com.chess.gamereview.repository.h$a");
-                Class<?> a84Class = findClass(
+                Class<?> a84Class = findInterfaceByMethods(
+                    1,
                     "android.view.inputmethod.bc4",
                     "com.google.android.a84",
                     "com.google.android.bc4",
                     "android.view.inputmethod.a84"
                 );
-                Class<?> o02Class = findClass(
+                Class<?> o02Class = findInterfaceByMethods(
+                    2,
                     "android.view.inputmethod.i02",
                     "com.google.android.o02",
                     "com.google.android.i02",
