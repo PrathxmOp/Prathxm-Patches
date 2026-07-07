@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-07-07T01:19:47",
-  "description": "## [1.11.0-dev.3](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.11.0-dev.2...v1.11.0-dev.3) (2026-07-07)\n\n### ✨ New Features\n\n* **Chess.com:** add original signature validation to compatibility targets ([8956614](https://github.com/PrathxmOp/Prathxm-Patches/commit/89566142c265ed03004d2002e2c23f4f5bb2aa04))",
-  "download_url": "https://github.com/PrathxmOp/Prathxm-Patches/releases/download/v1.11.0-dev.3/patches-1.11.0-dev.3.mpp",
+  "created_at": "2026-07-07T08:42:55",
+  "description": "## [1.11.0-dev.4](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.11.0-dev.3...v1.11.0-dev.4) (2026-07-07)\n\n### 🐛 Bug Fixes\n\n* **Chess.com:** resolve SQLite database lock crash in Lichess puzzles ([569c8b8](https://github.com/PrathxmOp/Prathxm-Patches/commit/569c8b8ed1b1c83c61eadaaf6653a2cda08e9db2))\n\n### 🔧 Improvements\n\n* **Chess.com:** run puzzle database write asynchronously ([7989613](https://github.com/PrathxmOp/Prathxm-Patches/commit/79896133161bc37c55cf0a22becc05895caad390))",
+  "download_url": "https://github.com/PrathxmOp/Prathxm-Patches/releases/download/v1.11.0-dev.4/patches-1.11.0-dev.4.mpp",
   "signature_download_url": "",
-  "version": "1.11.0-dev.3"
+  "version": "1.11.0-dev.4"
 }

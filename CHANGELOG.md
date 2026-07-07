@@ -1,3 +1,13 @@
+## [1.11.0-dev.4](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.11.0-dev.3...v1.11.0-dev.4) (2026-07-07)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve SQLite database lock crash in Lichess puzzles ([569c8b8](https://github.com/PrathxmOp/Prathxm-Patches/commit/569c8b8ed1b1c83c61eadaaf6653a2cda08e9db2))
+
+### 🔧 Improvements
+
+* **Chess.com:** run puzzle database write asynchronously ([7989613](https://github.com/PrathxmOp/Prathxm-Patches/commit/79896133161bc37c55cf0a22becc05895caad390))
+
 ## [1.11.0-dev.3](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.11.0-dev.2...v1.11.0-dev.3) (2026-07-07)
 
 ### ✨ New Features

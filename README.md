@@ -91,7 +91,7 @@ Once patched, access all features through two simple gestures on the Chess.com l
 ## 🩹 Patches
 
 <!-- PATCHES_START -->
-> **[v1.11.0-dev.3](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.11.0-dev.3)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;7 patches total
+> **[v1.11.0-dev.4](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.11.0-dev.4)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;7 patches total
 <details>
 <summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;7 patches</summary>
 <br>
