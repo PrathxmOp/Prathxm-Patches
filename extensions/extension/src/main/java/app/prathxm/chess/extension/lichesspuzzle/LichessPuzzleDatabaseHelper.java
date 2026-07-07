@@ -15,8 +15,19 @@ public class LichessPuzzleDatabaseHelper extends SQLiteOpenHelper {
     private static final int DATABASE_VERSION = 2;
     private static final String TABLE_PUZZLES = "puzzles";
 
-    public LichessPuzzleDatabaseHelper(Context context) {
+    private static LichessPuzzleDatabaseHelper instance;
+
+    public static synchronized LichessPuzzleDatabaseHelper getInstance(Context context) {
+        if (instance == null) {
+            Context appContext = context.getApplicationContext();
+            instance = new LichessPuzzleDatabaseHelper(appContext != null ? appContext : context);
+        }
+        return instance;
+    }
+
+    private LichessPuzzleDatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        setWriteAheadLoggingEnabled(true);
     }
 
     @Override
