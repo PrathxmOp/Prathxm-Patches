@@ -17,11 +17,16 @@ import app.morphe.patcher.methodCall
 // ─────────────────────────────────────────────────────────────────────────────
 object PositionSetterFingerprint : Fingerprint(
     custom = { method, classDef ->
-        classDef.type == "Lcom/chess/chessboard/vm/movesinput/CBViewModelStateImpl;" &&
-            method.parameterTypes.size == 1 &&
-            method.parameterTypes[0] == "Lcom/chess/chessboard/variants/d;" &&
-            method.returnType == "V" &&
-            method.name != "<init>"
+        if (classDef.type == "Lcom/chess/chessboard/vm/movesinput/CBViewModelStateImpl;") {
+            val positionType = classDef.methods.find { it.name == "getPosition" }?.returnType
+            positionType != null &&
+                method.parameterTypes.size == 1 &&
+                method.parameterTypes[0] == positionType &&
+                method.returnType == "V" &&
+                method.name != "<init>"
+        } else {
+            false
+        }
     }
 )
 
@@ -108,8 +113,7 @@ object GameAnalysisRepositoryGetGameAnalysisFingerprint : Fingerprint(
         classDef.type == "Lcom/chess/gamereview/repository/GameAnalysisRepositoryImpl;" &&
             method.name == "b" &&
             method.parameterTypes.size == 7 &&
-            method.parameterTypes[1] == "Ljava/lang/String;" &&
-            (method.returnType == "Lcom/google/android/g74;" || method.returnType == "Lcom/google/android/hb4;")
+            method.parameterTypes[1] == "Ljava/lang/String;"
     }
 )
 

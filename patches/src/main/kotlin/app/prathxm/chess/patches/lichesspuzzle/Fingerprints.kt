@@ -13,7 +13,6 @@ object NewDailyPuzzleGetFingerprint : Fingerprint(
             method.name == "a" &&
             method.parameterTypes.size == 2 &&
             method.parameterTypes[0] == "Ljava/lang/String;" &&
-            (method.parameterTypes[1] == "Lcom/google/android/o02;" || method.parameterTypes[1] == "Lcom/google/android/i02;") &&
             method.returnType == "Ljava/lang/Object;"
     }
 )
@@ -26,7 +25,6 @@ object NewDailyPuzzleSubmitFingerprint : Fingerprint(
             method.parameterTypes[0] == "I" &&
             method.parameterTypes[1] == "Lchesscom/puzzles/v2alpha/DailyPuzzleAction;" &&
             method.parameterTypes[2] == "Lchesscom/puzzles/v2alpha/DailyPuzzleHintState;" &&
-            (method.parameterTypes[3] == "Lcom/google/android/o02;" || method.parameterTypes[3] == "Lcom/google/android/i02;") &&
             method.returnType == "Ljava/lang/Object;"
     }
 )
@@ -51,7 +49,6 @@ object PuzzlePaywallGateCheckFingerprint : Fingerprint(
             method.name == "d" &&
             method.parameterTypes.size == 2 &&
             method.parameterTypes[0] == "Lcom/chess/navigationinterface/PathPuzzlesMode;" &&
-            (method.parameterTypes[1] == "Lcom/google/android/o02;" || method.parameterTypes[1] == "Lcom/google/android/i02;") &&
             method.returnType == "Ljava/lang/Object;"
     }
 )
@@ -62,7 +59,6 @@ object PuzzleOfflineLimitSetFingerprint : Fingerprint(
             method.name == "f" &&
             method.parameterTypes.size == 2 &&
             method.parameterTypes[0] == "I" &&
-            (method.parameterTypes[1] == "Lcom/google/android/o02;" || method.parameterTypes[1] == "Lcom/google/android/i02;") &&
             method.returnType == "Ljava/lang/Object;"
     }
 )
