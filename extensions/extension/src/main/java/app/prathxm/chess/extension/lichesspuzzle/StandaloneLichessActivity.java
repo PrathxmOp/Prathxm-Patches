@@ -1514,7 +1514,8 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                         currentStreak++;
                         saveStreak();
                         if (gameEngine.getCurrentPuzzleId() != null) {
-                            dbHelper.markAsSolved(gameEngine.getCurrentPuzzleId());
+                            final String puzzleId = gameEngine.getCurrentPuzzleId();
+                            new Thread(() -> dbHelper.markAsSolved(puzzleId)).start();
                         }
                         updatePuzzleHeaderAndStats(gameEngine.getLevelIndex(), gameEngine.getRating(), gameEngine.getTheme());
                         saveLevelProgress();
