@@ -1,3 +1,9 @@
+## [1.12.0-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.12.0-dev.1...v1.12.0-dev.2) (2026-07-07)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** make coroutine flow resolution robust using app versionName ([e406441](https://github.com/PrathxmOp/Prathxm-Patches/commit/e4064413c3b41b1e6c2e5ed42f8f44959c3ce3d3))
+
 ## [1.12.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.11.0...v1.12.0-dev.1) (2026-07-07)
 
 ### 🐛 Bug Fixes
