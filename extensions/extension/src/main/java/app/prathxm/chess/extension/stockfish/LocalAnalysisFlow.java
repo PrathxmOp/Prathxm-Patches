@@ -38,29 +38,66 @@ public class LocalAnalysisFlow {
         }
     }
 
-    private static Class<?> findInterfaceByMethods(int methodCount, String... names) throws ClassNotFoundException {
-        for (String name : names) {
+    private static class VersionGroup {
+        String flowName;
+        String collectorName;
+        String continuationName;
+        
+        VersionGroup(String flowName, String collectorName, String continuationName) {
+            this.flowName = flowName;
+            this.collectorName = collectorName;
+            this.continuationName = continuationName;
+        }
+    }
+
+    private static final VersionGroup[] GROUPS = new VersionGroup[] {
+        new VersionGroup("com.google.android.hb4", "com.google.android.bc4", "com.google.android.i02"),
+        new VersionGroup("com.google.android.g74", "com.google.android.a84", "com.google.android.o02"),
+        new VersionGroup("android.view.inputmethod.hb4", "android.view.inputmethod.bc4", "android.view.inputmethod.i02"),
+        new VersionGroup("android.view.inputmethod.g74", "android.view.inputmethod.a84", "android.view.inputmethod.o02")
+    };
+
+    private static class ResolvedGroup {
+        Class<?> flowClass;
+        Class<?> collectorClass;
+        Class<?> continuationClass;
+    }
+
+    private static ResolvedGroup cachedGroup = null;
+
+    private static synchronized ResolvedGroup resolveVersionGroup() throws ClassNotFoundException {
+        if (cachedGroup != null) {
+            return cachedGroup;
+        }
+
+        for (VersionGroup group : GROUPS) {
             try {
-                Class<?> clazz = loadClassSafe(name);
-                if (clazz.isInterface() && clazz.getDeclaredMethods().length == methodCount) {
-                    return clazz;
+                Class<?> flow = loadClassSafe(group.flowName);
+                Class<?> collector = loadClassSafe(group.collectorName);
+                Class<?> continuation = loadClassSafe(group.continuationName);
+
+                if (flow.isInterface() && flow.getDeclaredMethods().length == 1 &&
+                    collector.isInterface() && collector.getDeclaredMethods().length == 1 &&
+                    continuation.isInterface() && continuation.getDeclaredMethods().length == 2) {
+                    
+                    ResolvedGroup resolved = new ResolvedGroup();
+                    resolved.flowClass = flow;
+                    resolved.collectorClass = collector;
+                    resolved.continuationClass = continuation;
+                    cachedGroup = resolved;
+                    return resolved;
                 }
             } catch (ClassNotFoundException e) {
-                // Try next
+                // Try next group
             }
         }
-        throw new ClassNotFoundException("Could not find interface with " + methodCount + " methods among candidates.");
+        throw new ClassNotFoundException("Could not resolve a compatible coroutine flow version group.");
     }
 
     public static Object createFlow(final String pgn, final Object analysisDepthObj) {
         try {
-            Class<?> g74Class = findInterfaceByMethods(
-                1,
-                "android.view.inputmethod.hb4",
-                "com.google.android.g74",
-                "com.google.android.hb4",
-                "android.view.inputmethod.g74"
-            );
+            ResolvedGroup group = resolveVersionGroup();
+            Class<?> g74Class = group.flowClass;
 
             return Proxy.newProxyInstance(
                 g74Class.getClassLoader(),
@@ -114,20 +151,10 @@ public class LocalAnalysisFlow {
             Class<?> adClass = loadClassSafe("com.chess.entities.AnalysisDepth");
             Class<?> mClass = loadClassSafe("com.chess.gamereview.repository.m");
             Class<?> maClass = loadClassSafe("com.chess.gamereview.repository.m$a");
-            Class<?> a84Class = findInterfaceByMethods(
-                1,
-                "android.view.inputmethod.bc4",
-                "com.google.android.a84",
-                "com.google.android.bc4",
-                "android.view.inputmethod.a84"
-            );
-            Class<?> o02Class = findInterfaceByMethods(
-                2,
-                "android.view.inputmethod.i02",
-                "com.google.android.o02",
-                "com.google.android.i02",
-                "android.view.inputmethod.o02"
-            );
+            
+            ResolvedGroup group = resolveVersionGroup();
+            Class<?> a84Class = group.collectorClass;
+            Class<?> o02Class = group.continuationClass;
 
             Method emitMethod = a84Class.getMethod("emit", Object.class, o02Class);
 
@@ -563,20 +590,9 @@ public class LocalAnalysisFlow {
             Log.e(TAG, "Local stockfish analysis failed", t);
             try {
                 Class<?> failureClass = loadClassSafe("com.chess.gamereview.repository.h$a");
-                Class<?> a84Class = findInterfaceByMethods(
-                    1,
-                    "android.view.inputmethod.bc4",
-                    "com.google.android.a84",
-                    "com.google.android.bc4",
-                    "android.view.inputmethod.a84"
-                );
-                Class<?> o02Class = findInterfaceByMethods(
-                    2,
-                    "android.view.inputmethod.i02",
-                    "com.google.android.o02",
-                    "com.google.android.i02",
-                    "android.view.inputmethod.o02"
-                );
+                ResolvedGroup group = resolveVersionGroup();
+                Class<?> a84Class = group.collectorClass;
+                Class<?> o02Class = group.continuationClass;
                 Method emitMethod = a84Class.getMethod("emit", Object.class, o02Class);
                 Constructor<?> failConstructor = failureClass.getConstructor(Throwable.class);
                 Object failureResult = failConstructor.newInstance(t);
