@@ -16,24 +16,108 @@ import java.util.Map;
 public class LocalAnalysisFlow {
     private static final String TAG = "LocalAnalysisFlow";
 
-    private static Class<?> findClass(String... names) throws ClassNotFoundException {
-        for (String name : names) {
+    private static Class<?> loadClassSafe(String name) throws ClassNotFoundException {
+        try {
+            return Class.forName(name);
+        } catch (ClassNotFoundException e) {
             try {
-                return Class.forName(name);
+                ClassLoader tccl = Thread.currentThread().getContextClassLoader();
+                if (tccl != null) {
+                    return tccl.loadClass(name);
+                }
+            } catch (ClassNotFoundException ignored) {}
+
+            try {
+                android.content.Context ctx = StockfishExtension.getContext();
+                if (ctx != null && ctx.getClassLoader() != null) {
+                    return ctx.getClassLoader().loadClass(name);
+                }
+            } catch (ClassNotFoundException ignored) {}
+
+            throw e;
+        }
+    }
+
+    private static class VersionGroup {
+        String flowName;
+        String collectorName;
+        String continuationName;
+        
+        VersionGroup(String flowName, String collectorName, String continuationName) {
+            this.flowName = flowName;
+            this.collectorName = collectorName;
+            this.continuationName = continuationName;
+        }
+    }
+
+    private static class ResolvedGroup {
+        Class<?> flowClass;
+        Class<?> collectorClass;
+        Class<?> continuationClass;
+    }
+
+    private static ResolvedGroup cachedGroup = null;
+
+    private static synchronized ResolvedGroup resolveVersionGroup() throws ClassNotFoundException {
+        if (cachedGroup != null) {
+            return cachedGroup;
+        }
+
+        String version = "";
+        try {
+            android.content.Context ctx = StockfishExtension.getContext();
+            if (ctx != null) {
+                version = ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0).versionName;
+            }
+        } catch (Throwable ignored) {}
+
+        boolean isV10 = version != null && version.startsWith("4.10.");
+
+        VersionGroup[] targetGroups;
+        if (isV10) {
+            targetGroups = new VersionGroup[] {
+                new VersionGroup("com.google.android.hb4", "com.google.android.bc4", "com.google.android.i02"),
+                new VersionGroup("android.view.inputmethod.hb4", "android.view.inputmethod.bc4", "android.view.inputmethod.i02"),
+                new VersionGroup("com.google.android.g74", "com.google.android.a84", "com.google.android.o02"),
+                new VersionGroup("android.view.inputmethod.g74", "android.view.inputmethod.a84", "android.view.inputmethod.o02")
+            };
+        } else {
+            targetGroups = new VersionGroup[] {
+                new VersionGroup("com.google.android.g74", "com.google.android.a84", "com.google.android.o02"),
+                new VersionGroup("android.view.inputmethod.g74", "android.view.inputmethod.a84", "android.view.inputmethod.o02"),
+                new VersionGroup("com.google.android.hb4", "com.google.android.bc4", "com.google.android.i02"),
+                new VersionGroup("android.view.inputmethod.hb4", "android.view.inputmethod.bc4", "android.view.inputmethod.i02")
+            };
+        }
+
+        for (VersionGroup group : targetGroups) {
+            try {
+                Class<?> flow = loadClassSafe(group.flowName);
+                Class<?> collector = loadClassSafe(group.collectorName);
+                Class<?> continuation = loadClassSafe(group.continuationName);
+
+                if (flow.isInterface() && collector.isInterface() && continuation.isInterface()) {
+                    ResolvedGroup resolved = new ResolvedGroup();
+                    resolved.flowClass = flow;
+                    resolved.collectorClass = collector;
+                    resolved.continuationClass = continuation;
+                    cachedGroup = resolved;
+                    return resolved;
+                }
             } catch (ClassNotFoundException e) {
-                // Try next
+                // Try next group
             }
         }
-        throw new ClassNotFoundException("Could not find any of: " + java.util.Arrays.toString(names));
+        throw new ClassNotFoundException("Could not resolve a compatible coroutine flow version group.");
     }
 
     public static Object createFlow(final String pgn, final Object analysisDepthObj) {
         try {
-            ClassLoader classLoader = StockfishExtension.class.getClassLoader();
-            Class<?> g74Class = findClass("com.google.android.hb4", "com.google.android.g74");
+            ResolvedGroup group = resolveVersionGroup();
+            Class<?> g74Class = group.flowClass;
 
             return Proxy.newProxyInstance(
-                classLoader,
+                g74Class.getClassLoader(),
                 new Class<?>[]{g74Class},
                 new InvocationHandler() {
                     @Override
@@ -78,14 +162,16 @@ public class LocalAnalysisFlow {
             }
 
             // Get Reflection Classes
-            Class<?> inProgressClass = Class.forName("com.chess.gamereview.repository.h$b");
-            Class<?> completedClass = Class.forName("com.chess.gamereview.repository.h$d");
-            Class<?> failureClass = Class.forName("com.chess.gamereview.repository.h$a");
-            Class<?> adClass = Class.forName("com.chess.entities.AnalysisDepth");
-            Class<?> mClass = Class.forName("com.chess.gamereview.repository.m");
-            Class<?> maClass = Class.forName("com.chess.gamereview.repository.m$a");
-            Class<?> a84Class = findClass("com.google.android.bc4", "com.google.android.a84");
-            Class<?> o02Class = findClass("com.google.android.i02", "com.google.android.o02");
+            Class<?> inProgressClass = loadClassSafe("com.chess.gamereview.repository.h$b");
+            Class<?> completedClass = loadClassSafe("com.chess.gamereview.repository.h$d");
+            Class<?> failureClass = loadClassSafe("com.chess.gamereview.repository.h$a");
+            Class<?> adClass = loadClassSafe("com.chess.entities.AnalysisDepth");
+            Class<?> mClass = loadClassSafe("com.chess.gamereview.repository.m");
+            Class<?> maClass = loadClassSafe("com.chess.gamereview.repository.m$a");
+            
+            ResolvedGroup group = resolveVersionGroup();
+            Class<?> a84Class = group.collectorClass;
+            Class<?> o02Class = group.continuationClass;
 
             Method emitMethod = a84Class.getMethod("emit", Object.class, o02Class);
 
@@ -520,9 +606,10 @@ public class LocalAnalysisFlow {
             logToFile(activity, "EXCEPTION: " + Log.getStackTraceString(t), true);
             Log.e(TAG, "Local stockfish analysis failed", t);
             try {
-                Class<?> failureClass = Class.forName("com.chess.gamereview.repository.h$a");
-                Class<?> a84Class = findClass("com.google.android.bc4", "com.google.android.a84");
-                Class<?> o02Class = findClass("com.google.android.i02", "com.google.android.o02");
+                Class<?> failureClass = loadClassSafe("com.chess.gamereview.repository.h$a");
+                ResolvedGroup group = resolveVersionGroup();
+                Class<?> a84Class = group.collectorClass;
+                Class<?> o02Class = group.continuationClass;
                 Method emitMethod = a84Class.getMethod("emit", Object.class, o02Class);
                 Constructor<?> failConstructor = failureClass.getConstructor(Throwable.class);
                 Object failureResult = failConstructor.newInstance(t);

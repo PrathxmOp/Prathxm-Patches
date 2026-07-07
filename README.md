@@ -7,11 +7,7 @@
 <h1 align="center">♟️ Prathxm Patches</h1>
 
 <p align="center">
-  <i>"You expect me to be perfect but I am full of flaws."</i>
-</p>
-
-<p align="center">
-  Custom Morphe patches for <b>Chess.com</b> — ad-free experience, fully offline post-game reviews powered by Stockfish, and a complete Lichess puzzle journey with millions of puzzles.
+  Custom Morphe patches for <b>Chess.com</b> on Android. Enables fully offline analysis powered by local Stockfish 16.1 NNUE, ad-free usage, locked bots bypass, and Lichess puzzles.
 </p>
 
 <p align="center">
@@ -21,77 +17,31 @@
 
 ---
 
-## 📖 About
+## 📖 About & Features
 
-Prathxm Patches embeds a native **Stockfish 16.1 NNUE** chess engine directly into Chess.com on Android. Perform post-game reviews and run deep analysis completely offline — no external servers, no subscriptions, no limits.
+Prathxm Patches embeds a native **Stockfish 16.1 NNUE** chess engine directly into the Chess.com Android app for fully offline analysis and game reviews. All analysis features are programmatically disabled during live online matches to ensure fair play.
 
-All analysis overlays are **automatically disabled during live online matches** to ensure strict fair-play compliance.
-
-> [!NOTE]
-> **Why is the package larger?**  
-> The patched app is ~110 MB larger because it bundles the **Stockfish 16.1 NNUE** engine binaries locally, enabling fully offline analysis at any time.
-
----
-
-## ✨ Features
-
-<table>
-<tr>
-<td width="50%" valign="top">
-
-### 🔧 Engine & Analysis
-*Available in offline & bot games only*
-
-- **Local Stockfish 16.1** — Full-powered engine on your device
-- **Offline Game Reviews** — Locally processed post-game analysis:
-  - 🏷️ Move classifications (Brilliant, Great, Best, Excellent, Good, Inaccuracy, Mistake, Blunder)
-  - 📊 Accuracy scores for both sides
-  - 📈 Estimated ELO ratings with opening/tactical breakdowns
-- **Configurable ELO Limits** — Adjust engine strength (1350–3190 ELO) for bot games
-
-### 📊 Visual Overlays
-- **Eval & WDL Bars** — Real-time centipawn/mate and Win/Draw/Loss tracking
-- **Engine Arrows** — Best move and threat indicators on the board
-
-</td>
-<td width="50%" valign="top">
-
-### 🧩 Lichess Puzzle Journey
-- **Fully Offline Puzzles** — Millions of puzzles from the Lichess library
-- **Journey Map** — Walk through levels on a premium styled board
-- **Thematic Practice** — Filter by Opening, Middlegame, Endgame, or play Rush & Battle modes
-- **Flexible Downloads** — Choose 20k, 50k, 100k, 500k, or all 6M+ puzzles
-- **Streaks & Milestones** — Daily streaks, category stats, and progress tracking
-
-### 💎 Quality of Life
-- **Ad-Free UI** — Banners, interstitials, and video promotions removed
-- **Side-by-Side Install** — Clone patch lets you keep the original app
-- **Unlock All Bots** — Play against any restricted or locked bot for free
-
-</td>
-</tr>
-</table>
+### 🌟 Key Features
+- **Local Stockfish 16.1 & Offline Reviews**: Centipawn evaluation, Win/Draw/Loss tracking, move classification (Brilliant, Great, etc.), ELO estimation, and configurable bot strengths.
+- **Offline Lichess Puzzles**: Complete puzzle journey map featuring millions of offline puzzles, streaking, and thematic practice.
+- **Ad-Free UI & Unlocked Bots**: Banners, interstitial ads, and video promotions are removed. All Versus Bots are fully unlocked.
+- **Panic Mode**: Toggle all overlays instantly.
 
 ---
 
-## 🎮 How to Use
+## 🎮 Gestures & Panic Mode
 
-Once patched, access all features through two simple gestures on the Chess.com logo:
-
-| Gesture | Action |
-|:--------|:-------|
-| **Tap & Hold** the Chess.com logo | Opens the **Prathxm Menu** — access engine settings, puzzle journey, analysis overlays, and all patch options. |
-| **Double-Tap** the Chess.com logo | Activates **Panic Mode** — instantly disables all overlays and analysis. Double-tap again to re-enable everything. |
-
-> [!TIP]
-> Panic Mode is useful when you want to quickly toggle all features off without navigating through settings.
+Access features by interacting with the Chess.com logo on the main screen:
+- **Tap & Hold** → Opens the settings menu.
+- **Double-Tap** → Toggles **Panic Mode** (instantly hides/shows all overlays).
 
 ---
+
 
 ## 🩹 Patches
 
 <!-- PATCHES_START -->
-> **[v1.11.0](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.11.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;7 patches total
+> **[v1.12.0-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.12.0-dev.2)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;7 patches total
 <details>
 <summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;7 patches</summary>
 <br>
@@ -123,48 +73,36 @@ Once patched, access all features through two simple gestures on the Chess.com l
 
 1. Install [**Morphe Manager**](https://morphe.software) on your Android device.
 2. Add this repository as a patch source:
-
    <p align="center">
      <a href="https://morphe.software/add-source?github=PrathxmOp/Prathxm-Patches"><b>➕ Add Patches to Morphe Manager</b></a>
    </p>
-
-   Or manually add `https://github.com/PrathxmOp/Prathxm-Patches` in **Patch Sources**.
-
+   Or manually add `https://github.com/PrathxmOp/Prathxm-Patches` under **Patch Sources**.
 3. Select **Chess.com**, choose your patches, and tap **Patch**.
-4. Install the output APK.
 
 ### Option 2 · Morphe CLI <sup>Advanced</sup>
 
-**Prerequisites:** Android SDK, JDK 17+, [Morphe CLI](https://morphe.software)
-
-1. Download Stockfish Android binaries from [official releases](https://stockfishchess.org/download/):
-   - `arm64-v8a` → `extensions/extension/src/main/assets/stockfish/arm64-v8a/stockfish`
-   - `armeabi-v7a` → `extensions/extension/src/main/assets/stockfish/armeabi-v7a/stockfish`
-
-2. Build and apply:
+1. Clone the repository and compile the patches bundle:
    ```bash
-   # Assemble the patches bundle
    ./gradlew patches:assemble
-
-   # Apply to Chess.com APK
+   ```
+2. Apply the compiled patch bundle to your Chess.com APK using `morphe-cli`:
+   ```bash
    java -jar morphe-cli.jar patch \
-     -p patches/build/libs/patches-1.0.0.mpp \
+     -p patches/build/libs/patches-X.X.X.mpp \
      -o patched-chess.apk \
-     "com.chess_X.X.X.apk"
+     "com.chess.apk"
    ```
 
 ---
 
 ## 💖 Support the Project
 
-If these patches improved your chess experience, consider supporting the development.
-
-> [!TIP]
-> **🏅 Donate to get a Custom Title** — Donors receive a personalized title that is displayed on their profile across all patched apps. DM **PrathxmOp** after donating to claim yours!
+If you like these patches, consider supporting development!
+- **🏅 Donate for a Custom Title**: Donors receive a custom title displayed on their profile. DM **PrathxmOp** after donating to claim yours.
 
 <p align="center">
   <b>UPI:</b> <code>prathammishraop@ybl</code><br><br>
-  <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=prathammishraop@ybl%26pn=Prathxm%26cu=INR" alt="UPI QR Code" width="160" height="160" /><br>
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=prathammishraop@ybl%26pn=Prathxm%26cu=INR" alt="UPI QR Code" width="140" height="140" /><br>
   <a href="upi://pay?pa=prathammishraop@ybl&pn=Prathxm&cu=INR"><b>⚡ Tap to Donate via UPI</b></a>
 </p>
 
@@ -172,21 +110,13 @@ If these patches improved your chess experience, consider supporting the develop
 
 ## 💬 Community
 
-Questions, feedback, or feature requests? Use **GitHub Discussions** — not Issues.  
-To claim your custom title or for direct support, reach out on **Signal**.
-
-<p align="center">
-  <a href="https://github.com/PrathxmOp/Prathxm-Patches/discussions"><b>💬 GitHub Discussions</b></a>
-  &nbsp;&nbsp;•&nbsp;&nbsp;
-  <a href="https://signal.me/#eu/5hn89XV1PsUQlPRc0WhEoUEh197WioxzFJj-CTXOGe1Boymy0-FCub3zwWXa_L3a"><b>📩 Signal DM</b></a>
-</p>
+Questions, feedback, or title claims? Reach out:
+- [**GitHub Discussions**](https://github.com/PrathxmOp/Prathxm-Patches/discussions)
+- [**Signal Private Message**](https://signal.me/#eu/5hn89XV1PsUQlPRc0WhEoUEh197WioxzFJj-CTXOGe1Boymy0-FCub3zwWXa_L3a)
 
 ---
 
-## ⚠️ Disclaimer
+## ⚠️ Disclaimer & License
 
-These patches are for **educational and personal use only**. Usage may violate the host application's Terms of Service. The author assumes no responsibility for account suspensions or other consequences.
-
-## 📜 License
-
-Licensed under the [GNU General Public License v3.0](LICENSE).
+- **Disclaimer**: For educational and personal use only. Usage may violate the terms of service. The author is not responsible for any account bans.
+- **License**: Licensed under the [GNU General Public License v3.0](LICENSE).
