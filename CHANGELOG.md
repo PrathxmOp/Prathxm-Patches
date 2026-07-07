@@ -1,3 +1,9 @@
+## [1.11.0-dev.3](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.11.0-dev.2...v1.11.0-dev.3) (2026-07-07)
+
+### ✨ New Features
+
+* **Chess.com:** add original signature validation to compatibility targets ([8956614](https://github.com/PrathxmOp/Prathxm-Patches/commit/89566142c265ed03004d2002e2c23f4f5bb2aa04))
+
 ## [1.11.0-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.11.0-dev.1...v1.11.0-dev.2) (2026-07-06)
 
 ### ✨ New Features
