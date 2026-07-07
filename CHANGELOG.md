@@ -1,3 +1,9 @@
+## [1.12.1-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.12.0...v1.12.1-dev.1) (2026-07-07)
+
+### 🔧 Improvements
+
+* **Chess.com:** optimize LockedBotsCheckFingerprint using package prefix ([c6e6f91](https://github.com/PrathxmOp/Prathxm-Patches/commit/c6e6f9193df89f52e3401ddc0a6ad4f7a5877705))
+
 ## [1.12.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.11.0...v1.12.0) (2026-07-07)
 
 ### 🐛 Bug Fixes
