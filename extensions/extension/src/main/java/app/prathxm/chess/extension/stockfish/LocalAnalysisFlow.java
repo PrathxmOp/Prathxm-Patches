@@ -50,13 +50,6 @@ public class LocalAnalysisFlow {
         }
     }
 
-    private static final VersionGroup[] GROUPS = new VersionGroup[] {
-        new VersionGroup("com.google.android.hb4", "com.google.android.bc4", "com.google.android.i02"),
-        new VersionGroup("com.google.android.g74", "com.google.android.a84", "com.google.android.o02"),
-        new VersionGroup("android.view.inputmethod.hb4", "android.view.inputmethod.bc4", "android.view.inputmethod.i02"),
-        new VersionGroup("android.view.inputmethod.g74", "android.view.inputmethod.a84", "android.view.inputmethod.o02")
-    };
-
     private static class ResolvedGroup {
         Class<?> flowClass;
         Class<?> collectorClass;
@@ -70,16 +63,40 @@ public class LocalAnalysisFlow {
             return cachedGroup;
         }
 
-        for (VersionGroup group : GROUPS) {
+        String version = "";
+        try {
+            android.content.Context ctx = StockfishExtension.getContext();
+            if (ctx != null) {
+                version = ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0).versionName;
+            }
+        } catch (Throwable ignored) {}
+
+        boolean isV10 = version != null && version.startsWith("4.10.");
+
+        VersionGroup[] targetGroups;
+        if (isV10) {
+            targetGroups = new VersionGroup[] {
+                new VersionGroup("com.google.android.hb4", "com.google.android.bc4", "com.google.android.i02"),
+                new VersionGroup("android.view.inputmethod.hb4", "android.view.inputmethod.bc4", "android.view.inputmethod.i02"),
+                new VersionGroup("com.google.android.g74", "com.google.android.a84", "com.google.android.o02"),
+                new VersionGroup("android.view.inputmethod.g74", "android.view.inputmethod.a84", "android.view.inputmethod.o02")
+            };
+        } else {
+            targetGroups = new VersionGroup[] {
+                new VersionGroup("com.google.android.g74", "com.google.android.a84", "com.google.android.o02"),
+                new VersionGroup("android.view.inputmethod.g74", "android.view.inputmethod.a84", "android.view.inputmethod.o02"),
+                new VersionGroup("com.google.android.hb4", "com.google.android.bc4", "com.google.android.i02"),
+                new VersionGroup("android.view.inputmethod.hb4", "android.view.inputmethod.bc4", "android.view.inputmethod.i02")
+            };
+        }
+
+        for (VersionGroup group : targetGroups) {
             try {
                 Class<?> flow = loadClassSafe(group.flowName);
                 Class<?> collector = loadClassSafe(group.collectorName);
                 Class<?> continuation = loadClassSafe(group.continuationName);
 
-                if (flow.isInterface() && flow.getDeclaredMethods().length == 1 &&
-                    collector.isInterface() && collector.getDeclaredMethods().length == 1 &&
-                    continuation.isInterface() && continuation.getDeclaredMethods().length == 2) {
-                    
+                if (flow.isInterface() && collector.isInterface() && continuation.isInterface()) {
                     ResolvedGroup resolved = new ResolvedGroup();
                     resolved.flowClass = flow;
                     resolved.collectorClass = collector;
