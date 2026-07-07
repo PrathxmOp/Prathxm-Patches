@@ -1,3 +1,19 @@
+## [1.11.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.10.0...v1.11.0) (2026-07-07)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve SQLite database lock crash in Lichess puzzles ([569c8b8](https://github.com/PrathxmOp/Prathxm-Patches/commit/569c8b8ed1b1c83c61eadaaf6653a2cda08e9db2))
+
+### ✨ New Features
+
+* **Chess.com:** add original signature validation to compatibility targets ([8956614](https://github.com/PrathxmOp/Prathxm-Patches/commit/89566142c265ed03004d2002e2c23f4f5bb2aa04))
+* **Chess.com:** split Ad-Free and Local Stockfish Analysis patches ([4c0cd02](https://github.com/PrathxmOp/Prathxm-Patches/commit/4c0cd028400ccaf0ccbab81c06114f921da48e07))
+* **Chess.com:** support v4.10.0 while preserving v4.9.49 compatibility ([7d0d4a9](https://github.com/PrathxmOp/Prathxm-Patches/commit/7d0d4a9bc7184af65b5fd6f48a4ac8ef47de6bda))
+
+### 🔧 Improvements
+
+* **Chess.com:** run puzzle database write asynchronously ([7989613](https://github.com/PrathxmOp/Prathxm-Patches/commit/79896133161bc37c55cf0a22becc05895caad390))
+
 ## [1.11.0-dev.4](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.11.0-dev.3...v1.11.0-dev.4) (2026-07-07)
 
 ### 🐛 Bug Fixes
