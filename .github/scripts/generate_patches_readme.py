@@ -207,7 +207,6 @@ AUTO_EXPAND_THRESHOLD = 20
 #    with only a few patches where collapsing adds no benefit.
 # 2. The README marker explicitly requests it: <!-- PATCHES_START EXPANDED -->
 expanded = (
-    total <= AUTO_EXPAND_THRESHOLD or
     "EXPANDED" in actual_start
 )
 

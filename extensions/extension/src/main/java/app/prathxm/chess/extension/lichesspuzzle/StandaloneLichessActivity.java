@@ -101,7 +101,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
         currentStreak = getSharedPreferences("lichess_puzzle_prefs", MODE_PRIVATE).getInt(prefKey, 0);
 
         soundManager = new PuzzleSoundManager(this);
-        dbHelper = new LichessPuzzleDatabaseHelper(this);
+        dbHelper = LichessPuzzleDatabaseHelper.getInstance(this);
         gameEngine = new PuzzleGameEngine(this, dbHelper, this);
         rushManager = new PuzzleRushManager(this, this);
         setupPremiumUI();
@@ -1514,7 +1514,8 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                         currentStreak++;
                         saveStreak();
                         if (gameEngine.getCurrentPuzzleId() != null) {
-                            dbHelper.markAsSolved(gameEngine.getCurrentPuzzleId());
+                            final String puzzleId = gameEngine.getCurrentPuzzleId();
+                            new Thread(() -> dbHelper.markAsSolved(puzzleId)).start();
                         }
                         updatePuzzleHeaderAndStats(gameEngine.getLevelIndex(), gameEngine.getRating(), gameEngine.getTheme());
                         saveLevelProgress();

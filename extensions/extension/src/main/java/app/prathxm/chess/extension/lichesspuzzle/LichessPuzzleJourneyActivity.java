@@ -65,7 +65,7 @@ public class LichessPuzzleJourneyActivity extends Activity implements PuzzleJour
         super.onCreate(savedInstanceState);
         setupJourneyUI();
 
-        dbHelper = new LichessPuzzleDatabaseHelper(this);
+        dbHelper = LichessPuzzleDatabaseHelper.getInstance(this);
         downloadManager = new PuzzleDownloadManager(
                 this,
                 mainContainer,
