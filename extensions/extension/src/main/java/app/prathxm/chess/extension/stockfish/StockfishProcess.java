@@ -210,7 +210,11 @@ public class StockfishProcess {
                                         int mate = Integer.parseInt(parts[i+1]);
                                         parsedHasMate = true;
                                         parsedMateIn = isWhiteToMove ? mate : -mate;
-                                        parsedScore = parsedMateIn > 0 ? 99.0f : -99.0f;
+                                        if (mate == 0) {
+                                            parsedScore = isWhiteToMove ? -99.0f : 99.0f;
+                                        } else {
+                                            parsedScore = parsedMateIn > 0 ? (99.0f - parsedMateIn) : (-99.0f - parsedMateIn);
+                                        }
                                     } catch (NumberFormatException ignored) {}
                                 } else if (parts[i].equals("wdl") && i < parts.length - 3) {
                                     try {
