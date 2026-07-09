@@ -1,3 +1,9 @@
+## [1.12.1-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.12.1-dev.1...v1.12.1-dev.2) (2026-07-09)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** correct local stockfish mate evaluation and checkmate classification ([45f3746](https://github.com/PrathxmOp/Prathxm-Patches/commit/45f3746dcd9baefd171f936ef944e16317adc1b7))
+
 ## [1.12.1-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.12.0...v1.12.1-dev.1) (2026-07-07)
 
 ### 🔧 Improvements
