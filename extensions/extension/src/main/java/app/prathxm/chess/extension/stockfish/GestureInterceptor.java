@@ -62,6 +62,9 @@ public class GestureInterceptor {
                 new GestureHandler(originalCallback, gestureDetector)
             );
             window.setCallback(proxyCallback);
+            
+            // Show first-time tutorial tour if needed
+            StockfishTourOverlay.showTourIfNeeded(activity);
         } catch (Throwable t) {
             android.util.Log.e("GestureInterceptor", "registerGestureInterceptor failed: " + t.getMessage());
         }
