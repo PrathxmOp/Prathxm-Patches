@@ -1,3 +1,9 @@
+## [1.13.0-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.0-dev.1...v1.13.0-dev.2) (2026-07-10)
+
+### ✨ New Features
+
+* **Chess.com:** add first-time gesture tutorial overlay ([1ef1516](https://github.com/PrathxmOp/Prathxm-Patches/commit/1ef15164bc82ce8a0c0e2c5d14d8c0b6a9e1d03e))
+
 ## [1.13.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.12.1-dev.2...v1.13.0-dev.1) (2026-07-10)
 
 ### ✨ New Features
