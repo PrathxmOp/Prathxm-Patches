@@ -23,8 +23,8 @@ cp stockfish armeabi-v7a/stockfish
 
 ## Verify SHA-256 hashes (from Stockfish release page)
 
-- armv8-dotprod: 0747e48ef4b983b607c6b35ea04239dfbb6adf91210ac42b6e865f12c91ebf51
-- armv7-neon:    07a6d8af49502d09494f80d2d544f4537400cce715fd9d6f05cf6db9f9c7bcf3
+- armv8-dotprod: 8f7116d3f1a7004a6581d4fb0c1ff891ce095bab6d45e52f1578897cf23b61b5
+- armv7-neon:    672fbd7533d15fc70dae82df52c1185236975d059a585aa65eda960f1a3266ea
 
 After placing the binaries, run:
   ./gradlew :extensions:extension:assembleRelease

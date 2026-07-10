@@ -154,7 +154,7 @@ public class StockfishSettingsDialog {
         addDialogSpacer(creditsCard, 2, density);
 
         TextView engineTv = new TextView(activity);
-        engineTv.setText("Engine: Stockfish 16.1 NNUE");
+        engineTv.setText("Engine: Stockfish 18 NNUE");
         engineTv.setTextColor(0xFF8B8985);
         engineTv.setTextSize(11);
         engineTv.setGravity(Gravity.CENTER);
