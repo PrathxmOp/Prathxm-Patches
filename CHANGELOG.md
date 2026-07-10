@@ -1,3 +1,27 @@
+## [1.13.0-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.0-dev.1...v1.13.0-dev.2) (2026-07-10)
+
+### ✨ New Features
+
+* **Chess.com:** add first-time gesture tutorial overlay ([1ef1516](https://github.com/PrathxmOp/Prathxm-Patches/commit/1ef15164bc82ce8a0c0e2c5d14d8c0b6a9e1d03e))
+
+## [1.13.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.12.1-dev.2...v1.13.0-dev.1) (2026-07-10)
+
+### ✨ New Features
+
+* **Chess.com:** upgrade embedded Stockfish to version 18 ([c070095](https://github.com/PrathxmOp/Prathxm-Patches/commit/c070095abd5403bcb9cf181bf31adb69d1fe61bb))
+
+## [1.12.1-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.12.1-dev.1...v1.12.1-dev.2) (2026-07-09)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** correct local stockfish mate evaluation and checkmate classification ([45f3746](https://github.com/PrathxmOp/Prathxm-Patches/commit/45f3746dcd9baefd171f936ef944e16317adc1b7))
+
+## [1.12.1-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.12.0...v1.12.1-dev.1) (2026-07-07)
+
+### 🔧 Improvements
+
+* **Chess.com:** optimize LockedBotsCheckFingerprint using package prefix ([c6e6f91](https://github.com/PrathxmOp/Prathxm-Patches/commit/c6e6f9193df89f52e3401ddc0a6ad4f7a5877705))
+
 ## [1.12.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.11.0...v1.12.0) (2026-07-07)
 
 ### 🐛 Bug Fixes

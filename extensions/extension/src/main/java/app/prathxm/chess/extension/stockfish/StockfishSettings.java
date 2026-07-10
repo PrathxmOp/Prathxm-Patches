@@ -173,5 +173,15 @@ public class StockfishSettings {
     public static void setMateAnnouncementEnabled(Context context, boolean enabled) {
         getPrefs(context).edit().putBoolean(KEY_SHOW_MATE_ANNOUNCEMENT, enabled).apply();
     }
+
+    private static final String KEY_TOUR_SHOWN = "stockfish_tour_shown";
+
+    public static boolean isTourShown(Context context) {
+        return getPrefs(context).getBoolean(KEY_TOUR_SHOWN, false);
+    }
+
+    public static void setTourShown(Context context, boolean shown) {
+        getPrefs(context).edit().putBoolean(KEY_TOUR_SHOWN, shown).apply();
+    }
 }
 

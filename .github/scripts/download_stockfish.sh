@@ -2,7 +2,7 @@
 set -e
 
 # Version of stockfish to download
-SF_VERSION="sf_16.1"
+SF_VERSION="sf_18"
 
 echo "Downloading Stockfish ${SF_VERSION} binaries..."
 
@@ -16,7 +16,7 @@ cd "$TMP_DIR"
 
 # Download arm64-v8a binary
 echo "Downloading arm64-v8a..."
-curl -L -o arm64.tar "https://github.com/official-stockfish/Stockfish/releases/download/${SF_VERSION}/stockfish-android-armv8.tar"
+curl -L -o arm64.tar "https://github.com/official-stockfish/Stockfish/releases/download/${SF_VERSION}/stockfish-android-armv8-dotprod.tar"
 tar -xf arm64.tar
 
 # Download armeabi-v7a binary
@@ -38,7 +38,7 @@ for path in "${PATHS[@]}"; do
     mkdir -p "$path/arm64-v8a"
     mkdir -p "$path/armeabi-v7a"
     
-    cp "$TMP_DIR/stockfish/stockfish-android-armv8" "$path/arm64-v8a/stockfish"
+    cp "$TMP_DIR/stockfish/stockfish-android-armv8-dotprod" "$path/arm64-v8a/stockfish"
     cp "$TMP_DIR/stockfish/stockfish-android-armv7-neon" "$path/armeabi-v7a/stockfish"
     
     chmod +x "$path/arm64-v8a/stockfish"

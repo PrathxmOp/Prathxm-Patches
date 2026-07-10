@@ -1,13 +1,13 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" />
-  <img src="https://img.shields.io/badge/Engine-Stockfish_16.1-4A90D9?style=for-the-badge&logo=chess.com&logoColor=white" />
+  <img src="https://img.shields.io/badge/Engine-Stockfish_18-4A90D9?style=for-the-badge&logo=chess.com&logoColor=white" />
   <img src="https://img.shields.io/badge/License-GPLv3-blue?style=for-the-badge" />
 </p>
 
 <h1 align="center">♟️ Prathxm Patches</h1>
 
 <p align="center">
-  Custom Morphe patches for <b>Chess.com</b> on Android. Enables fully offline analysis powered by local Stockfish 16.1 NNUE, ad-free usage, locked bots bypass, and Lichess puzzles.
+  Custom Morphe patches for <b>Chess.com</b> on Android. Enables fully offline analysis powered by local Stockfish 18 NNUE, ad-free usage, locked bots bypass, and Lichess puzzles.
 </p>
 
 <p align="center">
@@ -19,10 +19,10 @@
 
 ## 📖 About & Features
 
-Prathxm Patches embeds a native **Stockfish 16.1 NNUE** chess engine directly into the Chess.com Android app for fully offline analysis and game reviews. All analysis features are programmatically disabled during live online matches to ensure fair play.
+Prathxm Patches embeds a native **Stockfish 18 NNUE** chess engine directly into the Chess.com Android app for fully offline analysis and game reviews. All analysis features are programmatically disabled during live online matches to ensure fair play.
 
 ### 🌟 Key Features
-- **Local Stockfish 16.1 & Offline Reviews**: Centipawn evaluation, Win/Draw/Loss tracking, move classification (Brilliant, Great, etc.), ELO estimation, and configurable bot strengths.
+- **Local Stockfish 18 & Offline Reviews**: Centipawn evaluation, Win/Draw/Loss tracking, move classification (Brilliant, Great, etc.), ELO estimation, and configurable bot strengths.
 - **Offline Lichess Puzzles**: Complete puzzle journey map featuring millions of offline puzzles, streaking, and thematic practice.
 - **Ad-Free UI & Unlocked Bots**: Banners, interstitial ads, and video promotions are removed. All Versus Bots are fully unlocked.
 - **Panic Mode**: Toggle all overlays instantly.
@@ -41,7 +41,7 @@ Access features by interacting with the Chess.com logo on the main screen:
 ## 🩹 Patches
 
 <!-- PATCHES_START -->
-> **[v1.12.0](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.12.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;7 patches total
+> **[v1.13.0-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.13.0-dev.2)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;7 patches total
 <details>
 <summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;7 patches</summary>
 <br>

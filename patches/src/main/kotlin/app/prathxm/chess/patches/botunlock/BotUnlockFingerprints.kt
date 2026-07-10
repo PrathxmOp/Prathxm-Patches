@@ -51,12 +51,11 @@ object ProtoBotPersonalityGetPremiumFingerprint : Fingerprint(
 )
 
 object LockedBotsCheckFingerprint : Fingerprint(
+    definingClass = "Lcom/chess/features/versusbots/ui/",
+    returnType = "Z",
+    parameters = listOf("Lcom/chess/features/versusbots/Bot;"),
     custom = { method, classDef ->
-        classDef.type.startsWith("Lcom/chess/features/versusbots/ui/") &&
-            classDef.fields.count() == 1 &&
-            classDef.fields.any { it.type == "Ljava/util/Set;" } &&
-            method.parameterTypes.size == 1 &&
-            method.parameterTypes[0] == "Lcom/chess/features/versusbots/Bot;" &&
-            method.returnType == "Z"
+        classDef.fields.count() == 1 &&
+            classDef.fields.any { it.type == "Ljava/util/Set;" }
     }
 )
