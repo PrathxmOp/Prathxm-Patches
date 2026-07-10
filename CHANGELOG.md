@@ -1,3 +1,9 @@
+## [1.13.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.12.1-dev.2...v1.13.0-dev.1) (2026-07-10)
+
+### ✨ New Features
+
+* **Chess.com:** upgrade embedded Stockfish to version 18 ([c070095](https://github.com/PrathxmOp/Prathxm-Patches/commit/c070095abd5403bcb9cf181bf31adb69d1fe61bb))
+
 ## [1.12.1-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.12.1-dev.1...v1.12.1-dev.2) (2026-07-09)
 
 ### 🐛 Bug Fixes

@@ -41,7 +41,7 @@ Access features by interacting with the Chess.com logo on the main screen:
 ## 🩹 Patches
 
 <!-- PATCHES_START -->
-> **[v1.12.1-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.12.1-dev.2)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;7 patches total
+> **[v1.13.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.13.0-dev.1)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;7 patches total
 <details>
 <summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;7 patches</summary>
 <br>
