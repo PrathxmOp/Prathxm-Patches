@@ -175,14 +175,15 @@ val stockfishPatch = bytecodePatch(
             """
         )
 
-        /*
         GameReviewV2V0JFingerprint.method.addInstructions(
             0,
             """
                 invoke-virtual/range {p0 .. p0}, Lcom/chess/gamereview/repository/AnalyzedGameData${'$'}AnalyzedPosition;->d()Lcom/chess/gamereview/repository/AnalyzedGameData${'$'}AnalyzedPosition${'$'}PlayedMove;
                 move-result-object v0
-                if-nez v0, :proceed
+                if-eqz v0, :dummy_move
+                goto :proceed
 
+                :dummy_move
                 invoke-virtual/range {p1 .. p1}, Lcom/chess/chessboard/history/i;->e()Lcom/chess/chessboard/variants/d;
                 move-result-object v0
                 invoke-interface {v0}, Lcom/chess/chessboard/variants/b;->getSideToMove()Lcom/chess/entities/Color;
@@ -214,7 +215,6 @@ val stockfishPatch = bytecodePatch(
                 :proceed
             """
         )
-        */
 
         // ─────────────────────────────────────────────────────────────────
         // Hook 7 – Force Connectivity Status to Online for local analysis in flight mode

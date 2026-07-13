@@ -144,6 +144,35 @@ public class LocalAnalysisFlow {
     private static void runCollect(String pgn, Object analysisDepthObj, Object collector, Object continuation) {
         Activity activity = StockfishExtension.getCurrentActivity();
         logToFile(activity, "runCollect entered. PGN length: " + (pgn != null ? pgn.length() : 0), false);
+        Object dummyContinuation = null;
+        try {
+            ResolvedGroup group = resolveVersionGroup();
+            Class<?> o02Class = group.continuationClass;
+            dummyContinuation = Proxy.newProxyInstance(
+                o02Class.getClassLoader(),
+                new Class<?>[]{o02Class},
+                new InvocationHandler() {
+                    @Override
+                    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                        if (method.getName().equals("getContext")) {
+                            Class<?> eccClass = Class.forName("kotlin.coroutines.EmptyCoroutineContext");
+                            Object eccInstance = null;
+                            for (Field f : eccClass.getDeclaredFields()) {
+                                if (f.getType().equals(eccClass) && java.lang.reflect.Modifier.isStatic(f.getModifiers())) {
+                                    f.setAccessible(true);
+                                    eccInstance = f.get(null);
+                                    break;
+                                }
+                            }
+                            return eccInstance;
+                        }
+                        return null;
+                    }
+                }
+            );
+        } catch (Throwable t) {
+            Log.e(TAG, "Failed to initialize dummy continuation", t);
+        }
         try {
             // Fair Play Gating: Prevent any local analysis during active live match
             if (activity != null && StockfishExtension.isLiveMatch(activity) && !StockfishExtension.isReviewMode) {
@@ -202,7 +231,7 @@ public class LocalAnalysisFlow {
             // InProgress(float progress, AnalysisDepth depth, m source)
             Constructor<?> ipConstructor = inProgressClass.getConstructor(float.class, adClass, mClass);
             Object initialProgress = ipConstructor.newInstance(0.0f, depthEnum, sourceEnum);
-            emitMethod.invoke(collector, initialProgress, continuation);
+            emitMethod.invoke(collector, initialProgress, dummyContinuation != null ? dummyContinuation : continuation);
 
             // Parse PGN using the app's native parser
             Class<?> qClass = Class.forName("com.chess.chessboard.pgn.q");
@@ -245,7 +274,7 @@ public class LocalAnalysisFlow {
             logToFile(activity, "Starting FEN result moves count: " + (results[0].moves != null ? results[0].moves.size() : "null"), true);
             
             Object progObj1 = ipConstructor.newInstance(1.0f / (totalMoves + 1), depthEnum, sourceEnum);
-            emitMethod.invoke(collector, progObj1, continuation);
+            emitMethod.invoke(collector, progObj1, dummyContinuation != null ? dummyContinuation : continuation);
 
             // Analyze subsequent positions
             for (int i = 0; i < totalMoves; i++) {
@@ -265,7 +294,7 @@ public class LocalAnalysisFlow {
 
                 float progress = (float)(i + 2) / (totalMoves + 1);
                 Object progObj = ipConstructor.newInstance(progress, depthEnum, sourceEnum);
-                emitMethod.invoke(collector, progObj, continuation);
+                emitMethod.invoke(collector, progObj, dummyContinuation != null ? dummyContinuation : continuation);
             }
 
             // Map Stockfish analysis outputs to AnalyzedGameData's AnalyzedPositions
@@ -433,7 +462,14 @@ public class LocalAnalysisFlow {
                         null
                     );
                     Object terminalBestMove = bmConstructor.newInstance(playedLan);
-                    Object scenarios = scConstructor.newInstance(false, false);
+                    boolean isKeyMoment = "brilliant".equals(classification)
+                                       || "greatFind".equals(classification)
+                                       || "blunder".equals(classification)
+                                       || "mistake".equals(classification)
+                                       || "inaccuracy".equals(classification)
+                                       || "miss".equals(classification);
+                    boolean isBook = "book".equals(classification);
+                    Object scenarios = scConstructor.newInstance(isKeyMoment, isBook);
                     positions.add(apConstructor.newInstance(
                         color,
                         playedMove,
@@ -457,7 +493,14 @@ public class LocalAnalysisFlow {
                 );
 
                 Object bestMove = bmConstructor.newInstance(bestLan);
-                Object scenarios = scConstructor.newInstance(false, false);
+                boolean isKeyMoment = "brilliant".equals(classification)
+                                   || "greatFind".equals(classification)
+                                   || "blunder".equals(classification)
+                                   || "mistake".equals(classification)
+                                   || "inaccuracy".equals(classification)
+                                   || "miss".equals(classification);
+                boolean isBook = "book".equals(classification);
+                Object scenarios = scConstructor.newInstance(isKeyMoment, isBook);
 
                 positions.add(apConstructor.newInstance(
                     color,
@@ -600,7 +643,7 @@ public class LocalAnalysisFlow {
             // Emit RemoteAnalysisCompleted to trigger Review UI
             Constructor<?> compConstructor = completedClass.getConstructor(agdClass, permissionsClass, adClass);
             Object completedResult = compConstructor.newInstance(gameData, fullPermissions, depthEnum);
-            emitMethod.invoke(collector, completedResult, continuation);
+            emitMethod.invoke(collector, completedResult, dummyContinuation != null ? dummyContinuation : continuation);
 
         } catch (Throwable t) {
             logToFile(activity, "EXCEPTION: " + Log.getStackTraceString(t), true);
@@ -613,7 +656,7 @@ public class LocalAnalysisFlow {
                 Method emitMethod = a84Class.getMethod("emit", Object.class, o02Class);
                 Constructor<?> failConstructor = failureClass.getConstructor(Throwable.class);
                 Object failureResult = failConstructor.newInstance(t);
-                emitMethod.invoke(collector, failureResult, continuation);
+                emitMethod.invoke(collector, failureResult, dummyContinuation != null ? dummyContinuation : continuation);
             } catch (Throwable emitErr) {
                 // Ignore secondary emit failures
             }
