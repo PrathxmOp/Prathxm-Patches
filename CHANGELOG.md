@@ -1,3 +1,9 @@
+## [1.13.1-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.0...v1.13.1-dev.1) (2026-07-13)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve local analysis crashes and key moments navigation ([#27](https://github.com/PrathxmOp/Prathxm-Patches/issues/27), [#28](https://github.com/PrathxmOp/Prathxm-Patches/issues/28), [#29](https://github.com/PrathxmOp/Prathxm-Patches/issues/29)) ([37cdb75](https://github.com/PrathxmOp/Prathxm-Patches/commit/37cdb75a9cf1777bf727985bd8e7ef8785572a6e))
+
 ## [1.13.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.12.0...v1.13.0) (2026-07-10)
 
 ### 🐛 Bug Fixes
