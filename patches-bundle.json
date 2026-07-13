@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-07-13T09:28:12",
-  "description": "## [1.13.1-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.0...v1.13.1-dev.1) (2026-07-13)\n\n### 🐛 Bug Fixes\n\n* **Chess.com:** resolve local analysis crashes and key moments navigation ([#27](https://github.com/PrathxmOp/Prathxm-Patches/issues/27), [#28](https://github.com/PrathxmOp/Prathxm-Patches/issues/28), [#29](https://github.com/PrathxmOp/Prathxm-Patches/issues/29)) ([37cdb75](https://github.com/PrathxmOp/Prathxm-Patches/commit/37cdb75a9cf1777bf727985bd8e7ef8785572a6e))",
-  "download_url": "https://github.com/PrathxmOp/Prathxm-Patches/releases/download/v1.13.1-dev.1/patches-1.13.1-dev.1.mpp",
+  "created_at": "2026-07-13T11:01:55",
+  "description": "## [1.13.1-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.1-dev.1...v1.13.1-dev.2) (2026-07-13)\n\n### 🐛 Bug Fixes\n\n* **Chess.com:** resolve multi-version getPlayedMove field mapping mismatch ([#27](https://github.com/PrathxmOp/Prathxm-Patches/issues/27), [#28](https://github.com/PrathxmOp/Prathxm-Patches/issues/28), [#29](https://github.com/PrathxmOp/Prathxm-Patches/issues/29)) ([e984f84](https://github.com/PrathxmOp/Prathxm-Patches/commit/e984f8450d008758f499dc31dff5b6b7bb2d6f5a))",
+  "download_url": "https://github.com/PrathxmOp/Prathxm-Patches/releases/download/v1.13.1-dev.2/patches-1.13.1-dev.2.mpp",
   "signature_download_url": "",
-  "version": "1.13.1-dev.1"
+  "version": "1.13.1-dev.2"
 }

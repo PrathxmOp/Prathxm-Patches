@@ -1,3 +1,9 @@
+## [1.13.1-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.1-dev.1...v1.13.1-dev.2) (2026-07-13)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve multi-version getPlayedMove field mapping mismatch ([#27](https://github.com/PrathxmOp/Prathxm-Patches/issues/27), [#28](https://github.com/PrathxmOp/Prathxm-Patches/issues/28), [#29](https://github.com/PrathxmOp/Prathxm-Patches/issues/29)) ([e984f84](https://github.com/PrathxmOp/Prathxm-Patches/commit/e984f8450d008758f499dc31dff5b6b7bb2d6f5a))
+
 ## [1.13.1-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.0...v1.13.1-dev.1) (2026-07-13)
 
 ### 🐛 Bug Fixes
