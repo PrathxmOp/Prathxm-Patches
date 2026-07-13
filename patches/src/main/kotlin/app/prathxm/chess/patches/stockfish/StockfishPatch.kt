@@ -178,7 +178,8 @@ val stockfishPatch = bytecodePatch(
         GameReviewV2V0JFingerprint.method.addInstructions(
             0,
             """
-                invoke-virtual/range {p0 .. p0}, Lcom/chess/gamereview/repository/AnalyzedGameData${'$'}AnalyzedPosition;->d()Lcom/chess/gamereview/repository/AnalyzedGameData${'$'}AnalyzedPosition${'$'}PlayedMove;
+                move-object/from16 v0, p0
+                invoke-static {v0}, $EXTENSION_CLASS->getPlayedMove(Ljava/lang/Object;)Ljava/lang/Object;
                 move-result-object v0
                 if-eqz v0, :dummy_move
                 goto :proceed

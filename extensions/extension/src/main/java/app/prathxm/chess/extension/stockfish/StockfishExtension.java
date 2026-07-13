@@ -707,4 +707,20 @@ public class StockfishExtension {
             return null;
         }
     }
+
+    public static Object getPlayedMove(Object positionObj) {
+        if (positionObj == null) return null;
+        try {
+            Class<?> pmClass = Class.forName("com.chess.gamereview.repository.AnalyzedGameData$AnalyzedPosition$PlayedMove");
+            for (Field f : positionObj.getClass().getDeclaredFields()) {
+                if (f.getType().equals(pmClass)) {
+                    f.setAccessible(true);
+                    return f.get(positionObj);
+                }
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "Failed to get playedMove via reflection", t);
+        }
+        return null;
+    }
 }
