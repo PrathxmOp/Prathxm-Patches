@@ -52,6 +52,32 @@
       "options": []
     },
     {
+      "name": "Baked-In Ad Blocking",
+      "description": "Bypasses feature flag checks and forces SubresourceFilter to return true, enabling Chrome's native ad blocker.",
+      "default": true,
+      "dependencies": [],
+      "compatiblePackages": [
+        {
+          "packageName": "com.android.chrome",
+          "name": "Google Chrome",
+          "description": null,
+          "apkFileType": "APKS",
+          "appIconColor": "#4285F4",
+          "signatures": null,
+          "targets": [
+            {
+              "version": "150.0.7871.63",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Clone Chess.com",
       "description": "Changes the package name to com.chess.prathxm, allowing the patched app to be installed side-by-side with the original Chess.com app.",
       "default": false,
@@ -101,6 +127,51 @@
       "options": []
     },
     {
+      "name": "Custom Branding",
+      "description": "Changes the package name and application label of Google Chrome, allowing it to be installed side-by-side as a custom clone.",
+      "default": true,
+      "dependencies": [],
+      "compatiblePackages": [
+        {
+          "packageName": "com.android.chrome",
+          "name": "Google Chrome",
+          "description": null,
+          "apkFileType": "APKS",
+          "appIconColor": "#4285F4",
+          "signatures": null,
+          "targets": [
+            {
+              "version": "150.0.7871.63",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "key": "appName",
+          "title": "App Name",
+          "description": null,
+          "required": false,
+          "type": "kotlin.String",
+          "default": "Morome",
+          "values": null
+        },
+        {
+          "key": "packageName",
+          "title": "Package Name",
+          "description": null,
+          "required": false,
+          "type": "kotlin.String",
+          "default": "com.android.chrome.prathxm",
+          "values": null
+        }
+      ]
+    },
+    {
       "name": "Custom Titles",
       "description": "Fetches and applies custom titles for users from a remote database. DM PrathxmOp to get yours for fun lol!",
       "default": true,
@@ -139,6 +210,32 @@
             },
             {
               "version": "4.10.0-googleplay",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Enhanced Security",
+      "description": "Disables JS JIT compiler via V8 flag (--js-flags=--no-jit) and forces DNS-over-HTTPS (DoH) via Cloudflare on startup.",
+      "default": true,
+      "dependencies": [],
+      "compatiblePackages": [
+        {
+          "packageName": "com.android.chrome",
+          "name": "Google Chrome",
+          "description": null,
+          "apkFileType": "APKS",
+          "appIconColor": "#4285F4",
+          "signatures": null,
+          "targets": [
+            {
+              "version": "150.0.7871.63",
               "versionCodes": null,
               "isExperimental": false,
               "minSdk": null,
@@ -292,6 +389,58 @@
             },
             {
               "version": "4.10.0-googleplay",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Telemetry & Safety Net Bypass",
+      "description": "Disables Caching UMA Recorder, UMA Recorder JNI gateways, User Action telemetry, Safe Browsing SafetyNet API validation, and bypasses Chrome Sign-in/Sync gates.",
+      "default": true,
+      "dependencies": [],
+      "compatiblePackages": [
+        {
+          "packageName": "com.android.chrome",
+          "name": "Google Chrome",
+          "description": null,
+          "apkFileType": "APKS",
+          "appIconColor": "#4285F4",
+          "signatures": null,
+          "targets": [
+            {
+              "version": "150.0.7871.63",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "True Incognito Mode",
+      "description": "Forces all deep-linked intents to open in Incognito tabs and locks ChromeTabbedActivity into Incognito mode by default.",
+      "default": true,
+      "dependencies": [],
+      "compatiblePackages": [
+        {
+          "packageName": "com.android.chrome",
+          "name": "Google Chrome",
+          "description": null,
+          "apkFileType": "APKS",
+          "appIconColor": "#4285F4",
+          "signatures": null,
+          "targets": [
+            {
+              "version": "150.0.7871.63",
               "versionCodes": null,
               "isExperimental": false,
               "minSdk": null,

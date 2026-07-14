@@ -179,10 +179,11 @@ val stockfishPatch = bytecodePatch(
             0,
             """
                 move-object/from16 v0, p0
-                invoke-static {v0}, $EXTENSION_CLASS->getPlayedMove(Ljava/lang/Object;)Ljava/lang/Object;
-                move-result-object v0
-                if-eqz v0, :dummy_move
-                goto :proceed
+                move-object/from16 v1, p1
+                invoke-static {v0, v1}, $EXTENSION_CLASS->shouldUseDummyMove(Ljava/lang/Object;Ljava/lang/Object;)Z
+                move-result v0
+                if-eqz v0, :proceed
+                goto :dummy_move
 
                 :dummy_move
                 invoke-virtual/range {p1 .. p1}, Lcom/chess/chessboard/history/i;->e()Lcom/chess/chessboard/variants/d;
