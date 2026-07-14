@@ -1,3 +1,9 @@
+## [1.13.1-dev.3](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.1-dev.2...v1.13.1-dev.3) (2026-07-14)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve NullPointerException on maximum game review analysis ([59cfe39](https://github.com/PrathxmOp/Prathxm-Patches/commit/59cfe3905aa1e933ad9bf7c13bd206f1c7145540))
+
 ## [1.13.1-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.1-dev.1...v1.13.1-dev.2) (2026-07-13)
 
 ### 🐛 Bug Fixes
