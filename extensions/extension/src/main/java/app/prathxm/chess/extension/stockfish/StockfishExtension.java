@@ -707,4 +707,106 @@ public class StockfishExtension {
             return null;
         }
     }
+
+    public static Object getPlayedMove(Object positionObj) {
+        if (positionObj == null) return null;
+        try {
+            Class<?> pmClass = Class.forName("com.chess.gamereview.repository.AnalyzedGameData$AnalyzedPosition$PlayedMove");
+            for (Field f : positionObj.getClass().getDeclaredFields()) {
+                if (f.getType().equals(pmClass)) {
+                    f.setAccessible(true);
+                    return f.get(positionObj);
+                }
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "Failed to get playedMove via reflection", t);
+        }
+        return null;
+    }
+
+    public static Object getSuggestedMove(Object positionObj) {
+        if (positionObj == null) return null;
+        try {
+            Class<?> smClass = Class.forName("com.chess.gamereview.repository.AnalyzedGameData$AnalyzedPosition$SuggestedMove");
+            for (Field f : positionObj.getClass().getDeclaredFields()) {
+                if (f.getType().equals(smClass)) {
+                    f.setAccessible(true);
+                    return f.get(positionObj);
+                }
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "Failed to get suggestedMove via reflection", t);
+        }
+        return null;
+    }
+
+    public static String getSuggestedMoveString(Object suggestedMoveObj) {
+        if (suggestedMoveObj == null) return null;
+        try {
+            for (Field f : suggestedMoveObj.getClass().getDeclaredFields()) {
+                if (f.getType().equals(String.class)) {
+                    f.setAccessible(true);
+                    return (String) f.get(suggestedMoveObj);
+                }
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "Failed to get suggestedMove move string", t);
+        }
+        return null;
+    }
+
+    public static Object getPositionFromPositionAndMove(Object pmObj) {
+        if (pmObj == null) return null;
+        try {
+            Class<?> dClass = Class.forName("com.chess.chessboard.variants.d");
+            for (Field f : pmObj.getClass().getDeclaredFields()) {
+                if (dClass.isAssignableFrom(f.getType())) {
+                    f.setAccessible(true);
+                    return f.get(pmObj);
+                }
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "Failed to get position from PositionAndMove", t);
+        }
+        return null;
+    }
+
+    public static Object convertMove(Object position, String moveStr) {
+        try {
+            Class<?> converterClass = Class.forName("com.chess.chessboard.compengine.MoveConverterKt");
+            Class<?> dClass = Class.forName("com.chess.chessboard.variants.d");
+            Method convertMethod = converterClass.getMethod("d", dClass, String.class, boolean.class);
+            return convertMethod.invoke(null, position, moveStr, true);
+        } catch (Throwable t) {
+            Log.e(TAG, "Failed to convert move", t);
+        }
+        return null;
+    }
+
+    public static boolean shouldUseDummyMove(Object positionObj, Object positionAndMoveObj) {
+        if (positionObj == null) return true;
+        try {
+            Object playedMove = getPlayedMove(positionObj);
+            if (playedMove == null) return true;
+
+            Object suggestedMove = getSuggestedMove(positionObj);
+            if (suggestedMove != null) {
+                String moveStr = getSuggestedMoveString(suggestedMove);
+                if (moveStr != null) {
+                    Object position = getPositionFromPositionAndMove(positionAndMoveObj);
+                    if (position != null) {
+                        Object convertedMove = convertMove(position, moveStr);
+                        if (convertedMove == null) {
+                            Log.d(TAG, "shouldUseDummyMove: Suggested move conversion failed for " + moveStr + ". Bypassing to prevent crash.");
+                            return true;
+                        }
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "shouldUseDummyMove exception, falling back to dummy move", t);
+            return true;
+        }
+        return false;
+    }
 }

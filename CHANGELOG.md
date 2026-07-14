@@ -1,3 +1,21 @@
+## [1.13.1-dev.3](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.1-dev.2...v1.13.1-dev.3) (2026-07-14)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve NullPointerException on maximum game review analysis ([59cfe39](https://github.com/PrathxmOp/Prathxm-Patches/commit/59cfe3905aa1e933ad9bf7c13bd206f1c7145540))
+
+## [1.13.1-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.1-dev.1...v1.13.1-dev.2) (2026-07-13)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve multi-version getPlayedMove field mapping mismatch ([#27](https://github.com/PrathxmOp/Prathxm-Patches/issues/27), [#28](https://github.com/PrathxmOp/Prathxm-Patches/issues/28), [#29](https://github.com/PrathxmOp/Prathxm-Patches/issues/29)) ([e984f84](https://github.com/PrathxmOp/Prathxm-Patches/commit/e984f8450d008758f499dc31dff5b6b7bb2d6f5a))
+
+## [1.13.1-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.0...v1.13.1-dev.1) (2026-07-13)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve local analysis crashes and key moments navigation ([#27](https://github.com/PrathxmOp/Prathxm-Patches/issues/27), [#28](https://github.com/PrathxmOp/Prathxm-Patches/issues/28), [#29](https://github.com/PrathxmOp/Prathxm-Patches/issues/29)) ([37cdb75](https://github.com/PrathxmOp/Prathxm-Patches/commit/37cdb75a9cf1777bf727985bd8e7ef8785572a6e))
+
 ## [1.13.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.12.0...v1.13.0) (2026-07-10)
 
 ### 🐛 Bug Fixes
