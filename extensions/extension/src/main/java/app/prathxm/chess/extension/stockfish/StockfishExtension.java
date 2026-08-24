@@ -711,7 +711,7 @@ public class StockfishExtension {
     public static Object getPlayedMove(Object positionObj) {
         if (positionObj == null) return null;
         try {
-            Class<?> pmClass = Class.forName("com.chess.gamereview.repository.AnalyzedGameData$AnalyzedPosition$PlayedMove");
+            Class<?> pmClass = positionObj.getClass().getClassLoader().loadClass("com.chess.gamereview.repository.AnalyzedGameData$AnalyzedPosition$PlayedMove");
             for (Field f : positionObj.getClass().getDeclaredFields()) {
                 if (f.getType().equals(pmClass)) {
                     f.setAccessible(true);
@@ -727,7 +727,7 @@ public class StockfishExtension {
     public static Object getSuggestedMove(Object positionObj) {
         if (positionObj == null) return null;
         try {
-            Class<?> smClass = Class.forName("com.chess.gamereview.repository.AnalyzedGameData$AnalyzedPosition$SuggestedMove");
+            Class<?> smClass = positionObj.getClass().getClassLoader().loadClass("com.chess.gamereview.repository.AnalyzedGameData$AnalyzedPosition$SuggestedMove");
             for (Field f : positionObj.getClass().getDeclaredFields()) {
                 if (f.getType().equals(smClass)) {
                     f.setAccessible(true);
@@ -784,6 +784,7 @@ public class StockfishExtension {
     }
 
     public static boolean shouldUseDummyMove(Object positionObj, Object positionAndMoveObj) {
+        if (!isReviewMode) return true;
         if (positionObj == null) return true;
         try {
             Object playedMove = getPlayedMove(positionObj);

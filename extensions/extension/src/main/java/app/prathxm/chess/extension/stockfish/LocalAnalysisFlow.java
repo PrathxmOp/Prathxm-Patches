@@ -142,6 +142,7 @@ public class LocalAnalysisFlow {
     }
 
     private static void runCollect(String pgn, Object analysisDepthObj, Object collector, Object continuation) {
+        StockfishExtension.isReviewMode = true;
         Activity activity = StockfishExtension.getCurrentActivity();
         logToFile(activity, "runCollect entered. PGN length: " + (pgn != null ? pgn.length() : 0), false);
         Object dummyContinuation = null;
@@ -402,11 +403,25 @@ public class LocalAnalysisFlow {
                 float actualDelta = isWhite ? (evalAfter - evalBefore) : (evalBefore - evalAfter);
 
                 // Classification Heuristics
+                boolean isBest = bestLan != null && playedLan.equals(bestLan);
+                boolean isSac = false;
+                try {
+                    isSac = isSacrifice(moves, i, isWhite);
+                } catch (Throwable ignored) {}
+
+                boolean isMiss = !isBest && ((isWhite && evalBefore >= 1.0f) || (!isWhite && evalBefore <= -1.0f)) && actualDelta < -1.5f;
+
                 String classification = "good";
-                if (bestLan != null && playedLan.equals(bestLan)) {
-                    if (actualDelta > 0.4f) {
+                if (isMiss) {
+                    classification = "miss";
+                    if (isWhite) wMiss++; else bMiss++;
+                } else if (isBest) {
+                    if (isSac && actualDelta >= -0.2f && evalAfter >= -0.5f) {
                         classification = "brilliant";
                         if (isWhite) wBrilliant++; else bBrilliant++;
+                    } else if (actualDelta > 0.4f) {
+                        classification = "greatFind";
+                        if (isWhite) wGreat++; else bGreat++;
                     } else {
                         classification = "best";
                         if (isWhite) wBest++; else bBest++;
@@ -415,10 +430,10 @@ public class LocalAnalysisFlow {
                     classification = "excellent";
                     if (isWhite) wExcellent++; else bExcellent++;
                 } else {
-                    if (actualDelta < -3.0f) {
+                    if (actualDelta < -2.5f) {
                         classification = "blunder";
                         if (isWhite) wBlunder++; else bBlunder++;
-                    } else if (actualDelta < -1.5f) {
+                    } else if (actualDelta < -1.2f) {
                         classification = "mistake";
                         if (isWhite) wMistake++; else bMistake++;
                     } else if (actualDelta < -0.5f) {
@@ -709,6 +724,52 @@ public class LocalAnalysisFlow {
             Log.e(TAG, "Failed to resolve kotlin.Unit instance", t);
         }
         return null;
+    }
+
+    private static Object getPositionBefore(Object csrmm) throws Exception {
+        try {
+            return csrmm.getClass().getMethod("getPositionBefore").invoke(csrmm);
+        } catch (NoSuchMethodException e) {
+            return csrmm.getClass().getMethod("e").invoke(csrmm);
+        }
+    }
+
+    private static Object getPositionAfter(Object csrmm) throws Exception {
+        try {
+            return csrmm.getClass().getMethod("getPositionAfter").invoke(csrmm);
+        } catch (NoSuchMethodException e) {
+            return csrmm.getClass().getMethod("b").invoke(csrmm);
+        }
+    }
+
+    private static int getMaterial(String fen, boolean isWhite) {
+        int score = 0;
+        for (char c : fen.split(" ")[0].toCharArray()) {
+            if (Character.isLetter(c)) {
+                if (isWhite == Character.isUpperCase(c)) {
+                    char l = Character.toLowerCase(c);
+                    score += (l == 'p') ? 1 : (l == 'n' || l == 'b') ? 3 : (l == 'r') ? 5 : (l == 'q') ? 9 : 0;
+                }
+            }
+        }
+        return score;
+    }
+
+    private static boolean isSacrifice(List<?> moves, int i, boolean isWhite) throws Exception {
+        if (i + 1 >= moves.size()) return false;
+        String f0 = StockfishExtension.extractFen(getPositionBefore(moves.get(i)));
+        String f1 = StockfishExtension.extractFen(getPositionAfter(moves.get(i)));
+        String f2 = StockfishExtension.extractFen(getPositionAfter(moves.get(i + 1)));
+        
+        int pLoss = getMaterial(f1, isWhite) - getMaterial(f2, isWhite);
+        if (pLoss <= 0) return false;
+        
+        int oLoss = getMaterial(f0, !isWhite) - getMaterial(f1, !isWhite);
+        if (i + 2 < moves.size()) {
+            String f3 = StockfishExtension.extractFen(getPositionAfter(moves.get(i + 2)));
+            oLoss += getMaterial(f2, !isWhite) - getMaterial(f3, !isWhite);
+        }
+        return pLoss > oLoss;
     }
 
     private static void logToFile(android.content.Context context, String msg, boolean append) {

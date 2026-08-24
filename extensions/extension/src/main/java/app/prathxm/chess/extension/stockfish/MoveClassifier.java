@@ -217,7 +217,7 @@ public class MoveClassifier {
             boolean isBlunderOrMistake = false;
 
             if (uciMove != null && !prevBestMoves.isEmpty() && uciMove.equals(prevBestMoves.get(0))) {
-                if (delta > 0.4f) {
+                if (delta > 1.0f) {
                     classification = "Brilliant";
                     emoji = "💡";
                 } else {
