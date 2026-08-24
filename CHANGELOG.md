@@ -1,3 +1,9 @@
+## [1.13.1-dev.4](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.1-dev.3...v1.13.1-dev.4) (2026-08-24)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve local analysis crashes and move classification accuracy ([#35](https://github.com/PrathxmOp/Prathxm-Patches/issues/35), [#37](https://github.com/PrathxmOp/Prathxm-Patches/issues/37), [#51](https://github.com/PrathxmOp/Prathxm-Patches/issues/51)) ([5ebe4f0](https://github.com/PrathxmOp/Prathxm-Patches/commit/5ebe4f055581234096a05039bb973e8eddc6a837))
+
 ## [1.13.1-dev.3](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.1-dev.2...v1.13.1-dev.3) (2026-07-14)
 
 ### 🐛 Bug Fixes
