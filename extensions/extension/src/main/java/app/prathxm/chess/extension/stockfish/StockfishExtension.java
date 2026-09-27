@@ -205,10 +205,16 @@ public class StockfishExtension {
         stateImplRef.set(new WeakReference<>(stateImplObject));
 
         final Activity activity = getCurrentActivity();
-        if (activity != null) {
-            if (isLiveMatch(activity)) {
-                isReviewMode = false;
+        if (activity != null && isLiveMatch(activity)) {
+            // Hard block: kill any running analysis and force-disable engine in live games
+            isReviewMode = false;
+            killAnalysisAndClearOverlays(stateImplObject);
+            Context liveCtx = getContext();
+            if (liveCtx != null && StockfishSettings.isEngineEnabled(liveCtx)) {
+                StockfishSettings.setEngineEnabled(liveCtx, false);
+                Log.w(TAG, "Engine auto-disabled: live match detected.");
             }
+            return;
         }
 
         GestureInterceptor.ensureGestureInterceptorRegistered();
@@ -218,10 +224,7 @@ public class StockfishExtension {
         Context ctx = getContext();
         if (ctx != null && !StockfishSettings.isEngineEnabled(ctx)) {
             Log.d(TAG, "Engine is disabled in settings.");
-            ArrowInjector.clearEngineArrows(stateImplObject);
-            OverlayManager.hideEvalBar();
-            OverlayManager.hideWdlBar();
-            OverlayManager.hideMateAnnouncement();
+            killAnalysisAndClearOverlays(stateImplObject);
             return;
         }
 
@@ -313,7 +316,27 @@ public class StockfishExtension {
         }
     }
 
+    /** Kill any running analysis job and clear all overlays. */
+    private static void killAnalysisAndClearOverlays(Object stateImplObject) {
+        Future<?> prev = currentJob;
+        if (prev != null && !prev.isDone()) {
+            prev.cancel(true);
+        }
+        StockfishBridge.stopSearch();
+        ArrowInjector.clearEngineArrows(stateImplObject);
+        OverlayManager.hideEvalBar();
+        OverlayManager.hideWdlBar();
+        OverlayManager.hideMateAnnouncement();
+    }
+
     private static void scheduleAnalysis(String fen) {
+        // Double-check: never analyse during a live match
+        Activity a = getCurrentActivity();
+        if (a != null && isLiveMatch(a) && !isReviewMode) {
+            Log.w(TAG, "scheduleAnalysis blocked: live match.");
+            return;
+        }
+
         Future<?> prev = currentJob;
         if (prev != null && !prev.isDone()) {
             prev.cancel(true);
@@ -322,6 +345,13 @@ public class StockfishExtension {
 
         currentJob = executor.submit(() -> {
             try {
+                // Re-check live status on the worker thread (covers profile-navigation race)
+                Activity act = getCurrentActivity();
+                if (act != null && isLiveMatch(act) && !isReviewMode) {
+                    Log.w(TAG, "scheduleAnalysis worker blocked: live match.");
+                    return;
+                }
+
                 Context context = getContext();
                 if (context == null) return;
 
@@ -345,15 +375,8 @@ public class StockfishExtension {
                 MoveClassifier.classifyMoveIfPossible(context, fen, result);
 
                 Log.i(TAG, "Best moves: " + result.moves + ", Score: " + result.score);
-                
-                boolean isLive = false;
-                Activity activity = getCurrentActivity();
-                if (activity != null && isLiveMatch(activity)) {
-                    isLive = true;
-                }
-                boolean disableOverlays = isLive && !isReviewMode;
 
-                boolean showArrows = !disableOverlays && StockfishSettings.isArrowsVisible(context);
+                boolean showArrows = StockfishSettings.isArrowsVisible(context);
                 if (showArrows && StockfishSettings.isMySideOnly(context)) {
                     Boolean userWhite = isUserWhite(getStateImpl());
                     if (userWhite != null) {
@@ -370,19 +393,19 @@ public class StockfishExtension {
                     ArrowInjector.clearEngineArrows(getStateImpl());
                 }
 
-                if (!disableOverlays && StockfishSettings.isEvalBarEnabled(context)) {
+                if (StockfishSettings.isEvalBarEnabled(context)) {
                     OverlayManager.updateEvalBar(result.score, result.hasMate, result.mateIn, getStateImpl());
                 } else {
                     OverlayManager.hideEvalBar();
                 }
 
-                if (!disableOverlays && StockfishSettings.isWdlEnabled(context)) {
+                if (StockfishSettings.isWdlEnabled(context)) {
                     OverlayManager.updateWdlBar(result.wdlWin, result.wdlDraw, result.wdlLoss);
                 } else {
                     OverlayManager.hideWdlBar();
                 }
 
-                if (!disableOverlays && result.hasMate && StockfishSettings.isMateAnnouncementEnabled(context)) {
+                if (result.hasMate && StockfishSettings.isMateAnnouncementEnabled(context)) {
                     OverlayManager.showMateAnnouncement(result.mateIn);
                 } else {
                     OverlayManager.hideMateAnnouncement();
@@ -444,20 +467,21 @@ public class StockfishExtension {
     }
 
     public static void toggleEverything(Activity activity) {
+        // Block toggling engine ON during live matches
+        if (isLiveMatch(activity)) {
+            boolean wasEnabled = StockfishSettings.isEngineEnabled(activity);
+            if (!wasEnabled) {
+                Log.w(TAG, "toggleEverything blocked: cannot enable engine during live match.");
+                return;
+            }
+            // Allow toggling OFF (panic mode)
+        }
+
         boolean enabled = !StockfishSettings.isEngineEnabled(activity);
         StockfishSettings.setEngineEnabled(activity, enabled);
         
         if (!enabled) {
-            Future<?> prev = currentJob;
-            if (prev != null && !prev.isDone()) {
-                prev.cancel(true);
-            }
-            StockfishBridge.stopSearch();
-            
-            ArrowInjector.clearEngineArrows(getStateImpl());
-            OverlayManager.hideEvalBar();
-            OverlayManager.hideWdlBar();
-            OverlayManager.hideMateAnnouncement();
+            killAnalysisAndClearOverlays(getStateImpl());
         } else {
             triggerAnalysisForCurrentState();
         }

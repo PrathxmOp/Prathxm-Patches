@@ -217,9 +217,15 @@ public class MoveClassifier {
             boolean isBlunderOrMistake = false;
 
             if (uciMove != null && !prevBestMoves.isEmpty() && uciMove.equals(prevBestMoves.get(0))) {
-                if (delta > 1.0f) {
+                // Best move played. Only "Brilliant" if it's the only non-losing option
+                // (second-best move leads to significant eval drop) and the position was sharp.
+                if (delta > 1.5f && prevBestMoves.size() == 1) {
+                    // Only move in PV — likely a forced tactic
                     classification = "Brilliant";
                     emoji = "💡";
+                } else if (delta > 0.4f) {
+                    classification = "Great Move";
+                    emoji = "✅";
                 } else {
                     classification = "Best Move";
                     emoji = "🎯";

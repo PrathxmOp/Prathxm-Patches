@@ -416,7 +416,7 @@ public class LocalAnalysisFlow {
                     classification = "miss";
                     if (isWhite) wMiss++; else bMiss++;
                 } else if (isBest) {
-                    if (isSac && actualDelta >= -0.2f && evalAfter >= -0.5f) {
+                    if (isSac && actualDelta >= 0.5f && evalAfter >= 0.0f) {
                         classification = "brilliant";
                         if (isWhite) wBrilliant++; else bBrilliant++;
                     } else if (actualDelta > 0.4f) {
@@ -430,7 +430,7 @@ public class LocalAnalysisFlow {
                     classification = "excellent";
                     if (isWhite) wExcellent++; else bExcellent++;
                 } else {
-                    if (actualDelta < -2.5f) {
+                    if (actualDelta < -3.0f) {
                         classification = "blunder";
                         if (isWhite) wBlunder++; else bBlunder++;
                     } else if (actualDelta < -1.2f) {

@@ -1502,10 +1502,10 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                     String to = expectedUci.substring(2);
                     chessboard.makeMove(from, to);
                 }
-                soundManager.playMoveSound(isCapture);
+                if (soundManager != null) soundManager.playMoveSound(isCapture);
                 if (solved) {
                     updateSpeechBubble("🎉 Success!", "Puzzle Solved!", COLOR_GREEN);
-                    soundManager.playSound("sounds/puzzles/puzzle-path/puzzle-solved.mp3");
+                    if (soundManager != null) soundManager.playSound("sounds/puzzles/puzzle-path/puzzle-solved.mp3");
 
                     if (activeMode.equals("rush") || activeMode.equals("battle")) {
                         rushManager.handleCorrectSolve();
@@ -1527,7 +1527,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             } else {
                 chessboard.clearArrow();
                 updateSpeechBubble("❌ Wrong move!", "Try a different sequence of moves.", COLOR_RED);
-                soundManager.playSound("sounds/puzzles/incorrect.mp3");
+                if (soundManager != null) soundManager.playSound("sounds/puzzles/incorrect.mp3");
 
                 if (activeMode.equals("rush") || activeMode.equals("battle")) {
                     rushManager.handleIncorrectSolve();
@@ -1549,7 +1549,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             String oppFrom = uci.substring(0, 2);
             String oppTo = uci.substring(2, 4);
             char oppTarget = chessboard.getPieceAt(oppTo);
-            soundManager.playMoveSound(oppTarget != ' ');
+            if (soundManager != null) soundManager.playMoveSound(oppTarget != ' ');
             chessboard.makeMove(oppFrom, oppTo);
 
             chessboard.setInteractable(true);
@@ -1574,7 +1574,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                     char target = chessboard.getPieceAt(to);
                     chessboard.makeMove(from, to, false);
                     if (i == movesToApply.size() - 1) {
-                        soundManager.playMoveSound(target != ' ');
+                        if (soundManager != null) soundManager.playMoveSound(target != ' ');
                     }
                 }
             }
@@ -1705,7 +1705,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
 
         if (gameEngine.isAnalysisMode()) {
             chessboard.makeMove(fromSquare, toSquare);
-            soundManager.playMoveSound(isCapture);
+            if (soundManager != null) soundManager.playMoveSound(isCapture);
             return;
         }
 
