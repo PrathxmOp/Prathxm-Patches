@@ -109,5 +109,20 @@ val adFreePatch = bytecodePatch(
                 :original
             """
         )
+
+        // UserMembershipLevel.Companion.ofCode() -> fallback to BASIC if code unknown (e.g., "silver")
+        UserMembershipLevelOfCodeFingerprint.method.addInstructions(
+            0,
+            """
+                invoke-virtual {p0, p1}, Lcom/chess/entities/UserMembershipLevel${'$'}Companion;->ofCodeOrNull(Ljava/lang/String;)Lcom/chess/entities/UserMembershipLevel;
+                move-result-object v0
+                if-eqz v0, :cond_safe
+                return-object v0
+                :cond_safe
+                sget-object v0, Lcom/chess/entities/UserMembershipLevel;->BASIC:Lcom/chess/entities/UserMembershipLevel;
+                return-object v0
+            """
+        )
     }
 }
+
