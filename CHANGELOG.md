@@ -1,3 +1,10 @@
+## [1.13.2-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.1...v1.13.2-dev.1) (2026-09-27)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** block Stockfish in live games, fix NPE crash, fix move classification ([647d3db](https://github.com/PrathxmOp/Prathxm-Patches/commit/647d3dbea2874f77c6b94dd568418c247dfb352c)), closes [#60](https://github.com/PrathxmOp/Prathxm-Patches/issues/60) [#56](https://github.com/PrathxmOp/Prathxm-Patches/issues/56) [#37](https://github.com/PrathxmOp/Prathxm-Patches/issues/37)
+* **Chess.com:** fallback to BASIC membership for unknown tier codes ([#47](https://github.com/PrathxmOp/Prathxm-Patches/issues/47)) ([3b2a0e0](https://github.com/PrathxmOp/Prathxm-Patches/commit/3b2a0e043bbc52b5f46aa8b29b2b4eb830604282))
+
 ## [1.13.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.0...v1.13.1) (2026-09-19)
 
 ### 🐛 Bug Fixes
