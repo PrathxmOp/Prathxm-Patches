@@ -57,9 +57,10 @@ final class AppTypes {
         continuationClass = collect.getParameterTypes()[1];
         emitMethod = collectorClass.getMethod("emit", Object.class, continuationClass);
 
-        Class<?> agd = load(AGD_CLASS);
+        Class<?> agd = load("com.chess.gamereview.repository.AnalyzedGameData");
+        if (agd == null) agd = load("com.chess.compengine.entities.AnalyzedGameData");
         if (agd == null) throw new ClassNotFoundException("AnalyzedGameData not found");
-        agdPrefix = AGD_CLASS;
+        agdPrefix = agd.getName();
         Class<?> depth = Class.forName("com.chess.entities.AnalysisDepth");
         Class<?> perms = Class.forName("com.chess.entities.GameAnalysisPermissions");
 

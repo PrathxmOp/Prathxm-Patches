@@ -71,7 +71,35 @@ public class LocalAnalysisFlow {
             );
         } catch (Throwable t) {
             Log.e(TAG, "Failed to create dynamic proxy flow", t);
-            return null;
+            // ponytail: never return null — the caller (GameAnalysisWithSkillsRepository)
+            // captures this in a final field and NPEs on collect() if it's null.
+            // A no-op proxy lets the app show its own error state instead of crashing.
+            return createNoOpFlow(flowClass);
+        }
+    }
+
+    /**
+     * Bare-bones Flow proxy that does nothing when collected (returns Unit).
+     * Used as a fallback when the full review flow cannot be created.
+     */
+    private static Object createNoOpFlow(Class<?> flowClass) {
+        try {
+            return Proxy.newProxyInstance(
+                flowClass.getClassLoader(),
+                new Class<?>[]{flowClass},
+                (proxy, method, args) -> {
+                    if (method.getName().equals("collect")) {
+                        return FlowBridge.unit();
+                    }
+                    if (method.getName().equals("toString")) return "NoOpFlow(fallback)";
+                    if (method.getName().equals("hashCode")) return System.identityHashCode(proxy);
+                    if (method.getName().equals("equals")) return args != null && proxy == args[0];
+                    return null;
+                }
+            );
+        } catch (Throwable t2) {
+            Log.e(TAG, "Even fallback no-op flow failed", t2);
+            return null; // truly unrecoverable — flowClass itself is broken
         }
     }
 
