@@ -1,3 +1,9 @@
+## [1.14.0-dev.3](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.14.0-dev.2...v1.14.0-dev.3) (2026-09-28)
+
+### ✨ New Features
+
+* **Chess.com:** add offline opening book, win-probability review math, and puzzle sound fixes ([48e47b5](https://github.com/PrathxmOp/Prathxm-Patches/commit/48e47b52ed0e11475e4587e61910030c078df097))
+
 ## [1.14.0-dev.2](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.14.0-dev.1...v1.14.0-dev.2) (2026-09-28)
 
 ### 🐛 Bug Fixes
