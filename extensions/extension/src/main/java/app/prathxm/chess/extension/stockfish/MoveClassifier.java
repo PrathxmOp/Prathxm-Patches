@@ -285,7 +285,8 @@ public class MoveClassifier {
                 default: classification = "Good Move"; emoji = "👍"; break;
             }
 
-            final String toastText = emoji + " " + classification + (uciMove != null ? " (" + uciMove + ")" : "") + String.format(java.util.Locale.US, " [-%.0f%%]", loss * 100f);
+            String lossText = (loss > 0.005f) ? String.format(java.util.Locale.US, " [-%.0f%%]", loss * 100f) : "";
+            final String toastText = emoji + " " + classification + (uciMove != null ? " (" + uciMove + ")" : "") + lossText;
             final boolean triggerVibrate = isBlunderOrMistake;
 
             if (activity != null) {

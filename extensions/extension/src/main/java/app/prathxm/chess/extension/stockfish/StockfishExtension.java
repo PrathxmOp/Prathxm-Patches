@@ -878,6 +878,44 @@ public class StockfishExtension {
                 || name.startsWith("com.chess.features.connectedboards.");
     }
 
+    public static Object getLocalAnalysisFlow(
+        Object repository,
+        Object gameIdAndType,
+        String pgn,
+        Object userSide,
+        Object coach,
+        java.util.Set<?> allowedSources,
+        Object analysisDepth,
+        Object analysisEngine
+    ) {
+        Log.d(TAG, "getLocalAnalysisFlow called with pgn: " + (pgn != null ? (pgn.substring(0, Math.min(pgn.length(), 30)) + "...") : "null"));
+        Class<?> flowClass = findFlowClass(repository);
+        return LocalAnalysisFlow.createFlow(flowClass, pgn, analysisDepth);
+    }
+
+    private static Class<?> findFlowClass(Object repository) {
+        if (repository != null) {
+            try {
+                for (Method m : repository.getClass().getMethods()) {
+                    Class<?> ret = m.getReturnType();
+                    if (ret.isInterface()) {
+                        for (Method rm : ret.getMethods()) {
+                            if ("collect".equals(rm.getName()) && rm.getParameterTypes().length == 2) {
+                                return ret;
+                            }
+                        }
+                    }
+                }
+            } catch (Throwable t) {
+                Log.e(TAG, "findFlowClass failed: " + t.getMessage());
+            }
+        }
+        try {
+            return Class.forName("kotlinx.coroutines.flow.Flow");
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
     /**
      * Game Review entry point: the repository receives a ComputerAnalysisConfiguration whose
      * PGN is replayed through the local engine.
