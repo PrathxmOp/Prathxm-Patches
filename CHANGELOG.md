@@ -1,3 +1,9 @@
+## [1.14.0-dev.5](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.14.0-dev.4...v1.14.0-dev.5) (2026-09-28)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve GameAnalysisRepositoryGetGameAnalysisFingerprint matching error on 4.10.0-googleplay ([95b5964](https://github.com/PrathxmOp/Prathxm-Patches/commit/95b5964325bc9fdb15a44e5535993793fa78d45f))
+
 ## [1.14.0-dev.4](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.14.0-dev.3...v1.14.0-dev.4) (2026-09-28)
 
 ### 🐛 Bug Fixes
