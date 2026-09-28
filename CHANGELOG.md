@@ -1,3 +1,9 @@
+## [1.14.0-dev.4](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.14.0-dev.3...v1.14.0-dev.4) (2026-09-28)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** run Game Review through reflection-based FlowBridge to fix blank review screen on 4.10.x ([7c77ab5](https://github.com/PrathxmOp/Prathxm-Patches/commit/7c77ab5a9e8e31828fc118c05489a26e006c9d12))
+
 ## [1.14.0-dev.3](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.14.0-dev.2...v1.14.0-dev.3) (2026-09-28)
 
 ### ✨ New Features
