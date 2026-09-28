@@ -1,3 +1,10 @@
+/*
+ * Copyright 2026 PrathxmOp
+ * https://github.com/PrathxmOp/Prathxm-Patches
+ *
+ * Derived from / ported from https://github.com/VenusIsJaded/Prathxm-Patches (GPL-3.0)
+ */
+
 package app.prathxm.chess.extension.lichesspuzzle;
 
 import android.app.Activity;
@@ -1502,10 +1509,10 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                     String to = expectedUci.substring(2);
                     chessboard.makeMove(from, to);
                 }
-                if (soundManager != null) soundManager.playMoveSound(isCapture);
+                soundManager.playMoveSound(isCapture);
                 if (solved) {
                     updateSpeechBubble("🎉 Success!", "Puzzle Solved!", COLOR_GREEN);
-                    if (soundManager != null) soundManager.playSound("sounds/puzzles/puzzle-path/puzzle-solved.mp3");
+                    soundManager.playSolved();
 
                     if (activeMode.equals("rush") || activeMode.equals("battle")) {
                         rushManager.handleCorrectSolve();
@@ -1527,7 +1534,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             } else {
                 chessboard.clearArrow();
                 updateSpeechBubble("❌ Wrong move!", "Try a different sequence of moves.", COLOR_RED);
-                if (soundManager != null) soundManager.playSound("sounds/puzzles/incorrect.mp3");
+                soundManager.playIncorrect();
 
                 if (activeMode.equals("rush") || activeMode.equals("battle")) {
                     rushManager.handleIncorrectSolve();
@@ -1549,7 +1556,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
             String oppFrom = uci.substring(0, 2);
             String oppTo = uci.substring(2, 4);
             char oppTarget = chessboard.getPieceAt(oppTo);
-            if (soundManager != null) soundManager.playMoveSound(oppTarget != ' ');
+            soundManager.playOpponentMoveSound(oppTarget != ' ');
             chessboard.makeMove(oppFrom, oppTo);
 
             chessboard.setInteractable(true);
@@ -1574,7 +1581,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
                     char target = chessboard.getPieceAt(to);
                     chessboard.makeMove(from, to, false);
                     if (i == movesToApply.size() - 1) {
-                        if (soundManager != null) soundManager.playMoveSound(target != ' ');
+                        soundManager.playOpponentMoveSound(target != ' ');
                     }
                 }
             }
@@ -1705,7 +1712,7 @@ public class StandaloneLichessActivity extends Activity implements LichessBoardV
 
         if (gameEngine.isAnalysisMode()) {
             chessboard.makeMove(fromSquare, toSquare);
-            if (soundManager != null) soundManager.playMoveSound(isCapture);
+            soundManager.playMoveSound(isCapture);
             return;
         }
 

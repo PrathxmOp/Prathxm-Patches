@@ -138,6 +138,52 @@ public final class ReviewMath {
         return BLUNDER;
     }
 
+    /**
+     * Derived from https://github.com/VenusIsJaded/Prathxm-Patches (GPL-3.0)
+     * Whether a move inside known opening theory may be shown as "Book".
+     */
+    public static boolean isBookEligible(String c) {
+        return !(MISTAKE.equals(c) || BLUNDER.equals(c) || MISS.equals(c) || FORCED.equals(c));
+    }
+
+    /**
+     * Derived from https://github.com/VenusIsJaded/Prathxm-Patches (GPL-3.0)
+     * Report-card "performance" for an accuracy (0..100).
+     */
+    public static String performance(float acc) {
+        if (acc >= 97) return BRILLIANT;
+        if (acc >= 92) return GREAT;
+        if (acc >= 85) return BEST;
+        if (acc >= 75) return EXCELLENT;
+        if (acc >= 62) return GOOD;
+        if (acc >= 48) return INACCURACY;
+        if (acc >= 35) return MISTAKE;
+        return BLUNDER;
+    }
+
+    /**
+     * Derived from https://github.com/VenusIsJaded/Prathxm-Patches (GPL-3.0)
+     * Tactics score (0..100) for report card.
+     */
+    public static float tacticsScore(float overall, int[] t) {
+        float s = overall + 4f * t[1] + 2f * t[2] - 2f * t[7] - 5f * t[8] - 3f * t[10];
+        return Math.max(0f, Math.min(100f, s));
+    }
+
+    /**
+     * Derived from https://github.com/VenusIsJaded/Prathxm-Patches (GPL-3.0)
+     * One-line game summary for the report card.
+     */
+    public static String summary(float wAcc, float bAcc, int[] w, int[] b, String opening) {
+        StringBuilder sb = new StringBuilder();
+        if (opening != null && !opening.isEmpty()) sb.append(opening).append(" · ");
+        sb.append(String.format(java.util.Locale.US, "White %.1f%% vs Black %.1f%%", wAcc, bAcc));
+        int wErr = w[8] + w[10], bErr = b[8] + b[10];
+        if (wErr + bErr == 0) sb.append(" · no blunders");
+        else sb.append(String.format(java.util.Locale.US, " · blunders/misses %d–%d", wErr, bErr));
+        return sb.toString();
+    }
+
     public static boolean isKeyMoment(String c) {
         return BRILLIANT.equals(c) || GREAT.equals(c) || BLUNDER.equals(c) || MISTAKE.equals(c)
                 || INACCURACY.equals(c) || MISS.equals(c);

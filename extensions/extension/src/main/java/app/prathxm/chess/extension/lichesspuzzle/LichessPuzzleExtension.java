@@ -1,3 +1,10 @@
+/*
+ * Copyright 2026 PrathxmOp
+ * https://github.com/PrathxmOp/Prathxm-Patches
+ *
+ * Derived from / ported from https://github.com/VenusIsJaded/Prathxm-Patches (GPL-3.0)
+ */
+
 package app.prathxm.chess.extension.lichesspuzzle;
 
 import android.util.Log;
@@ -61,15 +68,15 @@ public final class LichessPuzzleExtension {
         }
     }
 
-    public static Object submitDailyPuzzleAction(int dailyPuzzleId, Object action, Object hintState, Object continuation) {
+    public static Object submitDailyPuzzleAction(long dailyPuzzleId, Object action, Object hintState) {
         Log.d(TAG, "submitDailyPuzzleAction() called with id: " + dailyPuzzleId);
         try {
             Puzzle puzzle = lastPuzzle != null ? lastPuzzle : fallbackPuzzle(today());
             Object res = newInstance(
-                "chesscom.puzzles.v2alpha.SubmitDailyPuzzleActionResponse",
+                "chesscom.puzzles.v2.SubmitDailyPuzzleActionResponse",
                 new Class<?>[]{
-                    cls("chesscom.puzzles.v2alpha.DailyPuzzleAttemptState"),
-                    cls("chesscom.puzzles.v2alpha.DailyPuzzleUserStats"),
+                    cls("chesscom.puzzles.v2.DailyPuzzleAttemptState"),
+                    cls("chesscom.puzzles.v2.DailyPuzzleUserStats"),
                     cls("okio.ByteString")
                 },
                 attempt(puzzle),
@@ -128,31 +135,79 @@ public final class LichessPuzzleExtension {
         }
         pgnBuilder.append("\n");
 
-        // Append the correct solution moves to the PGN body
-        if (solutionArray != null) {
-            for (int i = 0; i < solutionArray.length(); i++) {
-                pgnBuilder.append(solutionArray.optString(i)).append(" ");
-            }
+        if (fen.isEmpty() || solutionArray == null || solutionArray.length() == 0) {
+            throw new IllegalStateException("Puzzle contains no position or solution");
         }
-        pgnBuilder.append("*");
-        
+        java.util.List<String> solution = new java.util.ArrayList<>();
+        for (int i = 0; i < solutionArray.length(); i++) solution.add(solutionArray.optString(i));
+        String movetext = uciToPgnMovetext(fen, solution);
+        if (movetext == null) throw new IllegalStateException("Unreadable solution " + solution);
+        pgnBuilder.append(movetext).append(" *");
+
         String pgn = pgnBuilder.toString().trim();
-        
-        if (solutionArray == null || solutionArray.length() == 0) {
-            throw new IllegalStateException("Puzzle contains no solution");
-        }
         
         Log.d(TAG, "fetchDailyPuzzle() downloaded successfully: title=" + title + ", rating=" + rating + ", pgn=" + pgn);
         return new Puzzle(idToInt(id), title, normalizeDate(date), pgn);
     }
 
+    /**
+     * Lichess sends the solution in UCI ("a3a2 a1a2 f5a5"). The app's PGN parser rejects bare
+     * UCI, so every real daily puzzle used to fail and the fallback stub was shown instead.
+     * Pieces are written with their from-square ("1... Qa3xa2 2. Ka1xa2 Rf5a5") so no
+     * disambiguation is needed; pawns use plain SAN ("exf6", "a8=Q").
+     *
+     * @return the movetext, or null if a move does not fit the position
+     */
+    static String uciToPgnMovetext(String fen, java.util.List<String> uciMoves) {
+        String[] f = fen.trim().split("\\s+");
+        if (f.length < 2) return null;
+        char[] b = app.prathxm.chess.extension.stockfish.BoardUtil.parseBoard(fen);
+        boolean white = "w".equals(f[1]);
+        int moveNo = 1;
+        if (f.length >= 6) {
+            try { moveNo = Math.max(1, Integer.parseInt(f[5])); } catch (NumberFormatException ignored) {}
+        }
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (String uci : uciMoves) {
+            int from = app.prathxm.chess.extension.stockfish.BoardUtil.square(uci, 0);
+            int to = app.prathxm.chess.extension.stockfish.BoardUtil.square(uci, 2);
+            if (from < 0 || to < 0) return null;
+            char piece = b[from];
+            if (piece == '.' || Character.isUpperCase(piece) != white) return null;
+            char lower = Character.toLowerCase(piece);
+            boolean capture = b[to] != '.' || (lower == 'p' && (from % 8) != (to % 8));
+            if (white) sb.append(first ? "" : " ").append(moveNo).append(". ");
+            else if (first) sb.append(moveNo).append("... ");
+            else sb.append(' ');
+            String fromName = uci.substring(0, 2), toName = uci.substring(2, 4);
+            if (lower == 'k' && Math.abs((from % 8) - (to % 8)) == 2) {
+                sb.append((to % 8) > (from % 8) ? "O-O" : "O-O-O");
+            } else {
+                if (lower == 'p') {
+                    // Pawns in plain SAN ("exf6", "a8=Q"): the parser rejects "e5xf6".
+                    if (capture) sb.append(fromName.charAt(0)).append('x');
+                    sb.append(toName);
+                    if (uci.length() >= 5) sb.append('=').append(Character.toUpperCase(uci.charAt(4)));
+                } else {
+                    sb.append(Character.toUpperCase(piece)).append(fromName).append(capture ? "x" : "").append(toName);
+                }
+            }
+            app.prathxm.chess.extension.stockfish.BoardUtil.apply(b, uci);
+            if (!white) moveNo++;
+            white = !white;
+            first = false;
+        }
+        return sb.toString();
+    }
+
     private static Object response(Puzzle puzzle) throws Exception {
         return newInstance(
-            "chesscom.puzzles.v2alpha.GetDailyPuzzleResponse",
+            "chesscom.puzzles.v2.GetDailyPuzzleResponse",
             new Class<?>[]{
-                cls("chesscom.puzzles.v2alpha.DailyPuzzle"),
-                cls("chesscom.puzzles.v2alpha.DailyPuzzleAttemptState"),
-                cls("chesscom.puzzles.v2alpha.DailyPuzzleUserStats"),
+                cls("chesscom.puzzles.v2.DailyPuzzle"),
+                cls("chesscom.puzzles.v2.DailyPuzzleAttemptState"),
+                cls("chesscom.puzzles.v2.DailyPuzzleUserStats"),
                 Integer.class,
                 cls("okio.ByteString")
             },
@@ -166,21 +221,21 @@ public final class LichessPuzzleExtension {
 
     private static Object dailyPuzzle(Puzzle puzzle) throws Exception {
         return newInstance(
-            "chesscom.puzzles.v2alpha.DailyPuzzle",
+            "chesscom.puzzles.v2.DailyPuzzle",
             new Class<?>[]{
-                int.class,
+                long.class,
                 String.class,
                 String.class,
                 String.class,
                 int.class,
                 int.class,
-                cls("chesscom.puzzles.v2alpha.DailyPuzzleAuthorDetails"),
-                cls("chesscom.puzzles.v2alpha.DailyPuzzleVideoDetails"),
+                cls("chesscom.puzzles.v2.DailyPuzzleAuthorDetails"),
+                cls("chesscom.puzzles.v2.DailyPuzzleVideoDetails"),
                 boolean.class,
                 int.class,
                 cls("okio.ByteString")
             },
-            puzzle.id,
+            (long) puzzle.id,
             puzzle.title,
             puzzle.date,
             puzzle.pgn,
@@ -196,31 +251,33 @@ public final class LichessPuzzleExtension {
 
     private static Object attempt(Puzzle puzzle) throws Exception {
         return newInstance(
-            "chesscom.puzzles.v2alpha.DailyPuzzleAttemptState",
+            "chesscom.puzzles.v2.DailyPuzzleAttemptState",
             new Class<?>[]{
-                int.class,
+                long.class,
                 String.class,
                 int.class,
                 cls("java.time.Instant"),
                 int.class,
                 String.class,
-                cls("chesscom.puzzles.v2alpha.DailyPuzzleHintState"),
+                cls("chesscom.puzzles.v2.DailyPuzzleHintState"),
+                Boolean.class,
                 cls("okio.ByteString")
             },
-            puzzle.id,
+            (long) puzzle.id,
             puzzle.date,
             HEARTS,
             null,
             0,
             "Lichess puzzle loaded locally.",
             null,
+            Boolean.FALSE,
             emptyByteString()
         );
     }
 
     private static Object stats() throws Exception {
         return newInstance(
-            "chesscom.puzzles.v2alpha.DailyPuzzleUserStats",
+            "chesscom.puzzles.v2.DailyPuzzleUserStats",
             new Class<?>[]{int.class, int.class, int.class, cls("okio.ByteString")},
             0,
             100,

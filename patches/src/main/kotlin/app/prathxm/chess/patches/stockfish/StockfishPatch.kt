@@ -129,7 +129,7 @@ val stockfishPatch = bytecodePatch(
         GameAnalysisPermissionsGetCanViewAccuracyAndMovesFingerprint.method.addInstructions(
             0,
             """
-                iget-boolean v0, p0, Lcom/chess/entities/GameAnalysisPermissions;->canCreate:Z
+                iget-boolean v0, p0, Lcom/chess/entities/GameAnalysisPermissions;->canViewAccuracyAndMoves:Z
                 const-string v1, "canViewAccuracyAndMoves"
                 invoke-static {v0, v1}, $EXTENSION_CLASS->getAnalysisPermission(ZLjava/lang/String;)Z
                 move-result v0

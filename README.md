@@ -115,6 +115,11 @@ Questions, feedback, or title claims? Reach out:
 - [**GitHub Discussions**](https://github.com/PrathxmOp/Prathxm-Patches/discussions)
 - [**Signal Private Message**](https://signal.me/#eu/5hn89XV1PsUQlPRc0WhEoUEh197WioxzFJj-CTXOGe1Boymy0-FCub3zwWXa_L3a)
 
+## 📜 Attribution & Credits
+
+This project includes implementations, fixes, and features derived from and ported from:
+- [**VenusIsJaded/Prathxm-Patches**](https://github.com/VenusIsJaded/Prathxm-Patches) (GPL-3.0) — Special thanks for opening book data integration, Lichess puzzle sound fixes, win-probability review math improvements, and coroutine flow bridge enhancements.
+
 ---
 
 ## ⚠️ Disclaimer & License
