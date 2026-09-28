@@ -898,9 +898,13 @@ public class StockfishExtension {
     public static Object getLocalAnalysisFlowForConfig(Class<?> flowClass, Object config, Object analysisDepth) {
         String pgn = null;
         try {
-            if (config != null) {
-                Object v = config.getClass().getMethod("getPgn").invoke(config);
-                if (v instanceof String) pgn = (String) v;
+            if (config instanceof String) {
+                pgn = (String) config;
+            } else if (config != null) {
+                try {
+                    Object v = config.getClass().getMethod("getPgn").invoke(config);
+                    if (v instanceof String) pgn = (String) v;
+                } catch (Throwable ignored) {}
             }
         } catch (Throwable t) {
             Log.e(TAG, "getLocalAnalysisFlowForConfig: could not read PGN", t);

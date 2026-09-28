@@ -157,12 +157,15 @@ val stockfishPatch = bytecodePatch(
         // a(ComputerAnalysisConfiguration config, UserSide, Coach, Set, AnalysisDepth, AnalysisEngine, boolean skillsEnabled)
         val repoMethod = GameAnalysisRepositoryGetGameAnalysisFingerprint.method
         val repoReturnType = repoMethod.returnType
+        val pgnReg = if (repoMethod.parameterTypes[0] == "Lcom/chess/entities/ComputerAnalysisConfiguration;") "p1" else "p2"
+        val depthIdx = repoMethod.parameterTypes.indexOf("Lcom/chess/entities/AnalysisDepth;")
+        val depthReg = if (depthIdx >= 0) "p" + (depthIdx + 1) else "p5"
         repoMethod.addInstructions(
             0,
             """
                 const-class v0, $repoReturnType
-                move-object/from16 v1, p1
-                move-object/from16 v2, p5
+                move-object/from16 v1, $pgnReg
+                move-object/from16 v2, $depthReg
                 invoke-static {v0, v1, v2}, $EXTENSION_CLASS->getLocalAnalysisFlowForConfig(Ljava/lang/Class;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
                 move-result-object v0
                 check-cast v0, $repoReturnType

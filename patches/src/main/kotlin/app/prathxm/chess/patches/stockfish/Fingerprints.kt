@@ -118,13 +118,12 @@ object GameAnalysisPermissionsGetCanViewCoachCommentaryFingerprint : Fingerprint
 )
 
 object GameAnalysisRepositoryGetGameAnalysisFingerprint : Fingerprint(
-    // a(ComputerAnalysisConfiguration, UserSide, Coach, Set, AnalysisDepth, AnalysisEngine, Z)
+    // a(ComputerAnalysisConfiguration / CompatGameIdAndType, PGN, UserSide, Coach, Set, AnalysisDepth, AnalysisEngine)
     custom = { method, classDef ->
         classDef.type == "Lcom/chess/gamereview/repository/GameAnalysisRepositoryImpl;" &&
             method.parameterTypes.size == 7 &&
-            method.parameterTypes[0] == "Lcom/chess/entities/ComputerAnalysisConfiguration;" &&
-            method.parameterTypes[4] == "Lcom/chess/entities/AnalysisDepth;" &&
-            method.parameterTypes[5] == "Lcom/chess/entities/AnalysisEngine;"
+            method.parameterTypes.contains("Lcom/chess/entities/AnalysisDepth;") &&
+            method.parameterTypes.contains("Lcom/chess/entities/AnalysisEngine;")
     }
 )
 
