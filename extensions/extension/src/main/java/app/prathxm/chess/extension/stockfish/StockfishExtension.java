@@ -570,19 +570,30 @@ public class StockfishExtension {
         }
     }
 
+    /** Application context, cached after the first successful lookup (it never changes). */
+    private static volatile Context appContext;
+
+    /**
+     * The Application. Called many times per move and from hot getters (ads, premium), so the
+     * reflective ActivityThread lookup runs only until it first succeeds.
+     */
     public static Context getContext() {
-        try {
-            Class<?> activityThreadClass = Class.forName("android.app.ActivityThread");
-            Method currentApplicationMethod = activityThreadClass.getMethod("currentApplication");
-            Context ctx = (Context) currentApplicationMethod.invoke(null);
-            if (ctx != null && !engineReady) {
-                ensureEngineReady();
+        Context ctx = appContext;
+        if (ctx == null) {
+            try {
+                Class<?> activityThreadClass = Class.forName("android.app.ActivityThread");
+                Method currentApplicationMethod = activityThreadClass.getMethod("currentApplication");
+                ctx = (Context) currentApplicationMethod.invoke(null);
+                if (ctx != null) appContext = ctx;
+            } catch (Throwable t) {
+                Log.e(TAG, "getContext failed: " + t.getMessage());
+                return null;
             }
-            return ctx;
-        } catch (Throwable t) {
-            Log.e(TAG, "getContext failed: " + t.getMessage());
         }
-        return null;
+        if (ctx != null && !engineReady) {
+            ensureEngineReady();
+        }
+        return ctx;
     }
 
     public static Object getStateImpl() {
@@ -876,44 +887,6 @@ public class StockfishExtension {
                 || name.startsWith("com.chess.waitgame.")
                 || name.startsWith("com.chess.chesstv.")
                 || name.startsWith("com.chess.features.connectedboards.");
-    }
-
-    public static Object getLocalAnalysisFlow(
-        Object repository,
-        Object gameIdAndType,
-        String pgn,
-        Object userSide,
-        Object coach,
-        java.util.Set<?> allowedSources,
-        Object analysisDepth,
-        Object analysisEngine
-    ) {
-        Log.d(TAG, "getLocalAnalysisFlow called with pgn: " + (pgn != null ? (pgn.substring(0, Math.min(pgn.length(), 30)) + "...") : "null"));
-        Class<?> flowClass = findFlowClass(repository);
-        return LocalAnalysisFlow.createFlow(flowClass, pgn, analysisDepth);
-    }
-
-    private static Class<?> findFlowClass(Object repository) {
-        if (repository != null) {
-            try {
-                for (Method m : repository.getClass().getMethods()) {
-                    Class<?> ret = m.getReturnType();
-                    if (ret.isInterface()) {
-                        for (Method rm : ret.getMethods()) {
-                            if ("collect".equals(rm.getName()) && rm.getParameterTypes().length == 2) {
-                                return ret;
-                            }
-                        }
-                    }
-                }
-            } catch (Throwable t) {
-                Log.e(TAG, "findFlowClass failed: " + t.getMessage());
-            }
-        }
-        try {
-            return Class.forName("kotlinx.coroutines.flow.Flow");
-        } catch (Throwable ignored) {}
-        return null;
     }
 
     /**

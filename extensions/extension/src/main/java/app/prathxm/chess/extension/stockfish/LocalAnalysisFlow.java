@@ -71,32 +71,13 @@ public class LocalAnalysisFlow {
             );
         } catch (Throwable t) {
             Log.e(TAG, "Failed to create dynamic proxy flow", t);
-            // Return an empty flow instead of null so downstream .map{}.collect() doesn't NPE.
-            return emptyFlowProxy(flowClass);
+            return null;
         }
-    }
-
-    /** A Flow that emits nothing — prevents NPE when the real proxy can't be created. */
-    private static Object emptyFlowProxy(Class<?> flowClass) {
-        if (flowClass == null) {
-            try { flowClass = Class.forName("kotlinx.coroutines.flow.Flow"); } catch (Throwable ignored) {}
-        }
-        if (flowClass == null) return null; // truly unrecoverable
-        return Proxy.newProxyInstance(
-            flowClass.getClassLoader(),
-            new Class<?>[]{flowClass},
-            (proxy, method, args) -> {
-                if (method.getName().equals("collect")) return FlowBridge.unit();
-                if (method.getName().equals("toString")) return "EmptyFlow";
-                if (method.getName().equals("hashCode")) return System.identityHashCode(proxy);
-                if (method.getName().equals("equals")) return args != null && proxy == args[0];
-                return null;
-            }
-        );
     }
 
     private static void runCollect(AppTypes types, String pgn, Object analysisDepthObj,
                                    FlowBridge.Emitter emitter) throws Throwable {
+        StockfishExtension.isReviewMode = true;
         Activity activity = StockfishExtension.getCurrentActivity();
         try {
             // Fair Play Gating: Prevent any local analysis during active live match
@@ -105,7 +86,6 @@ public class LocalAnalysisFlow {
                 Log.w(TAG, "Analysis request blocked: Live gameplay detected.");
                 return;
             }
-            StockfishExtension.isReviewMode = true;
 
             // Stockfish 19 on a phone reaches these depths quickly; noticeably deeper than the
             // old 10/12/15/18 presets so late-game tactics are resolved correctly.
@@ -212,7 +192,6 @@ public class LocalAnalysisFlow {
             }
 
             // Opening book: which leading plies are theory, and the name of the opening.
-            // Derived from https://github.com/VenusIsJaded/Prathxm-Patches (GPL-3.0)
             List<String> bookLine = new ArrayList<>(Math.min(totalMoves, 40));
             for (int i = 0; i < totalMoves && i < 40; i++) {
                 if (playedLans[i] == null || playedLans[i].length() < 4) break;
@@ -369,7 +348,8 @@ public class LocalAnalysisFlow {
 
                 String classification = ReviewMath.classify(isBest, forced, loss, winBefore, winAfter,
                         secondGap, sacrifice, recapture, prevLoss, missedMate);
-                // Known theory is "Book" (as in Chess.com's own review), unless the engine sees a clear mistake
+                // Known theory is "Book" (as in Chess.com's own review), unless the engine sees a
+                // clear mistake (a dubious gambit line is still shown for what it costs).
                 if (i < bookPlies && ReviewMath.isBookEligible(classification)) {
                     classification = ReviewMath.BOOK;
                 }
@@ -470,8 +450,8 @@ public class LocalAnalysisFlow {
             int bRating = estimateRating(bAcc);
 
             // Category ratings from the real per-phase accuracies (opening / middlegame /
-            // endgame) instead of fixed offsets from the overall rating.
-            // Derived from https://github.com/VenusIsJaded/Prathxm-Patches (GPL-3.0)
+            // endgame) instead of fixed offsets from the overall rating. A phase with too few
+            // moves falls back to the overall accuracy.
             Float[] wPh = {phaseAcc(wPhase.get(0)), phaseAcc(wPhase.get(1)), phaseAcc(wPhase.get(2))};
             Float[] bPh = {phaseAcc(bPhase.get(0)), phaseAcc(bPhase.get(1)), phaseAcc(bPhase.get(2))};
             Object whiteReport = repConstructor.newInstance(wRating, whiteGlyphs,
@@ -491,7 +471,9 @@ public class LocalAnalysisFlow {
             Constructor<?> themesConstructor = themesClass.getConstructor(twClass);
             Object themes = themesConstructor.newInstance(themesWeights);
 
-            // Opening name shown in the review (AnalyzedGameData.openingInfo).
+            // Opening name shown in the review (AnalyzedGameData.openingInfo). The url is only
+            // used for an optional online opening-stats request that the app wraps in
+            // runCatching, so an empty url is safe offline.
             Class<?> openingClass = types.agd("$OpeningInfo");
             Object openingInfo = null;
             if (opening != null) {
@@ -507,7 +489,10 @@ public class LocalAnalysisFlow {
             // Build the final AnalyzedGameData
             Class<?> agdClass = types.agd("");
 
-            // AnalyzedGameData primary constructor
+            // AnalyzedGameData primary constructor: (startingFen, tallies, accuracyScores, positions,
+            // openingInfo, arc, arcPlayerScenarios, playMayContinue, themes, cee, metaData, reportCard,
+            // analysisStrength, gameSummary, gameSummaryAudioUrlHash, gameSummaryCoachEmotion,
+            // takeaways, gameResult). Fill by type in declaration order; unknown/optional parameters get null/0/empty.
             Constructor<?> agdConstructor = AppTypes.primaryCtor(agdClass);
             Class<?>[] agdTypes = agdConstructor.getParameterTypes();
             Object[] agdArgs = new Object[agdTypes.length];
@@ -529,7 +514,7 @@ public class LocalAnalysisFlow {
                 else if (t == themesClass) agdArgs[k] = themes;
                 else if (t == rcClass) agdArgs[k] = reportCard;
                 else if (t == openingClass) agdArgs[k] = openingInfo;
-                else agdArgs[k] = AppTypes.defaultFor(t);             // cee, gameResult, ...
+                else agdArgs[k] = AppTypes.defaultFor(t);             // openingInfo, cee, gameResult, ...
             }
             Object gameData = agdConstructor.newInstance(agdArgs);
 
@@ -558,6 +543,25 @@ public class LocalAnalysisFlow {
             // Report through the app's own Failure state so the screen shows its error UI.
             emitter.emit(types.failureCtor.newInstance(cause));
         }
+    }
+
+    /**
+     * Report-card categories (names the review maps in f1.W: opening, middlegame = STRATEGY,
+     * endgame, tactics): Opening, Middlegame and Endgame from their own phase accuracy,
+     * plus Tactics from how the player handled critical moments (brilliant / great finds
+     * versus mistakes, blunders and misses).
+     */
+    private static List<Object> categoryRatings(Constructor<?> cat, float overall, Float[] phase, int[] tally)
+            throws Exception {
+        List<Object> out = new ArrayList<>();
+        String[] names = {"Opening", "Middlegame", "Endgame"};
+        for (int k = 0; k < 3; k++) {
+            float acc = phase[k] != null ? phase[k] : overall;
+            out.add(cat.newInstance(names[k], estimateRating(acc), ReviewMath.performance(acc), 0));
+        }
+        float tactics = ReviewMath.tacticsScore(overall, tally);
+        out.add(cat.newInstance("Tactics", estimateRating(tactics), ReviewMath.performance(tactics), 0));
+        return out;
     }
 
     /** Tally slot for a classification (MovesTally constructor order). */
@@ -633,24 +637,6 @@ public class LocalAnalysisFlow {
         }
         return ratingPoints[ratingPoints.length - 1];
     }
-
-    /**
-     * Derived from https://github.com/VenusIsJaded/Prathxm-Patches (GPL-3.0)
-     * Report-card categories (Opening, Middlegame, Endgame and Tactics).
-     */
-    private static List<Object> categoryRatings(Constructor<?> cat, float overall, Float[] phase, int[] tally)
-            throws Exception {
-        List<Object> out = new ArrayList<>();
-        String[] names = {"Opening", "Middlegame", "Endgame"};
-        for (int k = 0; k < 3; k++) {
-            float acc = phase[k] != null ? phase[k] : overall;
-            out.add(cat.newInstance(names[k], estimateRating(acc), ReviewMath.performance(acc), 0));
-        }
-        float tactics = ReviewMath.tacticsScore(overall, tally);
-        out.add(cat.newInstance("Tactics", estimateRating(tactics), ReviewMath.performance(tactics), 0));
-        return out;
-    }
-
     private static Object getPositionBefore(Object csrmm) throws Exception {
         try {
             return csrmm.getClass().getMethod("getPositionBefore").invoke(csrmm);
