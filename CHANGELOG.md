@@ -1,3 +1,9 @@
+## [1.15.0](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.14.0...v1.15.0) (2026-09-28)
+
+### ✨ New Features
+
+* **Chess.com:** set 4.10.0 as primary target version ([a7fbdc3](https://github.com/PrathxmOp/Prathxm-Patches/commit/a7fbdc3f54fd80fac8b8539ac03708f8f83543ba))
+
 ## [1.15.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.14.0...v1.15.0-dev.1) (2026-09-28)
 
 ### ✨ New Features
