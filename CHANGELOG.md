@@ -1,3 +1,13 @@
+## [1.14.0-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.2-dev.1...v1.14.0-dev.1) (2026-09-28)
+
+### 🐛 Bug Fixes
+
+* **CI:** downgrade conventional-changelog-conventionalcommits to ^8.0.0 ([7226847](https://github.com/PrathxmOp/Prathxm-Patches/commit/7226847171164d32375791087a05f73811f2fed8))
+
+### ✨ New Features
+
+* **Chess.com:** add unlimited coach patch and upgrade stockfish analysis flow ([657c153](https://github.com/PrathxmOp/Prathxm-Patches/commit/657c15363ddc9180a41a9f99c0076c6bfa7bc3f4))
+
 ## [1.13.2-dev.1](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.13.1...v1.13.2-dev.1) (2026-09-27)
 
 ### 🐛 Bug Fixes
