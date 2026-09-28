@@ -46,10 +46,14 @@ public class EvalBarView extends View {
      */
     public void update(int x, int y, int width, int height,
                        float score, boolean hasMate, int mateIn, boolean flipped) {
+        float target = ratioFor(score);
+        boolean firstShow = !hasValue || this.flipped != flipped;
         this.score   = score;
         this.hasMate = hasMate;
         this.mateIn  = mateIn;
         this.flipped = flipped;
+        this.hasValue = true;
+        animateTo(target, firstShow);
 
         ViewGroup.LayoutParams lp = getLayoutParams();
         if (lp == null) {
@@ -65,6 +69,42 @@ public class EvalBarView extends View {
         invalidate();
     }
 
+    /** Ratio currently drawn (0..1, 1 = all white); animated towards the latest score. */
+    private float shownRatio = 0.5f;
+    private boolean hasValue = false;
+    private android.animation.ValueAnimator animator;
+
+    /** Evaluation (pawns, white POV) -> white share of the bar. Mates fill the bar. */
+    static float ratioFor(float score) {
+        if (score >= ReviewMath.MATE_THRESHOLD) return 1f;
+        if (score <= -ReviewMath.MATE_THRESHOLD) return 0f;
+        // Win-probability scale (same model as the review): +1 is clearly visible, +5 is
+        // nearly full, instead of a linear +/-10 scale where most real evals looked equal.
+        return Math.max(0.03f, Math.min(0.97f, ReviewMath.whiteWin(score)));
+    }
+
+    private void animateTo(float target, boolean immediate) {
+        if (animator != null) animator.cancel();
+        if (immediate || getVisibility() != VISIBLE) {
+            shownRatio = target;
+            return;
+        }
+        animator = android.animation.ValueAnimator.ofFloat(shownRatio, target);
+        animator.setDuration(220);
+        animator.setInterpolator(new android.view.animation.DecelerateInterpolator());
+        animator.addUpdateListener(a -> {
+            shownRatio = (float) a.getAnimatedValue();
+            invalidate();
+        });
+        animator.start();
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        if (animator != null) animator.cancel();
+        super.onDetachedFromWindow();
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -72,9 +112,7 @@ public class EvalBarView extends View {
         int h = getHeight();
         if (w == 0 || h == 0) return;
 
-        // Clamp score ±10 pawns → 0..1 ratio (1 = full white)
-        float clamped    = Math.max(-10.0f, Math.min(10.0f, score));
-        float whiteRatio = (clamped + 10.0f) / 20.0f;
+        float whiteRatio = shownRatio;
 
         float divY;
         if (flipped) {
@@ -92,10 +130,14 @@ public class EvalBarView extends View {
         canvas.drawRect(rectBlack, paintBlack);
         canvas.drawRect(rectWhite, paintWhite);
         canvas.drawLine(0, divY, w, divY, paintLine);
+        // Tick at 0.00 (middle of the bar)
+        float mid = h / 2.0f;
+        canvas.drawLine(0, mid, w * 0.25f, mid, paintLine);
+        canvas.drawLine(w * 0.75f, mid, w, mid, paintLine);
 
         // Score label
-        String label = hasMate ? "M" + Math.abs(mateIn)
-                                : String.format("%.1f", Math.abs(score));
+        String label = hasMate ? (mateIn == 0 ? "#" : "M" + Math.abs(mateIn))
+                                : formatScore(score);
 
         boolean whiteAhead = score >= 0;
         float textY;
@@ -111,5 +153,11 @@ public class EvalBarView extends View {
         canvas.rotate(-90, w / 2.0f, textY);
         canvas.drawText(label, w / 2.0f, textY + paintText.getTextSize() / 3.0f, paintText);
         canvas.restore();
+    }
+
+    /** "0.4", "3.2", "12" (locale-independent: never "0,4"). */
+    static String formatScore(float score) {
+        float a = Math.abs(score);
+        return a >= 10f ? String.valueOf(Math.round(a)) : String.format(java.util.Locale.US, "%.1f", a);
     }
 }

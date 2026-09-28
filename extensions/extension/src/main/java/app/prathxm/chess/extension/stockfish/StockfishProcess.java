@@ -1,5 +1,6 @@
 package app.prathxm.chess.extension.stockfish;
 
+import android.app.ActivityManager;
 import android.content.Context;
 import android.util.Log;
 
@@ -7,28 +8,43 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * StockfishProcess – manages the Stockfish executable as a subprocess,
  * communicating via the UCI protocol over stdin/stdout.
  *
- * Binary layout inside the patched APK assets:
- *   assets/stockfish/arm64-v8a/stockfish
- *   assets/stockfish/armeabi-v7a/stockfish
+ * The binary is packaged as lib/&lt;abi&gt;/libstockfish.so so Android extracts it
+ * into the (executable) native library directory.
  *
- * On first run the binary is copied to the app's private data dir,
- * made executable, and then launched.
+ * Performance notes:
+ *  - Threads defaults to every available CPU core and Hash is sized from the
+ *    device's physical RAM, so the engine searches as deep as the hardware allows.
+ *  - The UCI output stream is parsed without regex and without per-line logging;
+ *    Stockfish prints thousands of "info" lines per search and logging each one
+ *    cost a lot of CPU (and heat) on its own.
+ *  - UCI options are only re-sent when they actually change.
+ *  - A search that runs past its deadline is explicitly stopped instead of being left
+ *    running in the background.
  */
 @SuppressWarnings("unused")
 public class StockfishProcess {
 
     private static final String TAG = "StockfishProcess";
 
-    // UCI timeout for "readyok" and "bestmove" responses (ms)
-    private static final int READY_TIMEOUT_MS = 5_000;
-    private static final int BESTMOVE_TIMEOUT_MS = 15_000;
+    /** Loading the ~110 MB NNUE network can take a few seconds on slow phones. */
+    private static final int READY_TIMEOUT_MS = 30_000;
+    /** Extra grace time on top of any movetime cap before we force a "stop". */
+    private static final int BESTMOVE_GRACE_MS = 10_000;
+    /** Hard ceiling for a depth-only search before we force a "stop". */
+    private static final int DEFAULT_SEARCH_TIMEOUT_MS = 60_000;
+
+    /** Scores are clamped to +/-MATE_SCORE (pawns) to keep mate evaluations ordered. */
+    public static final float MATE_SCORE = 99.0f;
 
     private Process process;
     private PrintWriter stdin;
@@ -36,15 +52,15 @@ public class StockfishProcess {
 
     private volatile boolean ready = false;
 
+    // Cached option state so we only send setoption when something changes.
+    private int curThreads = -1;
+    private int curHash = -1;
+    private int curMultiPV = -1;
+    private Boolean curLimitStrength = null;
+    private int curElo = -1;
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
-    /**
-     * Extract the binary for the running ABI from APK assets, make it
-     * executable, and start the process.
-     *
-     * @param context  Any context (application context preferred).
-     * @return true if the engine started and responded to "uci".
-     */
     public boolean start(Context context) {
         try {
             File engineBin = extractBinary(context);
@@ -54,11 +70,11 @@ public class StockfishProcess {
             pb.redirectErrorStream(true);
             process = pb.start();
 
-            OutputStream os = process.getOutputStream();
-            stdin  = new PrintWriter(os, true /* autoFlush */);
-            stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            stdin  = new PrintWriter(new OutputStreamWriter(process.getOutputStream()), true);
+            stdout = new BufferedReader(new InputStreamReader(process.getInputStream()), 1 << 16);
 
-            // Initialise UCI and wait for "uciok"
+            resetOptionCache();
+
             send("uci");
             if (!waitForLine("uciok", READY_TIMEOUT_MS)) {
                 Log.e(TAG, "Engine did not respond with 'uciok'");
@@ -66,12 +82,11 @@ public class StockfishProcess {
                 return false;
             }
 
-            // Configure engine options (e.g. hash table, threads)
-            send("setoption name Hash value 32");
-            send("setoption name Threads value 2");
+            // Threads first, then Hash (Stockfish recommends this order).
+            applyThreads(StockfishSettings.getThreads(context));
+            applyHash(computeHashMb(context));
             send("setoption name UCI_ShowWDL value true");
 
-            // Confirm readiness
             send("isready");
             if (!waitForLine("readyok", READY_TIMEOUT_MS)) {
                 Log.e(TAG, "Engine did not respond with 'readyok'");
@@ -80,7 +95,8 @@ public class StockfishProcess {
             }
 
             ready = true;
-            Log.i(TAG, "Stockfish ready on " + Build.CPU_ABI);
+            Log.i(TAG, "Stockfish ready on " + android.os.Build.CPU_ABI
+                    + " (threads=" + curThreads + ", hash=" + curHash + "MB)");
             return true;
 
         } catch (IOException e) {
@@ -90,29 +106,51 @@ public class StockfishProcess {
     }
 
     public boolean isReady() {
-        if (!ready || process == null) {
-            return false;
-        }
+        if (!ready || process == null) return false;
         try {
             process.exitValue();
+            ready = false;
             return false; // has exited
         } catch (IllegalThreadStateException e) {
             return true; // still running
         }
     }
 
+    // ── Results ───────────────────────────────────────────────────────────────
+
     public static class AnalysisResult {
-        public final java.util.List<String> moves;
+        /** First move of each principal variation, best first (MultiPV order). */
+        public final List<String> moves;
+        /** Score of the best line in pawns from WHITE's point of view (mates mapped to +/-(99-n)). */
         public final float score;
         public final boolean hasMate;
+        /** Mate distance from WHITE's point of view (positive = white mates). */
         public final int mateIn;
+        /** Win/Draw/Loss per mille from WHITE's point of view. */
         public final int wdlWin;
         public final int wdlDraw;
         public final int wdlLoss;
         public final String ponder;
+        /** Full principal variation of the best line (starts with moves.get(0)). */
+        public final List<String> pv;
+        /** Score (white POV, pawns) of every MultiPV line, aligned with {@link #moves}. */
+        public final float[] lineScores;
+        /** Depth actually reached by the search. */
+        public final int depth;
+        /** True if the position has no legal moves (checkmate or stalemate). */
+        public final boolean terminal;
 
-        public AnalysisResult(java.util.List<String> moves, float score, boolean hasMate, int mateIn, int wdlWin, int wdlDraw, int wdlLoss, String ponder) {
-            this.moves = moves;
+        public AnalysisResult(List<String> moves, float score, boolean hasMate, int mateIn,
+                              int wdlWin, int wdlDraw, int wdlLoss, String ponder) {
+            this(moves, score, hasMate, mateIn, wdlWin, wdlDraw, wdlLoss, ponder,
+                    moves != null && !moves.isEmpty() ? Collections.singletonList(moves.get(0)) : new ArrayList<>(),
+                    new float[]{score}, 0, false);
+        }
+
+        public AnalysisResult(List<String> moves, float score, boolean hasMate, int mateIn,
+                              int wdlWin, int wdlDraw, int wdlLoss, String ponder,
+                              List<String> pv, float[] lineScores, int depth, boolean terminal) {
+            this.moves = moves != null ? moves : new ArrayList<>();
             this.score = score;
             this.hasMate = hasMate;
             this.mateIn = mateIn;
@@ -120,249 +158,463 @@ public class StockfishProcess {
             this.wdlDraw = wdlDraw;
             this.wdlLoss = wdlLoss;
             this.ponder = ponder;
+            this.pv = pv != null ? pv : new ArrayList<>();
+            this.lineScores = lineScores != null ? lineScores : new float[0];
+            this.depth = depth;
+            this.terminal = terminal;
+        }
+
+        public static AnalysisResult empty() {
+            return new AnalysisResult(new ArrayList<>(), 0f, false, 0, 0, 0, 0, null,
+                    new ArrayList<>(), new float[0], 0, false);
+        }
+
+        /** A usable result has either a best move or is a genuine terminal position. */
+        public boolean isValid() {
+            return !moves.isEmpty() || terminal;
         }
     }
 
-    /** @return the list of best moves in UCI format ("e2e4") for the given FEN, up to multiPV. */
-    public java.util.List<String> bestMoves(Context context, String fen, int depth, int multiPV) {
+    /**
+     * Receives intermediate results of a running search (live analysis only), so the
+     * arrows / eval bar can follow the search as it deepens instead of waiting for the
+     * final depth. Called on the thread that runs the search.
+     */
+    public interface ProgressListener {
+        void onProgress(AnalysisResult partial);
+    }
+
+    /** Intermediate results are only published from this depth on (earlier ones are noise). */
+    private static final int PROGRESS_MIN_DEPTH = 10;
+    /** Minimum time between two intermediate results. */
+    private static final long PROGRESS_INTERVAL_MS = 300;
+
+    // ── Analysis API ──────────────────────────────────────────────────────────
+
+    public List<String> bestMoves(Context context, String fen, int depth, int multiPV) {
         return analyze(context, fen, depth, multiPV).moves;
     }
 
-    /** Analyse the position and return both best moves and evaluation. */
+    /** Analyse a FEN position (live analysis). */
     public AnalysisResult analyze(Context context, String fen, int depth, int multiPV) {
-        java.util.List<String> moves = new java.util.ArrayList<>();
-        float parsedScore = 0.0f;
-        boolean parsedHasMate = false;
-        int parsedMateIn = 0;
-        int parsedWdlWin = 0;
-        int parsedWdlDraw = 0;
-        int parsedWdlLoss = 0;
-        String parsedPonder = null;
-
-        if (!isReady()) {
-            return new AnalysisResult(moves, parsedScore, parsedHasMate, parsedMateIn, parsedWdlWin, parsedWdlDraw, parsedWdlLoss, parsedPonder);
-        }
-
-        boolean isWhiteToMove = true;
-        if (fen != null) {
-            String[] parts = fen.split("\\s+");
-            if (parts.length > 1) {
-                isWhiteToMove = parts[1].equals("w");
-            }
-        }
-
-        try {
-            // Drain any leftover output
-            drainReady();
-
-            // Configure strength limits
-            if (StockfishSettings.isLimitStrength(context)) {
-                send("setoption name UCI_LimitStrength value true");
-                send("setoption name UCI_Elo value " + StockfishSettings.getElo(context));
-            } else {
-                send("setoption name UCI_LimitStrength value false");
-            }
-
-            // Set MultiPV option
-            send("setoption name MultiPV value " + multiPV);
-            send("position fen " + fen);
-            send("go depth " + depth);
-
-            String[] pvMoves = new String[multiPV];
-            long deadline = System.currentTimeMillis() + BESTMOVE_TIMEOUT_MS;
-            String line;
-            while (System.currentTimeMillis() < deadline) {
-                line = stdout.readLine();
-                if (line == null) break;
-                Log.d(TAG, "< " + line);
-
-                if (line.startsWith("info ")) {
-                    // 1. Parse score and WDL for multipv 1
-                    if (line.contains(" score cp ") || line.contains(" score mate ")) {
-                        boolean isMpv1 = true;
-                        if (line.contains(" multipv ")) {
-                            String[] parts = line.split("\\s+");
-                            for (int i = 0; i < parts.length - 1; i++) {
-                                if (parts[i].equals("multipv")) {
-                                    try {
-                                        int mpvVal = Integer.parseInt(parts[i+1]);
-                                        if (mpvVal != 1) {
-                                            isMpv1 = false;
-                                        }
-                                    } catch (NumberFormatException ignored) {}
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (isMpv1) {
-                            String[] parts = line.split("\\s+");
-                            for (int i = 0; i < parts.length - 1; i++) {
-                                if (parts[i].equals("cp")) {
-                                    try {
-                                        int cp = Integer.parseInt(parts[i+1]);
-                                        parsedScore = isWhiteToMove ? (cp / 100.0f) : (-cp / 100.0f);
-                                        parsedHasMate = false;
-                                        parsedMateIn = 0;
-                                    } catch (NumberFormatException ignored) {}
-                                } else if (parts[i].equals("mate")) {
-                                    try {
-                                        int mate = Integer.parseInt(parts[i+1]);
-                                        parsedHasMate = true;
-                                        parsedMateIn = isWhiteToMove ? mate : -mate;
-                                        if (mate == 0) {
-                                            parsedScore = isWhiteToMove ? -99.0f : 99.0f;
-                                        } else {
-                                            parsedScore = parsedMateIn > 0 ? (99.0f - parsedMateIn) : (-99.0f - parsedMateIn);
-                                        }
-                                    } catch (NumberFormatException ignored) {}
-                                } else if (parts[i].equals("wdl") && i < parts.length - 3) {
-                                    try {
-                                        int w = Integer.parseInt(parts[i+1]);
-                                        int d = Integer.parseInt(parts[i+2]);
-                                        int l = Integer.parseInt(parts[i+3]);
-                                        if (isWhiteToMove) {
-                                            parsedWdlWin = w;
-                                            parsedWdlDraw = d;
-                                            parsedWdlLoss = l;
-                                        } else {
-                                            parsedWdlWin = l;
-                                            parsedWdlDraw = d;
-                                            parsedWdlLoss = w;
-                                        }
-                                    } catch (NumberFormatException ignored) {}
-                                }
-                            }
-                        }
-                    }
-
-                    // 2. Parse best moves
-                    if (line.contains(" pv ")) {
-                        // Try to parse multipv index
-                        int mpvIdx = 1; // Default to 1 if not specified
-                        if (line.contains(" multipv ")) {
-                            String[] parts = line.split("\\s+");
-                            for (int i = 0; i < parts.length - 1; i++) {
-                                if (parts[i].equals("multipv")) {
-                                    try {
-                                        mpvIdx = Integer.parseInt(parts[i+1]);
-                                    } catch (NumberFormatException ignored) {}
-                                    break;
-                                }
-                            }
-                        }
-
-                        // Extract the first move after "pv"
-                        String pvMove = null;
-                        String[] parts = line.split("\\s+");
-                        for (int i = 0; i < parts.length - 1; i++) {
-                            if (parts[i].equals("pv")) {
-                                pvMove = parts[i+1];
-                                break;
-                            }
-                        }
-
-                        if (pvMove != null && mpvIdx >= 1 && mpvIdx <= multiPV) {
-                            pvMoves[mpvIdx - 1] = pvMove;
-                        }
-                    }
-                }
-
-                if (line.startsWith("bestmove ")) {
-                    String[] parts = line.split("\\s+");
-                    String best = parts.length > 1 ? parts[1] : null;
-                    if (best != null) {
-                        pvMoves[0] = best; // Ensure bestmove is always multipv 1
-                    }
-                    if (parts.length > 3 && parts[2].equals("ponder")) {
-                        parsedPonder = parts[3];
-                    }
-                    break;
-                }
-            }
-
-            for (String m : pvMoves) {
-                if (m != null) {
-                    moves.add(m);
-                }
-            }
-        } catch (IOException e) {
-            Log.e(TAG, "analyze error: " + e.getMessage());
-        }
-        return new AnalysisResult(moves, parsedScore, parsedHasMate, parsedMateIn, parsedWdlWin, parsedWdlDraw, parsedWdlLoss, parsedPonder);
+        return analyze(context, fen, null, depth, multiPV, 0, true);
     }
 
-    /** Cancel any ongoing search immediately. */
+    /**
+     * Analyse a position.
+     *
+     * @param fen          Base FEN (for review this is the game's starting FEN).
+     * @param uciMoves     Optional move list played from {@code fen}. Passing the game history
+     *                     lets Stockfish see repetitions and the 50-move counter, which matters a
+     *                     lot for evaluating endgames correctly.
+     * @param depth        Target depth.
+     * @param multiPV      Number of lines.
+     * @param movetimeMs   Optional wall-clock cap (0 = depth only).
+     * @param honorLimit   If false, UCI_LimitStrength is always disabled (used by game review so
+     *                     that the review is never weakened by the play-strength setting).
+     */
+    public AnalysisResult analyze(Context context, String fen, List<String> uciMoves, int depth,
+                                  int multiPV, int movetimeMs, boolean honorLimit) {
+        return analyze(context, fen, uciMoves, depth, multiPV, movetimeMs, honorLimit, null);
+    }
+
+    /** As above, optionally publishing intermediate results to {@code progress}. */
+    public AnalysisResult analyze(Context context, String fen, List<String> uciMoves, int depth,
+                                  int multiPV, int movetimeMs, boolean honorLimit,
+                                  ProgressListener progress) {
+        if (!isReady() || fen == null) return AnalysisResult.empty();
+        multiPV = Math.max(1, multiPV);
+        depth = Math.max(1, depth);
+
+        final boolean whiteToMove = isWhiteToMove(fen, uciMoves);
+
+        try {
+            drainReady();
+
+            applyThreads(StockfishSettings.getThreads(context));
+            boolean limit = honorLimit && StockfishSettings.isLimitStrength(context);
+            if (curLimitStrength == null || curLimitStrength != limit) {
+                send("setoption name UCI_LimitStrength value " + limit);
+                curLimitStrength = limit;
+            }
+            if (limit) {
+                int elo = Math.max(1320, Math.min(3190, StockfishSettings.getElo(context)));
+                if (elo != curElo) {
+                    send("setoption name UCI_Elo value " + elo);
+                    curElo = elo;
+                }
+            }
+            if (multiPV != curMultiPV) {
+                send("setoption name MultiPV value " + multiPV);
+                curMultiPV = multiPV;
+            }
+
+            StringBuilder pos = new StringBuilder(fen.length() + 8 + (uciMoves != null ? uciMoves.size() * 6 : 0));
+            pos.append("position fen ").append(fen);
+            if (uciMoves != null && !uciMoves.isEmpty()) {
+                pos.append(" moves");
+                for (String m : uciMoves) pos.append(' ').append(m);
+            }
+            send(pos.toString());
+            send(movetimeMs > 0 ? ("go depth " + depth + " movetime " + movetimeMs) : ("go depth " + depth));
+
+            return readSearchOutput(multiPV, whiteToMove,
+                    movetimeMs > 0 ? movetimeMs + BESTMOVE_GRACE_MS : DEFAULT_SEARCH_TIMEOUT_MS,
+                    depth, progress);
+        } catch (IOException e) {
+            Log.e(TAG, "analyze error: " + e.getMessage());
+            ready = false;
+            return AnalysisResult.empty();
+        }
+    }
+
+    /** Clears the hash; call before reviewing a new game. */
+    public void newGame() {
+        if (!isReady()) return;
+        try {
+            send("ucinewgame");
+            send("isready");
+            waitForLine("readyok", READY_TIMEOUT_MS);
+        } catch (IOException e) {
+            ready = false;
+        }
+    }
+
     public void stopSearch() {
         send("stop");
     }
 
-    /** Shut the engine down. */
     public void stop() {
         ready = false;
         try { send("quit"); } catch (Exception ignored) {}
         try { if (process != null) process.destroy(); } catch (Exception ignored) {}
     }
 
+    // ── Output parsing ────────────────────────────────────────────────────────
+
+    private AnalysisResult readSearchOutput(int multiPV, boolean whiteToMove, long timeoutMs,
+                                            int targetDepth, ProgressListener progress) throws IOException {
+        String[] firstMoves = new String[multiPV];
+        float[] scores = new float[multiPV];
+        boolean[] haveExact = new boolean[multiPV];
+        boolean[] haveAny = new boolean[multiPV];
+        List<String> bestPv = null;
+
+        boolean hasMate = false;
+        int mateIn = 0;
+        int wdlW = 0, wdlD = 0, wdlL = 0;
+        int reachedDepth = 0;
+        boolean terminal = false;
+        String bestmove = null;
+        String ponder = null;
+
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        boolean stopSent = false;
+        int reportedDepth = 0;
+        long lastReport = 0;
+
+        String line;
+        while (true) {
+            if (!stopSent && System.currentTimeMillis() > deadline) {
+                // Never leave a search running in the background: it wastes CPU and
+                // pollutes the next search's output.
+                send("stop");
+                stopSent = true;
+                deadline = System.currentTimeMillis() + READY_TIMEOUT_MS;
+            } else if (stopSent && System.currentTimeMillis() > deadline) {
+                Log.e(TAG, "Engine unresponsive after stop; restarting.");
+                stop();
+                break;
+            }
+
+            line = stdout.readLine();
+            if (line == null) {
+                // Process died (e.g. Stockfish 19 exits on an invalid FEN / illegal move).
+                Log.e(TAG, "Engine output closed unexpectedly");
+                ready = false;
+                break;
+            }
+
+            if (line.startsWith("bestmove")) {
+                String[] parts = line.split(" ");
+                if (parts.length > 1 && !"(none)".equals(parts[1])) bestmove = parts[1];
+                if (parts.length > 3 && "ponder".equals(parts[2])) ponder = parts[3];
+                if (bestmove == null) terminal = true;
+                break;
+            }
+
+            if (!line.startsWith("info ")) continue;
+            if (line.startsWith("info string")) {
+                if (line.contains("CRITICAL")) Log.e(TAG, line);
+                continue;
+            }
+            if (line.indexOf(" score ") < 0) continue;
+
+            String[] t = line.split(" ");
+            int mpv = 1;
+            int depth = 0;
+            boolean bound = false;
+            boolean isMate = false;
+            int scoreVal = 0;
+            boolean haveScore = false;
+            int w = -1, d = -1, l = -1;
+            int pvStart = -1;
+
+            for (int i = 1; i < t.length; i++) {
+                String k = t[i];
+                switch (k) {
+                    case "depth":
+                        if (i + 1 < t.length) depth = parseIntSafe(t[++i], 0);
+                        break;
+                    case "multipv":
+                        if (i + 1 < t.length) mpv = parseIntSafe(t[++i], 1);
+                        break;
+                    case "score":
+                        if (i + 2 < t.length) {
+                            isMate = "mate".equals(t[i + 1]);
+                            scoreVal = parseIntSafe(t[i + 2], 0);
+                            haveScore = true;
+                            i += 2;
+                        }
+                        break;
+                    case "lowerbound":
+                    case "upperbound":
+                        bound = true;
+                        break;
+                    case "wdl":
+                        if (i + 3 < t.length) {
+                            w = parseIntSafe(t[i + 1], -1);
+                            d = parseIntSafe(t[i + 2], -1);
+                            l = parseIntSafe(t[i + 3], -1);
+                            i += 3;
+                        }
+                        break;
+                    case "pv":
+                        pvStart = i + 1;
+                        i = t.length; // pv is always last
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            if (!haveScore || mpv < 1 || mpv > multiPV) continue;
+            int idx = mpv - 1;
+
+            // Fail-high/fail-low lines only carry a bound, not a real evaluation.
+            if (bound && haveExact[idx]) continue;
+
+            if (depth == 0 && pvStart < 0) {
+                // "info depth 0 score mate 0" / "score cp 0" -> checkmate / stalemate
+                terminal = true;
+            }
+
+            float whiteScore;
+            int whiteMate = 0;
+            if (isMate) {
+                whiteMate = whiteToMove ? scoreVal : -scoreVal;
+                if (scoreVal == 0) {
+                    // Side to move is checkmated.
+                    whiteScore = whiteToMove ? -MATE_SCORE : MATE_SCORE;
+                    whiteMate = 0;
+                } else {
+                    whiteScore = whiteMate > 0 ? (MATE_SCORE - whiteMate) : (-MATE_SCORE - whiteMate);
+                }
+            } else {
+                float pawns = scoreVal / 100.0f;
+                whiteScore = whiteToMove ? pawns : -pawns;
+            }
+
+            scores[idx] = whiteScore;
+            haveAny[idx] = true;
+            if (!bound) haveExact[idx] = true;
+
+            if (pvStart > 0 && pvStart < t.length) {
+                firstMoves[idx] = t[pvStart];
+            }
+
+            if (idx == 0) {
+                if (depth > reachedDepth) reachedDepth = depth;
+                hasMate = isMate;
+                mateIn = (isMate && scoreVal != 0) ? whiteMate : 0;
+                if (w >= 0 && d >= 0 && l >= 0) {
+                    if (whiteToMove) { wdlW = w; wdlD = d; wdlL = l; }
+                    else { wdlW = l; wdlD = d; wdlL = w; }
+                }
+                if (pvStart > 0 && pvStart < t.length) {
+                    ArrayList<String> pv = new ArrayList<>(t.length - pvStart);
+                    for (int j = pvStart; j < t.length; j++) pv.add(t[j]);
+                    bestPv = pv;
+                }
+            }
+
+            // Publish a snapshot once the best line of a new depth is exact. The other lines
+            // may still be from the previous depth, which is fine for a live preview.
+            if (progress != null && idx == 0 && !bound && !stopSent
+                    && depth >= PROGRESS_MIN_DEPTH && depth > reportedDepth && depth < targetDepth
+                    && firstMoves[0] != null) {
+                long now = System.currentTimeMillis();
+                if (now - lastReport >= PROGRESS_INTERVAL_MS) {
+                    reportedDepth = depth;
+                    lastReport = now;
+                    try {
+                        progress.onProgress(buildResult(multiPV, firstMoves, scores, haveAny, hasMate,
+                                mateIn, wdlW, wdlD, wdlL,
+                                bestPv != null && bestPv.size() > 1 ? bestPv.get(1) : null,
+                                bestPv, depth, false, null));
+                    } catch (Throwable ignored) {
+                        // A failing listener must never break the search.
+                    }
+                }
+            }
+        }
+
+        return buildResult(multiPV, firstMoves, scores, haveAny, hasMate, mateIn, wdlW, wdlD, wdlL,
+                ponder, bestPv, reachedDepth, terminal, bestmove);
+    }
+
+    private static AnalysisResult buildResult(int multiPV, String[] firstMovesIn, float[] scoresIn,
+                                              boolean[] haveAny, boolean hasMate, int mateIn,
+                                              int wdlW, int wdlD, int wdlL, String ponder,
+                                              List<String> bestPv, int reachedDepth,
+                                              boolean terminal, String bestmove) {
+        // Work on copies: intermediate snapshots are taken while the search keeps writing.
+        String[] firstMoves = firstMovesIn.clone();
+        float[] scores = scoresIn.clone();
+
+        List<String> moves = new ArrayList<>(multiPV);
+        List<Float> lineScoreList = new ArrayList<>(multiPV);
+        if (bestmove != null) {
+            firstMoves[0] = bestmove;
+            if (bestPv == null || bestPv.isEmpty() || !bestmove.equals(bestPv.get(0))) {
+                ArrayList<String> pv = new ArrayList<>(2);
+                pv.add(bestmove);
+                if (ponder != null) pv.add(ponder);
+                bestPv = pv;
+            }
+        }
+        for (int i = 0; i < multiPV; i++) {
+            if (firstMoves[i] == null) continue;
+            if (moves.contains(firstMoves[i])) continue;
+            moves.add(firstMoves[i]);
+            lineScoreList.add(haveAny[i] ? scores[i] : scores[0]);
+        }
+        float[] lineScores = new float[lineScoreList.size()];
+        for (int i = 0; i < lineScores.length; i++) lineScores[i] = lineScoreList.get(i);
+
+        boolean isTerminal = terminal && moves.isEmpty();
+        if (isTerminal && !hasMate) {
+            scores[0] = 0f; // stalemate
+        }
+
+        return new AnalysisResult(moves, scores[0], hasMate, mateIn, wdlW, wdlD, wdlL, ponder,
+                bestPv != null ? bestPv : new ArrayList<>(), lineScores, reachedDepth, isTerminal);
+    }
+
+    // ── Options ───────────────────────────────────────────────────────────────
+
+    private void resetOptionCache() {
+        curThreads = -1;
+        curHash = -1;
+        curMultiPV = -1;
+        curLimitStrength = null;
+        curElo = -1;
+    }
+
+    private void applyThreads(int threads) {
+        threads = Math.max(1, threads);
+        if (threads != curThreads) {
+            send("setoption name Threads value " + threads);
+            curThreads = threads;
+        }
+    }
+
+    private void applyHash(int mb) {
+        if (mb != curHash) {
+            send("setoption name Hash value " + mb);
+            curHash = mb;
+        }
+    }
+
+    /**
+     * Size the transposition table from physical RAM. A bigger hash means the engine
+     * re-searches far fewer positions, i.e. deeper results for the same CPU time (and heat).
+     */
+    static int computeHashMb(Context context) {
+        long totalMb = 0;
+        try {
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am != null) {
+                ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
+                am.getMemoryInfo(mi);
+                totalMb = mi.totalMem / (1024L * 1024L);
+            }
+        } catch (Throwable ignored) {}
+        // A deep MultiPV review search visits tens of millions of nodes per position; at the
+        // old sizes the table was overwritten constantly. These sizes stay well below what the
+        // low-memory killer tolerates for a foreground app's child process.
+        if (totalMb >= 11_000) return 768;
+        if (totalMb >= 7_000) return 512;
+        if (totalMb >= 5_000) return 256;
+        if (totalMb >= 3_000) return 128;
+        return 32;
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
+    private static boolean isWhiteToMove(String fen, List<String> moves) {
+        boolean white = true;
+        int sp = fen.indexOf(' ');
+        if (sp >= 0 && sp + 1 < fen.length()) white = fen.charAt(sp + 1) != 'b';
+        if (moves != null && (moves.size() & 1) == 1) white = !white;
+        return white;
+    }
+
+    private static int parseIntSafe(String s, int def) {
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return def;
+        }
+    }
+
     private void send(String cmd) {
-        Log.d(TAG, "> " + cmd);
         if (stdin != null) stdin.println(cmd);
     }
 
-    /** Block until a line containing {@code token} is seen or timeout elapses. */
     private boolean waitForLine(String token, long timeoutMs) throws IOException {
         long deadline = System.currentTimeMillis() + timeoutMs;
         String line;
         while (System.currentTimeMillis() < deadline) {
             line = stdout.readLine();
             if (line == null) break;
-            Log.d(TAG, "< " + line);
-            if (line.contains(token)) return true;
+            if (line.startsWith(token)) return true;
         }
         return false;
     }
 
-    /** Non‑blocking drain of any buffered output lines. */
     private void drainReady() throws IOException {
         while (stdout.ready()) {
-            String line = stdout.readLine();
-            if (line != null) Log.d(TAG, "(drain) < " + line);
+            if (stdout.readLine() == null) break;
         }
     }
 
-    /**
-     * Find the stockfish binary in the app's native library directory.
-     * The binary is packaged as lib/&lt;abi&gt;/libstockfish.so in the APK,
-     * and Android automatically extracts it to an executable directory.
-     */
     private File extractBinary(Context context) {
         String nativeLibDir = context.getApplicationInfo().nativeLibraryDir;
         File engineBin = new File(nativeLibDir, "libstockfish.so");
 
         if (!engineBin.exists()) {
             Log.e(TAG, "Stockfish binary not found at: " + engineBin.getAbsolutePath());
-            // Debug: list native lib dir contents
             File dir = new File(nativeLibDir);
             if (dir.exists()) {
-                String[] files = dir.list();
-                Log.e(TAG, "Native lib dir contents: " + java.util.Arrays.toString(files));
+                Log.e(TAG, "Native lib dir contents: " + java.util.Arrays.toString(dir.list()));
             }
             return null;
         }
-
         if (!engineBin.canExecute()) {
             Log.e(TAG, "Stockfish binary is not executable: " + engineBin.getAbsolutePath());
             return null;
         }
-
-        Log.i(TAG, "Found stockfish binary at: " + engineBin.getAbsolutePath());
         return engineBin;
-    }
-
-    // Inline import reference — android.os.Build is always available
-    private static final class Build {
-        static final String CPU_ABI = android.os.Build.CPU_ABI;
     }
 }

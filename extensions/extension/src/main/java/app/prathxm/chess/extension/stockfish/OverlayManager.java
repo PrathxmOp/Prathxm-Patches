@@ -121,7 +121,7 @@ public class OverlayManager {
                     int barHeight = (int) (14 * density);
                     int barY = boardY - barHeight - (int)(4 * density);
 
-                    int btnW = (int) (110 * density);
+                    int btnW = (int) (INFO_SLOT_DP * density);
                     int barW = boardW - btnW - (int) (8 * density);
 
                     View wdlTag = decorView.findViewWithTag("stockfish_wdl_bar");
@@ -158,6 +158,99 @@ public class OverlayManager {
                     if (v != null) v.setVisibility(View.GONE);
                 } catch (Throwable t) {
                     Log.e(TAG, "hideWdlBar failed: " + t.getMessage());
+                }
+            }
+        });
+    }
+
+    /** Width reserved to the right of the W/D/L bar (also used by the engine info line). */
+    private static final int INFO_SLOT_DP = 110;
+
+    /**
+     * Shows "depth · score" in the slot above the board's top-right corner (next to the W/D/L
+     * bar), e.g. "d22 · +0.35" or "d18 · M3".
+     */
+    public static void updateEngineInfo(final int depth, final float score, final boolean hasMate, final int mateIn) {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Activity activity = StockfishExtension.getCurrentActivity();
+                    if (activity == null || activity.getWindow() == null) return;
+                    ViewGroup decorView = (ViewGroup) activity.getWindow().getDecorView();
+                    View boardView = findChessBoardView(decorView);
+                    if (boardView == null) return;
+                    int[] loc = new int[2];
+                    boardView.getLocationInWindow(loc);
+                    int boardW = boardView.getWidth();
+                    if (boardW <= 0) return;
+                    float density = decorView.getContext().getResources().getDisplayMetrics().density;
+                    int h = (int) (14 * density);
+                    int w = (int) (INFO_SLOT_DP * density);
+                    int y = loc[1] - h - (int) (4 * density);
+                    if (y < 0) return;
+
+                    View existing = decorView.findViewWithTag("stockfish_engine_info");
+                    TextView info;
+                    if (existing instanceof TextView) {
+                        info = (TextView) existing;
+                    } else {
+                        if (existing != null) decorView.removeView(existing);
+                        info = new TextView(decorView.getContext());
+                        info.setTag("stockfish_engine_info");
+                        GradientDrawable bg = new GradientDrawable();
+                        bg.setColor(0xCC1B1A18);
+                        bg.setCornerRadius(h / 3f);
+                        info.setBackground(bg);
+                        info.setTextColor(0xFFE3E3E3);
+                        info.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9.5f);
+                        info.setTypeface(android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.BOLD));
+                        info.setGravity(Gravity.CENTER);
+                        info.setIncludeFontPadding(false);
+                        info.setSingleLine(true);
+                        info.setLayoutParams(new FrameLayout.LayoutParams(w, h));
+                        decorView.addView(info);
+                    }
+                    ViewGroup.LayoutParams lp = info.getLayoutParams();
+                    if (lp.width != w || lp.height != h) {
+                        lp.width = w;
+                        lp.height = h;
+                        info.setLayoutParams(lp);
+                    }
+                    info.setText(formatEngineInfo(depth, score, hasMate, mateIn));
+                    info.setTranslationX(loc[0] + boardW - w);
+                    info.setTranslationY(y);
+                    info.setVisibility(View.VISIBLE);
+                    info.bringToFront();
+                } catch (Throwable t) {
+                    Log.e(TAG, "updateEngineInfo failed: " + t.getMessage());
+                }
+            }
+        });
+    }
+
+    /** "d22 · +0.35", "d18 · M3" / "d18 · -M2" (white's point of view). */
+    static String formatEngineInfo(int depth, float score, boolean hasMate, int mateIn) {
+        String eval;
+        if (hasMate && mateIn != 0) {
+            eval = (mateIn > 0 ? "M" : "-M") + Math.abs(mateIn);
+        } else {
+            eval = String.format(java.util.Locale.US, "%+.2f", score);
+        }
+        return (depth > 0 ? "d" + depth + " \u00B7 " : "") + eval;
+    }
+
+    public static void hideEngineInfo() {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Activity activity = StockfishExtension.getCurrentActivity();
+                    if (activity == null || activity.getWindow() == null) return;
+                    View v = activity.getWindow().getDecorView().findViewWithTag("stockfish_engine_info");
+                    if (v != null) v.setVisibility(View.GONE);
+                } catch (Throwable t) {
+                    Log.e(TAG, "hideEngineInfo failed: " + t.getMessage());
                 }
             }
         });
@@ -231,7 +324,8 @@ public class OverlayManager {
                     int bh = banner.getMeasuredHeight();
                     int centreX = boardX + (boardW - bw) / 2;
                     int offset = 0;
-                    if (StockfishSettings.isWdlEnabled(decorView.getContext())) {
+                    if (StockfishSettings.isWdlEnabled(decorView.getContext())
+                            || StockfishSettings.isEngineInfoEnabled(decorView.getContext())) {
                         int barHeight = (int) (14 * density);
                         offset = barHeight + (int)(4 * density);
                     }
@@ -290,7 +384,10 @@ public class OverlayManager {
         if (stateImpl == null) return false;
         try {
             for (Method m : stateImpl.getClass().getMethods()) {
-                if ((m.getName().equals("isFlipped") || m.getName().equals("getFlipped")) && m.getParameterCount() == 0 && m.getReturnType() == boolean.class) {
+                // 4.10.17: CBViewModelStateImpl.getFlipBoard() (also follows manual flips)
+                String n = m.getName();
+                if ((n.equals("getFlipBoard") || n.equals("isFlipped") || n.equals("getFlipped"))
+                        && m.getParameterCount() == 0 && m.getReturnType() == boolean.class) {
                     return (boolean) m.invoke(stateImpl);
                 }
             }
