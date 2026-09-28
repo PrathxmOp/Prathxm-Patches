@@ -24,13 +24,51 @@ public class MoveClassifier {
     private static final List<String> fenHistory = new ArrayList<>();
     private static final Map<String, Float> fenToEvalMap = new ConcurrentHashMap<>();
     private static final Map<String, List<String>> fenToBestMovesMap = new ConcurrentHashMap<>();
+    /** Search depth behind each stored evaluation, so a shallower result never overwrites a deeper one. */
+    private static final Map<String, Integer> fenToDepthMap = new ConcurrentHashMap<>();
+    /** Moves ("prevKey|currentKey") that already produced a toast, so a move is rated only once. */
+    private static final java.util.Set<String> classifiedMoves = ConcurrentHashMap.newKeySet();
+
+    /** Minimum depth for an interrupted / intermediate search to be trusted for a rating. */
+    private static final int MIN_RATING_DEPTH = 8;
 
     public static void clearHistory() {
         synchronized (fenHistory) {
             fenHistory.clear();
-            fenToEvalMap.clear();
-            fenToBestMovesMap.clear();
+            clearMaps();
         }
+    }
+
+    private static void clearMaps() {
+        fenToEvalMap.clear();
+        fenToBestMovesMap.clear();
+        fenToDepthMap.clear();
+        classifiedMoves.clear();
+    }
+
+    /**
+     * Stores the evaluation of a position (final, intermediate or interrupted search). Keeps the
+     * deepest one. Recording intermediate results is what makes the move toasts reliable: the
+     * opponent (e.g. a bot) often replies before the search after our move has reached full
+     * depth, and that search is then cancelled. Previously its result was discarded, so neither
+     * our move nor the reply could be rated and no toast appeared.
+     */
+    public static void recordResult(String fen, StockfishProcess.AnalysisResult r) {
+        if (r == null || r.moves.isEmpty()) return;
+        String key = getFenKey(fen);
+        if (key == null) return;
+        Integer stored = fenToDepthMap.get(key);
+        if (stored != null && stored > r.depth) return;
+        fenToEvalMap.put(key, r.score);
+        fenToBestMovesMap.put(key, new ArrayList<>(r.moves));
+        fenToDepthMap.put(key, r.depth);
+    }
+
+    /** True if an interrupted/intermediate result is deep enough to rate a move with. */
+    public static boolean isUsableForRating(StockfishProcess.AnalysisResult r) {
+        if (r == null) return false;
+        if (r.terminal) return true;
+        return !r.moves.isEmpty() && r.depth >= MIN_RATING_DEPTH;
     }
 
     public static List<String> getFenHistory() {
@@ -51,17 +89,20 @@ public class MoveClassifier {
         synchronized (fenHistory) {
             int idx = fenHistory.indexOf(key);
             if (idx >= 0) {
+                boolean truncated = false;
                 while (fenHistory.size() > idx + 1) {
                     fenHistory.remove(fenHistory.size() - 1);
+                    truncated = true;
                 }
+                // Stepped back (take-back / navigation): allow the next move to be rated again.
+                if (truncated) classifiedMoves.clear();
             } else {
                 if (!fenHistory.isEmpty()) {
                     String lastKey = fenHistory.get(fenHistory.size() - 1);
                     String deduced = deduceUciMove(lastKey, key);
                     if (deduced == null) {
                         fenHistory.clear();
-                        fenToEvalMap.clear();
-                        fenToBestMovesMap.clear();
+                        clearMaps();
                         StockfishExtension.isReviewMode = false;
                     }
                 }
@@ -101,6 +142,13 @@ public class MoveClassifier {
         return "" + file + rank;
     }
 
+    /** UCI promotion letter ("q", "n", ...) when a pawn turned into another piece, else "". */
+    private static String promotionSuffix(char before, char after) {
+        if (Character.toLowerCase(before) != 'p') return "";
+        char a = Character.toLowerCase(after);
+        return (a == 'q' || a == 'r' || a == 'b' || a == 'n') ? String.valueOf(a) : "";
+    }
+
     public static String deduceUciMove(String prevFen, String currFen) {
         try {
             String[] prevParts = prevFen.split("\\s+");
@@ -136,7 +184,8 @@ public class MoveClassifier {
             }
 
             if (fromCandidates.size() == 1 && toCandidates.size() == 1) {
-                return getSquareName(fromCandidates.get(0)) + getSquareName(toCandidates.get(0));
+                int f = fromCandidates.get(0), t = toCandidates.get(0);
+                return getSquareName(f) + getSquareName(t) + promotionSuffix(prevBoard.charAt(f), currBoard.charAt(t));
             }
 
             if (fromCandidates.size() >= 1 && toCandidates.size() >= 1) {
@@ -166,7 +215,7 @@ public class MoveClassifier {
                         char prevPiece = prevBoard.charAt(f);
                         if (Character.toLowerCase(prevPiece) == Character.toLowerCase(movedPiece) ||
                             (Character.toLowerCase(prevPiece) == 'p' && (movedPiece == 'Q' || movedPiece == 'q' || movedPiece == 'R' || movedPiece == 'r' || movedPiece == 'B' || movedPiece == 'b' || movedPiece == 'N' || movedPiece == 'n'))) {
-                            return getSquareName(f) + getSquareName(toIdx);
+                            return getSquareName(f) + getSquareName(toIdx) + promotionSuffix(prevPiece, movedPiece);
                         }
                     }
                 }
@@ -199,6 +248,8 @@ public class MoveClassifier {
             }
 
             if (prevKey == null) return;
+            final String transition = prevKey + "|" + currentKey;
+            if (classifiedMoves.contains(transition)) return;
 
             Float prevEvalVal = fenToEvalMap.get(prevKey);
             List<String> prevBestMoves = fenToBestMovesMap.get(prevKey);
@@ -208,50 +259,38 @@ public class MoveClassifier {
             float currentEval = currentResult.score;
 
             boolean whiteMoved = prevKey.endsWith(" w");
-            float delta = whiteMoved ? (currentEval - prevEval) : (prevEval - currentEval);
 
             String uciMove = deduceUciMove(prevKey, currentKey);
             
-            String classification = "Good Move";
-            String emoji = "👍";
-            boolean isBlunderOrMistake = false;
+            // Same expected-points model as the game review (win probability, mover POV).
+            float winBefore = ReviewMath.win(prevEval, whiteMoved);
+            float winAfter = ReviewMath.win(currentEval, whiteMoved);
+            boolean isBest = uciMove != null && uciMove.equals(prevBestMoves.get(0));
+            boolean deliversMate = currentResult.terminal && currentResult.hasMate;
+            float loss = (isBest || deliversMate) ? 0f : Math.max(0f, winBefore - winAfter);
+            String c = ReviewMath.classify(isBest || deliversMate, false, loss, winBefore, winAfter,
+                    -1f, false, false, -1f, false);
 
-            if (uciMove != null && !prevBestMoves.isEmpty() && uciMove.equals(prevBestMoves.get(0))) {
-                if (delta > 1.0f) {
-                    classification = "Brilliant";
-                    emoji = "💡";
-                } else {
-                    classification = "Best Move";
-                    emoji = "🎯";
-                }
-            } else if (uciMove != null && prevBestMoves.contains(uciMove)) {
-                classification = "Excellent";
-                emoji = "✨";
-            } else {
-                if (delta < -3.0f) {
-                    classification = "Blunder";
-                    emoji = "💀";
-                    isBlunderOrMistake = true;
-                } else if (delta < -1.5f) {
-                    classification = "Mistake";
-                    emoji = "❌";
-                    isBlunderOrMistake = true;
-                } else if (delta < -0.5f) {
-                    classification = "Inaccuracy";
-                    emoji = "⚠️";
-                } else if (delta < -0.1f) {
-                    classification = "Good Move";
-                    emoji = "👍";
-                } else {
-                    classification = "Great Move";
-                    emoji = "✅";
-                }
+            String classification;
+            String emoji;
+            boolean isBlunderOrMistake = false;
+            switch (c) {
+                case ReviewMath.BEST: classification = "Best Move"; emoji = "🎯"; break;
+                case ReviewMath.EXCELLENT: classification = "Excellent"; emoji = "✨"; break;
+                case ReviewMath.GOOD: classification = "Good Move"; emoji = "👍"; break;
+                case ReviewMath.INACCURACY: classification = "Inaccuracy"; emoji = "⚠️"; break;
+                case ReviewMath.MISTAKE: classification = "Mistake"; emoji = "❌"; isBlunderOrMistake = true; break;
+                case ReviewMath.BLUNDER: classification = "Blunder"; emoji = "💀"; isBlunderOrMistake = true; break;
+                case ReviewMath.MISS: classification = "Miss"; emoji = "❎"; isBlunderOrMistake = true; break;
+                default: classification = "Good Move"; emoji = "👍"; break;
             }
 
-            final String toastText = emoji + " " + classification + (uciMove != null ? " (" + uciMove + ")" : "") + String.format(" [Delta: %.1f]", delta);
+            String lossText = (loss > 0.005f) ? String.format(java.util.Locale.US, " [-%.0f%%]", loss * 100f) : "";
+            final String toastText = emoji + " " + classification + (uciMove != null ? " (" + uciMove + ")" : "") + lossText;
             final boolean triggerVibrate = isBlunderOrMistake;
 
             if (activity != null) {
+                classifiedMoves.add(transition);
                 activity.runOnUiThread(() -> {
                     Toast.makeText(activity, toastText, Toast.LENGTH_SHORT).show();
                     

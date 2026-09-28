@@ -66,7 +66,17 @@ public class StockfishExtension {
         });
     }
 
+    /** Resumed activity, tracked by the lifecycle callbacks (cheap, no hidden-API reflection). */
+    private static volatile WeakReference<Activity> resumedActivity = new WeakReference<>(null);
+
     public static Activity getCurrentActivity() {
+        Activity tracked = resumedActivity.get();
+        if (tracked != null && !tracked.isFinishing()) return tracked;
+        return findResumedActivityReflectively();
+    }
+
+    /** Fallback before the callbacks run: ActivityThread.mActivities (hidden API, slow). */
+    private static Activity findResumedActivityReflectively() {
         try {
             Class<?> activityThreadClass = Class.forName("android.app.ActivityThread");
             Object activityThread = activityThreadClass.getMethod("currentActivityThread").invoke(null);
@@ -222,10 +232,12 @@ public class StockfishExtension {
             OverlayManager.hideEvalBar();
             OverlayManager.hideWdlBar();
             OverlayManager.hideMateAnnouncement();
+            OverlayManager.hideEngineInfo();
             return;
         }
 
         ArrowInjector.clearEngineArrows(stateImplObject);
+        lastArrowSignature = null;
 
         String fen = extractFen(positionObject);
         if (fen == null) {
@@ -300,8 +312,7 @@ public class StockfishExtension {
                 public void run() {
                     try {
                         ArrowInjector.isInjecting.set(true);
-                        Method a2 = finalStateImpl.getClass().getMethod("a2", List.class);
-                        a2.invoke(finalStateImpl, finalAppArrows);
+                        ArrowInjector.setMoveArrows(finalStateImpl, finalAppArrows);
                         invalidateAllBoards();
                     } catch (Throwable t) {
                         Log.e(TAG, "Failed to inject merged arrows in onArrowsChanged: " + t.getMessage());
@@ -313,13 +324,33 @@ public class StockfishExtension {
         }
     }
 
+    /** Signature (position + moves) of the engine arrows currently on the board. */
+    private static volatile String lastArrowSignature = null;
+
+    /** Position (FEN key) of the most recently scheduled live analysis. */
+    private static volatile String lastScheduledKey = null;
+
     private static void scheduleAnalysis(String fen) {
+        scheduleAnalysis(fen, false);
+    }
+
+    /** @param force restart even if this position is already being analysed (settings changed). */
+    private static void scheduleAnalysis(String fen, boolean force) {
+        // The board callback fires several times for the same position (move animation,
+        // arrow updates, re-renders). Restarting an identical search each time just burns CPU.
+        String posKey = StockfishBridge.positionKey(fen);
+        Future<?> running = currentJob;
+        if (!force && posKey != null && posKey.equals(lastScheduledKey) && running != null && !running.isDone()) {
+            return;
+        }
+        lastScheduledKey = posKey;
         Future<?> prev = currentJob;
         if (prev != null && !prev.isDone()) {
             prev.cancel(true);
             StockfishBridge.stopSearch();
         }
 
+        final String jobKey = posKey;
         currentJob = executor.submit(() -> {
             try {
                 Context context = getContext();
@@ -329,64 +360,39 @@ public class StockfishExtension {
                 int multiPV = StockfishSettings.getMultiPV(context);
 
                 Log.d(TAG, "Analysing FEN at depth " + depth + " with MultiPV=" + multiPV + "…");
-                StockfishProcess.AnalysisResult result = StockfishBridge.analyze(fen, depth, multiPV);
+                // Stream intermediate depths to the board so deep searches feel instant.
+                StockfishProcess.AnalysisResult result = StockfishBridge.analyze(fen, depth, multiPV,
+                        partial -> {
+                            // Keep intermediate evaluations for the move classifier even if the
+                            // search is cancelled later (see MoveClassifier.recordResult).
+                            MoveClassifier.recordResult(fen, partial);
+                            if (isStale(jobKey)) return;
+                            displayLiveResult(context, fen, partial, false);
+                        });
+
+                MoveClassifier.recordResult(fen, result);
+
+                // The user moved on while we were searching: never paint an outdated result,
+                // but still rate the move that led here with the deepest result reached, so
+                // the toast is not lost when the opponent replies quickly.
+                if (isStale(jobKey)) {
+                    if (MoveClassifier.isUsableForRating(result)) {
+                        MoveClassifier.classifyMoveIfPossible(context, fen, result);
+                    }
+                    return;
+                }
 
                 if (result.moves.isEmpty()) {
+                    // Checkmate / stalemate: still rate the move that produced it.
+                    if (result.terminal) MoveClassifier.classifyMoveIfPossible(context, fen, result);
                     Log.d(TAG, "Engine returned no best moves.");
                     return;
                 }
 
-                String key = MoveClassifier.getFenKey(fen);
-                if (key != null) {
-                    MoveClassifier.getFenToEvalMap().put(key, result.score);
-                    MoveClassifier.getFenToBestMovesMap().put(key, result.moves);
-                }
-
                 MoveClassifier.classifyMoveIfPossible(context, fen, result);
 
-                Log.i(TAG, "Best moves: " + result.moves + ", Score: " + result.score);
-                
-                boolean isLive = false;
-                Activity activity = getCurrentActivity();
-                if (activity != null && isLiveMatch(activity)) {
-                    isLive = true;
-                }
-                boolean disableOverlays = isLive && !isReviewMode;
-
-                boolean showArrows = !disableOverlays && StockfishSettings.isArrowsVisible(context);
-                if (showArrows && StockfishSettings.isMySideOnly(context)) {
-                    Boolean userWhite = isUserWhite(getStateImpl());
-                    if (userWhite != null) {
-                        boolean isWhiteTurn = isWhiteTurnFromFen(fen);
-                        if (isWhiteTurn != userWhite) {
-                            showArrows = false;
-                        }
-                    }
-                }
-
-                if (showArrows) {
-                    ArrowInjector.injectEngineArrows(context, getStateImpl(), result.moves, result.ponder);
-                } else {
-                    ArrowInjector.clearEngineArrows(getStateImpl());
-                }
-
-                if (!disableOverlays && StockfishSettings.isEvalBarEnabled(context)) {
-                    OverlayManager.updateEvalBar(result.score, result.hasMate, result.mateIn, getStateImpl());
-                } else {
-                    OverlayManager.hideEvalBar();
-                }
-
-                if (!disableOverlays && StockfishSettings.isWdlEnabled(context)) {
-                    OverlayManager.updateWdlBar(result.wdlWin, result.wdlDraw, result.wdlLoss);
-                } else {
-                    OverlayManager.hideWdlBar();
-                }
-
-                if (!disableOverlays && result.hasMate && StockfishSettings.isMateAnnouncementEnabled(context)) {
-                    OverlayManager.showMateAnnouncement(result.mateIn);
-                } else {
-                    OverlayManager.hideMateAnnouncement();
-                }
+                Log.i(TAG, "Best moves: " + result.moves + ", Score: " + result.score + ", depth " + result.depth);
+                displayLiveResult(context, fen, result, true);
 
             } catch (Throwable t) {
                 if (!Thread.currentThread().isInterrupted()) {
@@ -394,6 +400,81 @@ public class StockfishExtension {
                 }
             }
         });
+    }
+
+    /** True if the running job was cancelled or a newer position has been scheduled. */
+    private static boolean isStale(String jobKey) {
+        if (Thread.currentThread().isInterrupted()) return true;
+        String latest = lastScheduledKey;
+        return jobKey != null && !jobKey.equals(latest);
+    }
+
+    /**
+     * Paints an analysis result (arrows, eval bar, WDL bar, mate banner). Intermediate results
+     * ({@code isFinal == false}) only update arrows and bars; the mate banner waits for the
+     * final search so it does not flicker.
+     */
+    private static void displayLiveResult(Context context, String fen,
+                                          StockfishProcess.AnalysisResult result, boolean isFinal) {
+        if (result == null || result.moves.isEmpty()) return;
+        if (!StockfishSettings.isEngineEnabled(context)) return;
+
+        boolean isLive = false;
+        Activity activity = getCurrentActivity();
+        if (activity != null && isLiveMatch(activity)) {
+            isLive = true;
+        }
+        boolean disableOverlays = isLive && !isReviewMode;
+
+        boolean showArrows = !disableOverlays && StockfishSettings.isArrowsVisible(context);
+        if (showArrows && StockfishSettings.isMySideOnly(context)) {
+            Boolean userWhite = isUserWhite(getStateImpl());
+            if (userWhite != null) {
+                boolean isWhiteTurn = isWhiteTurnFromFen(fen);
+                if (isWhiteTurn != userWhite) {
+                    showArrows = false;
+                }
+            }
+        }
+
+        if (showArrows) {
+            // Re-injecting identical arrows restarts their animation (visible flicker while
+            // the search deepens), so only push arrows when they actually changed.
+            String sig = fen + '|' + result.moves
+                    + (StockfishSettings.isThreatArrowsEnabled(context) ? "|" + result.ponder : "");
+            if (!sig.equals(lastArrowSignature)) {
+                lastArrowSignature = sig;
+                ArrowInjector.injectEngineArrows(context, getStateImpl(), result.moves, result.ponder);
+            }
+        } else if (isFinal) {
+            lastArrowSignature = null;
+            ArrowInjector.clearEngineArrows(getStateImpl());
+        }
+
+        if (!disableOverlays && StockfishSettings.isEvalBarEnabled(context)) {
+            OverlayManager.updateEvalBar(result.score, result.hasMate, result.mateIn, getStateImpl());
+        } else {
+            OverlayManager.hideEvalBar();
+        }
+
+        if (!disableOverlays && StockfishSettings.isWdlEnabled(context)) {
+            OverlayManager.updateWdlBar(result.wdlWin, result.wdlDraw, result.wdlLoss);
+        } else {
+            OverlayManager.hideWdlBar();
+        }
+
+        if (!disableOverlays && StockfishSettings.isEngineInfoEnabled(context)) {
+            OverlayManager.updateEngineInfo(result.depth, result.score, result.hasMate, result.mateIn);
+        } else {
+            OverlayManager.hideEngineInfo();
+        }
+
+        if (!isFinal) return;
+        if (!disableOverlays && result.hasMate && StockfishSettings.isMateAnnouncementEnabled(context)) {
+            OverlayManager.showMateAnnouncement(result.mateIn);
+        } else {
+            OverlayManager.hideMateAnnouncement();
+        }
     }
 
     private static boolean isWhiteTurnFromFen(String fen) {
@@ -426,11 +507,14 @@ public class StockfishExtension {
 
             @Override
             public void onActivityResumed(Activity activity) {
+                resumedActivity = new WeakReference<>(activity);
                 GestureInterceptor.registerGestureInterceptor(activity);
             }
 
             @Override
-            public void onActivityPaused(Activity activity) {}
+            public void onActivityPaused(Activity activity) {
+                if (resumedActivity.get() == activity) resumedActivity = new WeakReference<>(null);
+            }
 
             @Override
             public void onActivityStopped(Activity activity) {}
@@ -455,15 +539,20 @@ public class StockfishExtension {
             StockfishBridge.stopSearch();
             
             ArrowInjector.clearEngineArrows(getStateImpl());
+            lastArrowSignature = null;
             OverlayManager.hideEvalBar();
             OverlayManager.hideWdlBar();
             OverlayManager.hideMateAnnouncement();
+            OverlayManager.hideEngineInfo();
         } else {
             triggerAnalysisForCurrentState();
         }
     }
 
     public static void triggerAnalysisForCurrentState() {
+        // Settings may have changed (depth, lines, overlays): always repaint and restart the
+        // search even if the same position is already being analysed.
+        lastArrowSignature = null;
         Object state = getStateImpl();
         if (state != null) {
             try {
@@ -472,7 +561,7 @@ public class StockfishExtension {
                 if (positionObject != null) {
                     String fen = extractFen(positionObject);
                     if (fen != null) {
-                        scheduleAnalysis(fen);
+                        scheduleAnalysis(fen, true);
                     }
                 }
             } catch (Throwable t) {
@@ -481,19 +570,30 @@ public class StockfishExtension {
         }
     }
 
+    /** Application context, cached after the first successful lookup (it never changes). */
+    private static volatile Context appContext;
+
+    /**
+     * The Application. Called many times per move and from hot getters (ads, premium), so the
+     * reflective ActivityThread lookup runs only until it first succeeds.
+     */
     public static Context getContext() {
-        try {
-            Class<?> activityThreadClass = Class.forName("android.app.ActivityThread");
-            Method currentApplicationMethod = activityThreadClass.getMethod("currentApplication");
-            Context ctx = (Context) currentApplicationMethod.invoke(null);
-            if (ctx != null && !engineReady) {
-                ensureEngineReady();
+        Context ctx = appContext;
+        if (ctx == null) {
+            try {
+                Class<?> activityThreadClass = Class.forName("android.app.ActivityThread");
+                Method currentApplicationMethod = activityThreadClass.getMethod("currentApplication");
+                ctx = (Context) currentApplicationMethod.invoke(null);
+                if (ctx != null) appContext = ctx;
+            } catch (Throwable t) {
+                Log.e(TAG, "getContext failed: " + t.getMessage());
+                return null;
             }
-            return ctx;
-        } catch (Throwable t) {
-            Log.e(TAG, "getContext failed: " + t.getMessage());
         }
-        return null;
+        if (ctx != null && !engineReady) {
+            ensureEngineReady();
+        }
+        return ctx;
     }
 
     public static Object getStateImpl() {
@@ -521,24 +621,10 @@ public class StockfishExtension {
                 if (sideToPlaySelfEffects == null) return null;
                 
                 Method invokeMethod = sideToPlaySelfEffects.getClass().getMethod("invoke");
+                invokeMethod.setAccessible(true);
                 Object side = invokeMethod.invoke(sideToPlaySelfEffects);
                 if (side == null) return null;
-                
-                Method getColorMethod = null;
-                try {
-                    getColorMethod = side.getClass().getMethod("getColor");
-                } catch (NoSuchMethodException e) {
-                    getColorMethod = side.getClass().getMethod("d");
-                }
-                Object color = getColorMethod.invoke(side);
-                if (color == null) return null;
-                
-                String colorName = color.toString();
-                if ("WHITE".equalsIgnoreCase(colorName)) {
-                    return true;
-                } else if ("BLACK".equalsIgnoreCase(colorName)) {
-                    return false;
-                }
+                return sideToWhite(side);
             }
         } catch (Throwable t) {
             Log.e(TAG, "isUserWhite failed: " + t.getMessage(), t);
@@ -546,7 +632,91 @@ public class StockfishExtension {
         return null;
     }
 
+    /**
+     * Colour the user plays from the board's {@code Side} value (WHITE, BLACK, BOTH, NONE).
+     *
+     * <p>The accessor for the side's colour is obfuscated ({@code c()} in 4.10.17), but the enum
+     * constant names are not, so they are checked first; the Color-returning accessor is found
+     * by return type as a fallback.
+     *
+     * @return TRUE for white, FALSE for black, null if the user plays both sides or neither
+     */
+    static Boolean sideToWhite(Object side) {
+        if (side == null) return null;
+        String name = side instanceof Enum ? ((Enum<?>) side).name() : String.valueOf(side);
+        if ("WHITE".equalsIgnoreCase(name)) return Boolean.TRUE;
+        if ("BLACK".equalsIgnoreCase(name)) return Boolean.FALSE;
+        if ("BOTH".equalsIgnoreCase(name) || "NONE".equalsIgnoreCase(name)) return null;
+        try {
+            Class<?> colorClass = Class.forName("com.chess.entities.Color");
+            for (Method m : side.getClass().getMethods()) {
+                if (m.getParameterTypes().length == 0 && m.getReturnType() == colorClass) {
+                    m.setAccessible(true);
+                    Object color = m.invoke(side);
+                    if (color == null) return null;
+                    String c = color instanceof Enum ? ((Enum<?>) color).name() : color.toString();
+                    if ("WHITE".equalsIgnoreCase(c)) return Boolean.TRUE;
+                    if ("BLACK".equalsIgnoreCase(c)) return Boolean.FALSE;
+                    return null;
+                }
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "sideToWhite failed: " + t.getMessage());
+        }
+        return null;
+    }
+
+    /** Cached {@code variants.d.o()}: the position's full FEN (lazy property "fen" in 4.10.17). */
+    private static volatile Method fullFenMethod;
+    private static volatile boolean fullFenResolved;
+
+    /**
+     * FEN of an app position. Uses the app's own full FEN (with the real half-move clock and
+     * move number, so Stockfish sees the 50-move rule), and falls back to assembling it from
+     * FenUtilsKt with "0 1" counters.
+     */
     public static String extractFen(Object position) {
+        if (position == null) return null;
+        String full = fullFen(position);
+        if (full != null) return full;
+        return assembleFen(position);
+    }
+
+    static String fullFen(Object position) {
+        try {
+            if (!fullFenResolved) {
+                Method found = null;
+                try {
+                    Method o = Class.forName("com.chess.chessboard.variants.d").getMethod("o");
+                    if (o.getReturnType() == String.class) found = o;
+                } catch (Throwable ignored) {}
+                fullFenMethod = found;
+                fullFenResolved = true;
+            }
+            Method m = fullFenMethod;
+            if (m == null || !m.getDeclaringClass().isInstance(position)) return null;
+            Object r = m.invoke(position);
+            return r instanceof String ? sanitizeFen((String) r) : null;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** Returns the FEN if it has 6 well-formed fields, otherwise null. */
+    static String sanitizeFen(String fen) {
+        if (fen == null) return null;
+        String[] p = fen.trim().split("\\s+");
+        if (p.length != 6 || p[0].split("/", -1).length != 8) return null;
+        if (!(p[1].equals("w") || p[1].equals("b"))) return null;
+        try {
+            if (Integer.parseInt(p[4]) < 0 || Integer.parseInt(p[5]) < 1) return null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+        return p[0] + ' ' + p[1] + ' ' + p[2] + ' ' + p[3] + ' ' + p[4] + ' ' + p[5];
+    }
+
+    private static String assembleFen(Object position) {
         try {
             Class<?> posExtKt = Class.forName(
                 "com.chess.chessboard.variants.standard.bitboard.FenUtilsKt");
@@ -656,42 +826,91 @@ public class StockfishExtension {
         return false;
     }
 
+    /**
+     * Screens where a game against another human is in progress (or being watched live) in
+     * Chess.com 4.10.17. Engine overlays are never shown on these (fair play).
+     */
+    private static final java.util.Set<String> ONLINE_GAME_ACTIVITIES = new java.util.HashSet<>(java.util.Arrays.asList(
+            "com.chess.realchess.ui.game.RealGameActivity",                  // live game
+            "com.chess.realchess.ui.wait.WaitGameActivity",                  // live seek
+            "com.chess.realchess.ui.wait.LiveGameSeekV6Activity",            // live seek
+            "com.chess.features.daily.DailyGameActivity",                    // daily (correspondence) game
+            "com.chess.waitgame.daily.DailyGameSeekActivity",                // daily seek
+            "com.chess.features.connectedboards.ConnectedBoardGameActivity", // online game on an e-board
+            "com.chess.features.puzzles.battle.PuzzlesBattleGameActivity",   // puzzle battle vs a human
+            "com.chess.chesstv.ChessTvActivity",                             // watching live games
+            "com.chess.features.more.watch.WatchActivity"                    // watching live games
+    ));
+
+    /** Screens that host a board but never an online game (bots, coach, analysis, archives...). */
+    private static final java.util.Set<String> OFFLINE_BOARD_ACTIVITIES = new java.util.HashSet<>(java.util.Arrays.asList(
+            "com.chess.features.versusbots.game.BotGameActivityV2",
+            "com.chess.features.versusbots.archive.ArchivedBotGameActivityV2",
+            "com.chess.features.guidedcoachgame.GuidedCoachGameActivity",
+            "com.chess.features.train.TrainGameActivity",
+            "com.chess.practice.play.PracticePlayGameActivity",
+            "com.chess.endgames.practice.EndgamePracticeGameActivity",
+            "com.chess.endgames.challenge.EndgameChallengeGameActivity",
+            "com.chess.passandplay.PassAndPlayActivity",
+            "com.chess.features.live.archive.ArchivedLiveGameActivity",      // finished live games
+            "com.chess.diagrams.game.DiagramGameActivity",
+            "com.chess.features.explorer.GameExplorerActivity",
+            "com.chess.gamereview.v2.GameReviewActivity",
+            "com.chess.features.analysis.standalone.StandaloneAnalysisActivity",
+            "com.chess.features.analysis.standalonev2.StandaloneAnalysisActivityV2",
+            "com.chess.features.analysis.selfengineless.AnalysisSelfEnginelessActivity"
+    ));
+
+    /**
+     * Fair-play gate: true if {@code activity} is an online game against a human (or a live
+     * game being watched), where engine overlays must stay off.
+     *
+     * <p>Exact 4.10.17 class names are checked first. The old substring heuristic misfired on
+     * real screens: it blocked coach, train, pass-and-play, endgame and finished-game screens
+     * (any name containing "GameActivity"), and let Chess TV / Watch through. For screens in
+     * neither list only online-only packages count as live.
+     */
     public static boolean isLiveMatch(Activity activity) {
         if (isDeveloperMode) return false;
         if (activity == null) return false;
-        String name = activity.getClass().getName();
-        String lower = name.toLowerCase();
-        
-        if (lower.contains("computer") || lower.contains("bot") || lower.contains("practice") ||
-            lower.contains("analysis") || lower.contains("review") || lower.contains("local") ||
-            lower.contains("solo") || lower.contains("tutorial") || lower.contains("puzzle")) {
-            return false;
-        }
-        
-        if (lower.contains("playactivity") || lower.contains("gameactivity") || lower.contains("live")) {
-            isReviewMode = false;
-            return true;
-        }
-        
-        if (lower.contains(".play.")) {
-            isReviewMode = false;
-            return true;
-        }
-        return false;
+        boolean live = isOnlineGameActivity(activity.getClass().getName());
+        if (live) isReviewMode = false;
+        return live;
     }
 
-    public static Object getLocalAnalysisFlow(
-        Object repository,
-        Object gameIdAndType,
-        String pgn,
-        Object userSide,
-        Object coach,
-        java.util.Set<?> allowedSources,
-        Object analysisDepth,
-        Object analysisEngine
-    ) {
-        Log.d(TAG, "getLocalAnalysisFlow called with pgn: " + (pgn != null ? (pgn.substring(0, Math.min(pgn.length(), 30)) + "...") : "null"));
-        return LocalAnalysisFlow.createFlow(pgn, analysisDepth);
+    static boolean isOnlineGameActivity(String name) {
+        if (name == null) return false;
+        if (ONLINE_GAME_ACTIVITIES.contains(name)) return true;
+        if (OFFLINE_BOARD_ACTIVITIES.contains(name)) return false;
+        return name.startsWith("com.chess.realchess.")
+                || name.startsWith("com.chess.features.daily.")
+                || name.startsWith("com.chess.waitgame.")
+                || name.startsWith("com.chess.chesstv.")
+                || name.startsWith("com.chess.features.connectedboards.");
+    }
+
+    /**
+     * Game Review entry point: the repository receives a ComputerAnalysisConfiguration whose
+     * PGN is replayed through the local engine.
+     *
+     * @param flowClass the app's (obfuscated) coroutine Flow interface, supplied by the patch
+     */
+    public static Object getLocalAnalysisFlowForConfig(Class<?> flowClass, Object config, Object analysisDepth) {
+        String pgn = null;
+        try {
+            if (config instanceof String) {
+                pgn = (String) config;
+            } else if (config != null) {
+                try {
+                    Object v = config.getClass().getMethod("getPgn").invoke(config);
+                    if (v instanceof String) pgn = (String) v;
+                } catch (Throwable ignored) {}
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "getLocalAnalysisFlowForConfig: could not read PGN", t);
+        }
+        Log.d(TAG, "getLocalAnalysisFlow pgn: " + (pgn != null ? (pgn.substring(0, Math.min(pgn.length(), 30)) + "...") : "null"));
+        return LocalAnalysisFlow.createFlow(flowClass, pgn, analysisDepth);
     }
 
     public static Object getFullGameAnalysisPermissions() {
@@ -711,7 +930,7 @@ public class StockfishExtension {
     public static Object getPlayedMove(Object positionObj) {
         if (positionObj == null) return null;
         try {
-            Class<?> pmClass = positionObj.getClass().getClassLoader().loadClass("com.chess.gamereview.repository.AnalyzedGameData$AnalyzedPosition$PlayedMove");
+            Class<?> pmClass = positionObj.getClass().getClassLoader().loadClass(positionObj.getClass().getName() + "$PlayedMove");
             for (Field f : positionObj.getClass().getDeclaredFields()) {
                 if (f.getType().equals(pmClass)) {
                     f.setAccessible(true);
@@ -727,7 +946,7 @@ public class StockfishExtension {
     public static Object getSuggestedMove(Object positionObj) {
         if (positionObj == null) return null;
         try {
-            Class<?> smClass = positionObj.getClass().getClassLoader().loadClass("com.chess.gamereview.repository.AnalyzedGameData$AnalyzedPosition$SuggestedMove");
+            Class<?> smClass = positionObj.getClass().getClassLoader().loadClass(positionObj.getClass().getName() + "$SuggestedMove");
             for (Field f : positionObj.getClass().getDeclaredFields()) {
                 if (f.getType().equals(smClass)) {
                     f.setAccessible(true);
@@ -809,5 +1028,59 @@ public class StockfishExtension {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Builds the neutral review item that replaces an un-renderable one: the played move marked
+     * as a book move with a 0.00 score and no continuation. Constructed reflectively from the
+     * result type's constructor (MoveInfo is api.l with 8 params in 4.10.17), filling
+     * parameters by type.
+     *
+     * @param resultClass     the review item pair type (api.d) supplied by the patch
+     * @param positionAndMove the history entry (chessboard.history.i) for this ply
+     */
+    public static Object buildDummyMoveResult(Class<?> resultClass, Object positionAndMove) {
+        try {
+            java.lang.reflect.Constructor<?> pairCtor = AppTypes.primaryCtor(resultClass);
+            if (pairCtor == null || pairCtor.getParameterTypes().length == 0) return null;
+            Class<?> moveInfoClass = pairCtor.getParameterTypes()[0];
+            java.lang.reflect.Constructor<?> infoCtor = AppTypes.primaryCtor(moveInfoClass);
+            if (infoCtor == null) return null;
+
+            Class<?> historyClass = Class.forName("com.chess.chessboard.history.i");
+            Class<?> classificationClass = Class.forName("com.chess.compengine.AnalysisMoveClassification");
+            Class<?> scoreClass = Class.forName("com.chess.entities.Score");
+            Class<?> colorClass = Class.forName("com.chess.entities.Color");
+
+            Object position = historyClass.getMethod("e").invoke(positionAndMove);
+            Object side = position.getClass().getMethod("getSideToMove").invoke(position);
+            Object companion = scoreClass.getField("Companion").get(null);
+            Object score = companion.getClass()
+                    .getMethod("from", float.class, Integer.class, colorClass)
+                    .invoke(companion, 0f, null, side);
+            Object book = null;
+            for (Object c : classificationClass.getEnumConstants()) {
+                if ("BOOK".equals(((Enum<?>) c).name())) { book = c; break; }
+            }
+
+            Class<?>[] p = infoCtor.getParameterTypes();
+            Object[] args = new Object[p.length];
+            boolean historyUsed = false;
+            for (int i = 0; i < p.length; i++) {
+                if (p[i] == historyClass && !historyUsed) { args[i] = positionAndMove; historyUsed = true; }
+                else if (p[i] == classificationClass) args[i] = book;
+                else if (p[i] == scoreClass) args[i] = score;
+                else args[i] = AppTypes.defaultFor(p[i]);
+            }
+            Object info = infoCtor.newInstance(args);
+
+            Object[] pairArgs = new Object[pairCtor.getParameterTypes().length];
+            pairArgs[0] = info;
+            for (int i = 1; i < pairArgs.length; i++) pairArgs[i] = AppTypes.defaultFor(pairCtor.getParameterTypes()[i]);
+            return pairCtor.newInstance(pairArgs);
+        } catch (Throwable t) {
+            Log.e(TAG, "buildDummyMoveResult failed", t);
+            return null;
+        }
     }
 }

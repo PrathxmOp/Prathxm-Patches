@@ -148,25 +148,34 @@ val stockfishPatch = bytecodePatch(
             """
         )
 
-        val repoReturnType = GameAnalysisRepositoryGetGameAnalysisFingerprint.method.returnType
-        GameAnalysisRepositoryGetGameAnalysisFingerprint.method.addInstructions(
+        // ─────────────────────────────────────────────────────────────────
+        // Hook 6b – Replace the remote Game Review with local Stockfish analysis.
+        //
+        // The Flow interface type is passed to the extension (const-class of the method's
+        // return type) so the extension never needs to know obfuscated coroutine class names.
+        // ─────────────────────────────────────────────────────────────────
+        // a(ComputerAnalysisConfiguration config, UserSide, Coach, Set, AnalysisDepth, AnalysisEngine, boolean skillsEnabled)
+        val repoMethod = GameAnalysisRepositoryGetGameAnalysisFingerprint.method
+        val repoReturnType = repoMethod.returnType
+        val pgnReg = if (repoMethod.parameterTypes[0] == "Lcom/chess/entities/ComputerAnalysisConfiguration;") "p1" else "p2"
+        val depthIdx = repoMethod.parameterTypes.indexOf("Lcom/chess/entities/AnalysisDepth;")
+        val depthReg = if (depthIdx >= 0) "p" + (depthIdx + 1) else "p5"
+        repoMethod.addInstructions(
             0,
             """
-                move-object/from16 v0, p0
-                move-object/from16 v1, p1
-                move-object/from16 v2, p2
-                move-object/from16 v3, p3
-                move-object/from16 v4, p4
-                move-object/from16 v5, p5
-                move-object/from16 v6, p6
-                move-object/from16 v7, p7
-                invoke-static/range {v0 .. v7}, $EXTENSION_CLASS->getLocalAnalysisFlow(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;Ljava/util/Set;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+                const-class v0, $repoReturnType
+                move-object/from16 v1, $pgnReg
+                move-object/from16 v2, $depthReg
+                invoke-static {v0, v1, v2}, $EXTENSION_CLASS->getLocalAnalysisFlowForConfig(Ljava/lang/Class;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
                 move-result-object v0
                 check-cast v0, $repoReturnType
                 return-object v0
             """
         )
 
+        // The engine-line preview is rebuilt by the app from the eval PV; returning null makes
+        // the review fall back to the (always valid) played/best move, which avoids crashes on
+        // lines the app's converter cannot replay.
         GameReviewV2V0DFingerprint.method.addInstructions(
             0,
             """
@@ -175,6 +184,10 @@ val stockfishPatch = bytecodePatch(
             """
         )
 
+        // If the app is about to build a review item from data it cannot replay (no played
+        // move / unconvertible suggestion), return a neutral "book" item instead of crashing.
+        // The replacement object is built by the extension via reflection so it adapts to the
+        // MoveInfo constructor of each Chess.com version.
         GameReviewV2V0JFingerprint.method.addInstructions(
             0,
             """
@@ -183,38 +196,15 @@ val stockfishPatch = bytecodePatch(
                 invoke-static {v0, v1}, $EXTENSION_CLASS->shouldUseDummyMove(Ljava/lang/Object;Ljava/lang/Object;)Z
                 move-result v0
                 if-eqz v0, :proceed
-                goto :dummy_move
-
-                :dummy_move
-                invoke-virtual/range {p1 .. p1}, Lcom/chess/chessboard/history/i;->e()Lcom/chess/chessboard/variants/d;
+                const-class v0, Lcom/chess/gamereview/api/d;
+                move-object/from16 v1, p1
+                invoke-static {v0, v1}, $EXTENSION_CLASS->buildDummyMoveResult(Ljava/lang/Class;Ljava/lang/Object;)Ljava/lang/Object;
                 move-result-object v0
-                invoke-interface {v0}, Lcom/chess/chessboard/variants/b;->getSideToMove()Lcom/chess/entities/Color;
-                move-result-object v0
-
-                sget-object v1, Lcom/chess/entities/Score;->Companion:Lcom/chess/entities/Score${'$'}Companion;
-                const/4 v2, 0
-                const/4 v3, 0
-                invoke-virtual {v1, v2, v3, v0}, Lcom/chess/entities/Score${'$'}Companion;->from(FLjava/lang/Integer;Lcom/chess/entities/Color;)Lcom/chess/entities/Score;
-                move-result-object v5
-
-                sget-object v6, Lcom/chess/compengine/AnalysisMoveClassification;->g:Lcom/chess/compengine/AnalysisMoveClassification;
-
-                new-instance v7, Lcom/chess/gamereview/api/k;
-                move-object/from16 v8, p1
-                move-object v9, v6
-                const/4 v10, 0
-                const/4 v11, 0
-                move-object v12, v5
-                const/4 v13, 0
-                const/4 v14, 0
-                invoke-direct/range {v7 .. v14}, Lcom/chess/gamereview/api/k;-><init>(Lcom/chess/chessboard/history/i;Lcom/chess/compengine/AnalysisMoveClassification;Lcom/chess/gamereview/api/n;Lcom/chess/chessboard/history/i;Lcom/chess/entities/Score;Lcom/chess/gamereview/api/k${'$'}a;Lcom/chess/coach/AnimatedCoachExpression;)V
-
-                new-instance v0, Lcom/chess/gamereview/api/d;
-                const/4 v1, 0
-                invoke-direct {v0, v7, v1}, Lcom/chess/gamereview/api/d;-><init>(Lcom/chess/gamereview/api/k;Lcom/chess/gamereview/api/k;)V
+                if-eqz v0, :proceed
+                check-cast v0, Lcom/chess/gamereview/api/d;
                 return-object v0
-
                 :proceed
+                nop
             """
         )
 

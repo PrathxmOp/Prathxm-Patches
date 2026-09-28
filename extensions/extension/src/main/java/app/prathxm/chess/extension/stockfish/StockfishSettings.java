@@ -38,8 +38,42 @@ public class StockfishSettings {
         getPrefs(context).edit().putBoolean(KEY_ENGINE_ENABLED, enabled).apply();
     }
 
+    /** Max selectable live-analysis depth. */
+    public static final int MAX_DEPTH = 40;
+
     public static int getDepth(Context context) {
-        return getPrefs(context).getInt(KEY_DEPTH, 14);
+        return Math.max(1, Math.min(MAX_DEPTH, getPrefs(context).getInt(KEY_DEPTH, 18)));
+    }
+
+    // ── Engine power ─────────────────────────────────────────────────────────
+
+    private static final String KEY_THREADS = "engine_threads";
+
+    public static int getCpuCount() {
+        return Math.max(1, Runtime.getRuntime().availableProcessors());
+    }
+
+    /** Search threads; defaults to 3 (stored 0 = auto). */
+    public static int getThreads(Context context) {
+        int t = getPrefs(context).getInt(KEY_THREADS, 0);
+        int cpus = getCpuCount();
+        if (t <= 0) return Math.min(3, cpus);
+        return Math.min(t, cpus);
+    }
+
+    public static void setThreads(Context context, int threads) {
+        getPrefs(context).edit().putInt(KEY_THREADS, Math.max(0, threads)).apply();
+    }
+
+    private static final String KEY_REVIEW_BOOST = "review_depth_boost";
+
+    /** Extra depth added on top of the Chess.com game review depth preset. */
+    public static int getReviewDepthBoost(Context context) {
+        return Math.max(0, Math.min(10, getPrefs(context).getInt(KEY_REVIEW_BOOST, 0)));
+    }
+
+    public static void setReviewDepthBoost(Context context, int boost) {
+        getPrefs(context).edit().putInt(KEY_REVIEW_BOOST, Math.max(0, Math.min(10, boost))).apply();
     }
 
     public static void setDepth(Context context, int depth) {
@@ -172,6 +206,27 @@ public class StockfishSettings {
 
     public static void setMateAnnouncementEnabled(Context context, boolean enabled) {
         getPrefs(context).edit().putBoolean(KEY_SHOW_MATE_ANNOUNCEMENT, enabled).apply();
+    }
+
+    private static final String KEY_SHOW_ENGINE_INFO = "show_engine_info";
+
+    /** Small "depth · score" line above the board, next to the W/D/L bar. */
+    public static boolean isEngineInfoEnabled(Context context) {
+        return getPrefs(context).getBoolean(KEY_SHOW_ENGINE_INFO, false);
+    }
+
+    public static void setEngineInfoEnabled(Context context, boolean enabled) {
+        getPrefs(context).edit().putBoolean(KEY_SHOW_ENGINE_INFO, enabled).apply();
+    }
+
+    /** Restores every engine setting to its default (the tour flag is kept). */
+    public static void resetToDefaults(Context context) {
+        boolean tour = isTourShown(context);
+        boolean warning = isWarningAccepted(context);
+        getPrefs(context).edit().clear()
+                .putBoolean(KEY_TOUR_SHOWN, tour)
+                .putBoolean(KEY_WARNING_ACCEPTED, warning)
+                .apply();
     }
 
     private static final String KEY_TOUR_SHOWN = "stockfish_tour_shown";

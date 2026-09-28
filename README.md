@@ -41,9 +41,9 @@ Access features by interacting with the Chess.com logo on the main screen:
 ## 🩹 Patches
 
 <!-- PATCHES_START -->
-> **[v1.13.1](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.13.1)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;7 patches total
+> **[v1.14.0-dev.6](https://github.com/PrathxmOp/Prathxm-Patches/releases/tag/v1.14.0-dev.6)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;8 patches total
 <details>
-<summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;7 patches</summary>
+<summary>📦 Chess.com&nbsp;&nbsp;•&nbsp;&nbsp;8 patches</summary>
 <br>
 
 **🎯 Supported versions:**
@@ -59,6 +59,7 @@ Access features by interacting with the Chess.com logo on the main screen:
 | [Global Crash Handler](#global-crash-handler) | Catches uncaught exceptions and displays a custom crash screen with details to report issues. |  |
 | [Lichess Puzzles](#lichess-puzzles) | Loads daily puzzles from Lichess and bypasses Chess.com puzzle premium limits. |  |
 | [Local Stockfish Analysis](#local-stockfish-analysis) | Enables local Stockfish engine for post-game review & analysis. |  |
+| [Unlimited Play Coach](#unlimited-play-coach) | Removes the one-free-game-per-day limit on Play Coach. |  |
 | [Unlock All Bots](#unlock-all-bots) | Unlocks all premium and restricted bots in the Versus Bots feature. |  |
 
 </details>
@@ -113,6 +114,11 @@ If you like these patches, consider supporting development!
 Questions, feedback, or title claims? Reach out:
 - [**GitHub Discussions**](https://github.com/PrathxmOp/Prathxm-Patches/discussions)
 - [**Signal Private Message**](https://signal.me/#eu/5hn89XV1PsUQlPRc0WhEoUEh197WioxzFJj-CTXOGe1Boymy0-FCub3zwWXa_L3a)
+
+## 📜 Attribution & Credits
+
+This project includes implementations, fixes, and features derived from and ported from:
+- [**VenusIsJaded/Prathxm-Patches**](https://github.com/VenusIsJaded/Prathxm-Patches) (GPL-3.0) — Special thanks for opening book data integration, Lichess puzzle sound fixes, win-probability review math improvements, and coroutine flow bridge enhancements.
 
 ---
 

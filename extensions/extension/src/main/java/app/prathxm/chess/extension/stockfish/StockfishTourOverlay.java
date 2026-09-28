@@ -82,7 +82,7 @@ public class StockfishTourOverlay extends Dialog {
         
         // Add a text indicating "Logo Area" inside the highlightView or just below it
         TextView labelLogo = new TextView(getContext());
-        labelLogo.setText("GESTURE LOGO AREA (TOP 100dp)");
+        labelLogo.setText("GESTURE AREA");
         labelLogo.setTextColor(0xFF81B64C);
         labelLogo.setTextSize(11);
         labelLogo.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
@@ -144,7 +144,7 @@ public class StockfishTourOverlay extends Dialog {
         
         // Subtitle
         TextView subtitleTv = new TextView(getContext());
-        subtitleTv.setText("Since the engine runs locally offline, use these quick gestures on the Chess.com logo at the top of the screen:");
+        subtitleTv.setText("Stockfish 19 runs offline on your phone. Control it with two gestures on the top bar of the home screen, where the Chess.com logo is:");
         subtitleTv.setTextColor(0xFFB0AEA9);
         subtitleTv.setTextSize(13);
         subtitleTv.setGravity(Gravity.CENTER);
@@ -160,8 +160,8 @@ public class StockfishTourOverlay extends Dialog {
         // Feature 1: Tap & Hold
         LinearLayout row1 = createFeatureRow(
             "👆", 
-            "Tap & Hold Logo", 
-            "Opens the Stockfish settings menu to configure engine depth, MultiPV, evaluation bars, and ELO limits.",
+            "Press & hold the top bar",
+            "Opens Engine Settings: depth, number of arrows, evaluation bar, CPU threads and more.",
             density
         );
         card.addView(row1);
@@ -181,8 +181,8 @@ public class StockfishTourOverlay extends Dialog {
         // Feature 2: Double-Tap
         LinearLayout row2 = createFeatureRow(
             "⚡", 
-            "Double-Tap Logo", 
-            "Instantly toggles Panic Mode (hides or shows the evaluation bar, threat arrows, and WDL indicators).",
+            "Double-tap the top bar",
+            "Panic mode: turns the engine and every overlay (arrows, bars, alerts) off or back on instantly.",
             density
         );
         card.addView(row2);

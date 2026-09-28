@@ -55,3 +55,11 @@ object UserDataGetPremiumStatusFingerprint : Fingerprint(
     parameters = listOf(),
     returnType = "Lcom/chess/entities/PremiumStatus;"
 )
+
+object UserMembershipLevelOfCodeFingerprint : Fingerprint(
+    definingClass = "Lcom/chess/entities/UserMembershipLevel${'$'}Companion;",
+    name = "ofCode",
+    parameters = listOf("Ljava/lang/String;"),
+    returnType = "Lcom/chess/entities/UserMembershipLevel;"
+)
+
