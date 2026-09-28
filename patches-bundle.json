@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-09-28T17:49:16",
-  "description": "## [1.14.0-dev.5](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.14.0-dev.4...v1.14.0-dev.5) (2026-09-28)\n\n### 🐛 Bug Fixes\n\n* **Chess.com:** resolve GameAnalysisRepositoryGetGameAnalysisFingerprint matching error on 4.10.0-googleplay ([95b5964](https://github.com/PrathxmOp/Prathxm-Patches/commit/95b5964325bc9fdb15a44e5535993793fa78d45f))",
-  "download_url": "https://github.com/PrathxmOp/Prathxm-Patches/releases/download/v1.14.0-dev.5/patches-1.14.0-dev.5.mpp",
+  "created_at": "2026-09-28T19:28:28",
+  "description": "## [1.14.0-dev.6](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.14.0-dev.5...v1.14.0-dev.6) (2026-09-28)\n\n### 🐛 Bug Fixes\n\n* **Chess.com:** resolve Game Review blank screen and GameAnalysisPermissions invalid field reference ([ec10e5c](https://github.com/PrathxmOp/Prathxm-Patches/commit/ec10e5cab702e3aa2dc8a36594c3ad8c4503c77c))",
+  "download_url": "https://github.com/PrathxmOp/Prathxm-Patches/releases/download/v1.14.0-dev.6/patches-1.14.0-dev.6.mpp",
   "signature_download_url": "",
-  "version": "1.14.0-dev.5"
+  "version": "1.14.0-dev.6"
 }

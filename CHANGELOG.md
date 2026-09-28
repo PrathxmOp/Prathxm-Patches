@@ -1,3 +1,9 @@
+## [1.14.0-dev.6](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.14.0-dev.5...v1.14.0-dev.6) (2026-09-28)
+
+### 🐛 Bug Fixes
+
+* **Chess.com:** resolve Game Review blank screen and GameAnalysisPermissions invalid field reference ([ec10e5c](https://github.com/PrathxmOp/Prathxm-Patches/commit/ec10e5cab702e3aa2dc8a36594c3ad8c4503c77c))
+
 ## [1.14.0-dev.5](https://github.com/PrathxmOp/Prathxm-Patches/compare/v1.14.0-dev.4...v1.14.0-dev.5) (2026-09-28)
 
 ### 🐛 Bug Fixes
